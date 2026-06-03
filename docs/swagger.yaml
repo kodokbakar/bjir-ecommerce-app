@@ -1,0 +1,247 @@
+basePath: /
+definitions:
+  handlers.AuthSuccessResponse:
+    properties:
+      data:
+        $ref: '#/definitions/services.AuthResponse'
+      message:
+        example: login successful
+        type: string
+    type: object
+  handlers.ErrorResponse:
+    properties:
+      error:
+        example: bad_request
+        type: string
+      message:
+        example: invalid request body
+        type: string
+    type: object
+  handlers.HealthResponse:
+    properties:
+      message:
+        example: Go E-Commerce API is running
+        type: string
+      status:
+        example: ok
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        example: test@example.com
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.MeResponse:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      role:
+        example: customer
+        type: string
+      user_id:
+        example: 8b5d1d9a-2b0c-4fd7-9c27-25e05e79ad21
+        type: string
+    type: object
+  handlers.MessageResponse:
+    properties:
+      message:
+        example: admin route access granted
+        type: string
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      email:
+        example: test@example.com
+        type: string
+      name:
+        example: Test User
+        maxLength: 100
+        minLength: 2
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  services.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/services.UserResponse'
+    type: object
+  services.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API for e-commerce platform built with Go, Gin, PostgreSQL, Redis,
+    and JWT authentication.
+  title: Go E-Commerce API
+  version: "1.0"
+paths:
+  /api/v1/admin/ping:
+    get:
+      description: Access admin-only endpoint.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Admin ping
+      tags:
+      - Admin
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password, then return an access
+        token.
+      parameters:
+      - description: Login request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.AuthSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new customer account and return an access token.
+      parameters:
+      - description: Register request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.AuthSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Register user
+      tags:
+      - Auth
+  /api/v1/me:
+    get:
+      description: Return user identity extracted from validated Bearer token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user from token
+      tags:
+      - Auth
+  /health:
+    get:
+      description: Check whether the API server is running.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.HealthResponse'
+      summary: Health check
+      tags:
+      - System
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
