@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -12,9 +13,20 @@ import (
 	"github.com/kodokbakar/go-ecommerce-api/internal/config"
 )
 
+const DefaultMigrationsPath = "migrations"
+
 func RunMigrations(cfg config.DatabaseConfig) error {
+	return RunMigrationsFromPath(cfg, DefaultMigrationsPath)
+}
+
+func RunMigrationsFromPath(cfg config.DatabaseConfig, migrationsPath string) error {
+	migrationsPath = strings.TrimSpace(migrationsPath)
+	if migrationsPath == "" {
+		return fmt.Errorf("migrations path is required")
+	}
+
 	m, err := migrate.New(
-		"file://migrations",
+		"file://"+migrationsPath,
 		cfg.DSN(),
 	)
 	if err != nil {

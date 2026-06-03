@@ -10,7 +10,7 @@ import (
 	"github.com/kodokbakar/go-ecommerce-api/internal/config"
 )
 
-func NewPostgresPool(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
+func NewPostgresPoolConfig(cfg config.DatabaseConfig) (*pgxpool.Config, error) {
 	poolConfig, err := pgxpool.ParseConfig(cfg.DSN())
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse postgres config: %w", err)
@@ -21,6 +21,15 @@ func NewPostgresPool(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.P
 	poolConfig.MaxConnLifetime = cfg.MaxConnLifetime
 	poolConfig.MaxConnIdleTime = cfg.MaxConnIdleTime
 	poolConfig.HealthCheckPeriod = cfg.HealthCheckPeriod
+
+	return poolConfig, nil
+}
+
+func NewPostgresPool(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
+	poolConfig, err := NewPostgresPoolConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	connectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

@@ -9,8 +9,8 @@ import (
 	"github.com/kodokbakar/go-ecommerce-api/internal/config"
 )
 
-func NewRedisClient(ctx context.Context, cfg config.RedisConfig) (*redis.Client, error) {
-	client := redis.NewClient(&redis.Options{
+func NewRedisOptions(cfg config.RedisConfig) *redis.Options {
+	return &redis.Options{
 		Addr:         cfg.Addr(),
 		Password:     cfg.Password,
 		DB:           cfg.DB,
@@ -19,7 +19,11 @@ func NewRedisClient(ctx context.Context, cfg config.RedisConfig) (*redis.Client,
 		DialTimeout:  cfg.DialTimeout,
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
-	})
+	}
+}
+
+func NewRedisClient(ctx context.Context, cfg config.RedisConfig) (*redis.Client, error) {
+	client := redis.NewClient(NewRedisOptions(cfg))
 
 	if err := client.Ping(ctx).Err(); err != nil {
 		if closeErr := client.Close(); closeErr != nil {

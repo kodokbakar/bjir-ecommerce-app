@@ -7,16 +7,19 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/models"
 )
 
-type UserRepository struct {
-	db *pgxpool.Pool
+type PgxQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func NewUserRepository(db *pgxpool.Pool) *UserRepository {
+type UserRepository struct {
+	db PgxQuerier
+}
+
+func NewUserRepository(db PgxQuerier) *UserRepository {
 	return &UserRepository{
 		db: db,
 	}
