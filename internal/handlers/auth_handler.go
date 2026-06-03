@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/kodokbakar/go-ecommerce-api/internal/response"
 	"github.com/kodokbakar/go-ecommerce-api/internal/services"
 )
 
@@ -46,14 +47,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "bad_request",
-			"message": "invalid request body",
-		})
+		response.BadRequest(c, "invalid request body", err.Error())
 		return
 	}
 
-	response, err := h.authService.Register(c.Request.Context(), services.RegisterInput{
+	authResponse, err := h.authService.Register(c.Request.Context(), services.RegisterInput{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
@@ -63,10 +61,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "user registered successfully",
-		"data":    response,
-	})
+	response.Success(c, http.StatusCreated, "user registered successfully", authResponse)
 }
 
 // Login godoc
@@ -86,14 +81,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "bad_request",
-			"message": "invalid request body",
-		})
+		response.BadRequest(c, "invalid request body", err.Error())
 		return
 	}
 
-	response, err := h.authService.Login(c.Request.Context(), services.LoginInput{
+	authResponse, err := h.authService.Login(c.Request.Context(), services.LoginInput{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -102,42 +94,24 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "login successful",
-		"data":    response,
-	})
+	response.Success(c, http.StatusOK, "login successful", authResponse)
 }
 
 func handleAuthError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, services.ErrInvalidInput):
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "bad_request",
-			"message": err.Error(),
-		})
+		response.BadRequest(c, err.Error(), nil)
 
 	case errors.Is(err, services.ErrEmailAlreadyRegistered):
-		c.JSON(http.StatusConflict, gin.H{
-			"error":   "conflict",
-			"message": "email already registered",
-		})
+		response.Conflict(c, "email already registered", nil)
 
 	case errors.Is(err, services.ErrInvalidCredentials):
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "unauthorized",
-			"message": "invalid email or password",
-		})
+		response.Unauthorized(c, "invalid email or password", nil)
 
 	case errors.Is(err, services.ErrInactiveUser):
-		c.JSON(http.StatusForbidden, gin.H{
-			"error":   "forbidden",
-			"message": "user account is inactive",
-		})
+		response.Forbidden(c, "user account is inactive", nil)
 
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "internal_server_error",
-			"message": "something went wrong",
-		})
+		response.InternalServerError(c, "something went wrong", nil)
 	}
 }

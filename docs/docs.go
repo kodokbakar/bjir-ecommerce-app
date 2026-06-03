@@ -224,6 +224,10 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "login successful"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -231,25 +235,50 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
-                    "type": "string",
-                    "example": "bad_request"
+                    "$ref": "#/definitions/handlers.ErrorResponseBody"
                 },
                 "message": {
                     "type": "string",
                     "example": "invalid request body"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "handlers.ErrorResponseBody": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "bad_request"
+                },
+                "details": {}
+            }
+        },
+        "handlers.HealthData": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "ok"
                 }
             }
         },
         "handlers.HealthResponse": {
             "type": "object",
             "properties": {
+                "data": {
+                    "$ref": "#/definitions/handlers.HealthData"
+                },
                 "message": {
                     "type": "string",
                     "example": "Go E-Commerce API is running"
                 },
-                "status": {
-                    "type": "string",
-                    "example": "ok"
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -270,7 +299,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.MeResponse": {
+        "handlers.MeData": {
             "type": "object",
             "properties": {
                 "email": {
@@ -287,12 +316,32 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.MeResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/handlers.MeData"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "current user retrieved successfully"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "handlers.MessageResponse": {
             "type": "object",
             "properties": {
                 "message": {
                     "type": "string",
                     "example": "admin route access granted"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },

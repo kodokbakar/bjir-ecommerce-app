@@ -2,11 +2,11 @@ package middleware
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/auth"
+	"github.com/kodokbakar/go-ecommerce-api/internal/response"
 )
 
 const (
@@ -82,20 +82,14 @@ func GetCurrentUserRole(c *gin.Context) (string, bool) {
 }
 
 func respondUnauthorized(c *gin.Context, message string) {
-	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-		"error":   "unauthorized",
-		"message": message,
-	})
+	response.Unauthorized(c, message, nil)
 }
 
 func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		currentRole, ok := GetCurrentUserRole(c)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error":   "unauthorized",
-				"message": "user role not found in context",
-			})
+			response.Unauthorized(c, "user role not found in context", nil)
 			return
 		}
 
@@ -106,10 +100,7 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 			}
 		}
 
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-			"error":   "forbidden",
-			"message": "you do not have permission to access this resource",
-		})
+		response.Forbidden(c, "you do not have permission to access this resource", nil)
 	}
 }
 

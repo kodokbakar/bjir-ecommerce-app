@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/kodokbakar/go-ecommerce-api/internal/response"
 )
 
 // HealthCheck godoc
@@ -14,8 +16,7 @@ import (
 // @Success 200 {object} HealthResponse
 // @Router /health [get]
 func HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "ok",
-		"message": "Go E-Commerce API is running",
+	response.Success(c, http.StatusOK, "Go E-Commerce API is running", gin.H{
+		"status": "ok",
 	})
 }

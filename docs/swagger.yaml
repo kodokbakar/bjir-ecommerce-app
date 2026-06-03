@@ -7,24 +7,44 @@ definitions:
       message:
         example: login successful
         type: string
+      success:
+        example: true
+        type: boolean
     type: object
   handlers.ErrorResponse:
     properties:
       error:
-        example: bad_request
-        type: string
+        $ref: '#/definitions/handlers.ErrorResponseBody'
       message:
         example: invalid request body
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  handlers.ErrorResponseBody:
+    properties:
+      code:
+        example: bad_request
+        type: string
+      details: {}
+    type: object
+  handlers.HealthData:
+    properties:
+      status:
+        example: ok
         type: string
     type: object
   handlers.HealthResponse:
     properties:
+      data:
+        $ref: '#/definitions/handlers.HealthData'
       message:
         example: Go E-Commerce API is running
         type: string
-      status:
-        example: ok
-        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   handlers.LoginRequest:
     properties:
@@ -38,7 +58,7 @@ definitions:
     - email
     - password
     type: object
-  handlers.MeResponse:
+  handlers.MeData:
     properties:
       email:
         example: user@example.com
@@ -50,11 +70,25 @@ definitions:
         example: 8b5d1d9a-2b0c-4fd7-9c27-25e05e79ad21
         type: string
     type: object
+  handlers.MeResponse:
+    properties:
+      data:
+        $ref: '#/definitions/handlers.MeData'
+      message:
+        example: current user retrieved successfully
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
   handlers.MessageResponse:
     properties:
       message:
         example: admin route access granted
         type: string
+      success:
+        example: true
+        type: boolean
     type: object
   handlers.RegisterRequest:
     properties:

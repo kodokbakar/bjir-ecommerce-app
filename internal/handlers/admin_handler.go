@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/kodokbakar/go-ecommerce-api/internal/response"
 )
 
 // AdminPing godoc
@@ -17,7 +19,5 @@ import (
 // @Failure 403 {object} ErrorResponse
 // @Router /api/v1/admin/ping [get]
 func AdminPing(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "admin route access granted",
-	})
+	response.Success(c, http.StatusOK, "admin route access granted", nil)
 }

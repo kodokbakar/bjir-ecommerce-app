@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -278,5 +279,28 @@ func TestLoginHandlerInactiveUser(t *testing.T) {
 
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected status 403, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func assertStandardResponse(t *testing.T, body []byte, expectedSuccess bool) {
+	t.Helper()
+
+	var responseBody struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Data    any    `json:"data"`
+		Error   any    `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &responseBody); err != nil {
+		t.Fatalf("failed to decode response body: %v. body: %s", err, string(body))
+	}
+
+	if responseBody.Success != expectedSuccess {
+		t.Fatalf("expected success %v, got %v. body: %s", expectedSuccess, responseBody.Success, string(body))
+	}
+
+	if responseBody.Message == "" {
+		t.Fatalf("expected message field, got empty. body: %s", string(body))
 	}
 }

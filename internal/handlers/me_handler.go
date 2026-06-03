@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/middleware"
+	"github.com/kodokbakar/go-ecommerce-api/internal/response"
 )
 
 // Me godoc
@@ -22,7 +23,7 @@ func Me(c *gin.Context) {
 	email, _ := middleware.GetCurrentUserEmail(c)
 	role, _ := middleware.GetCurrentUserRole(c)
 
-	c.JSON(http.StatusOK, gin.H{
+	response.Success(c, http.StatusOK, "current user retrieved successfully", gin.H{
 		"user_id": userID,
 		"email":   email,
 		"role":    role,
