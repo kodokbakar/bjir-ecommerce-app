@@ -199,6 +199,115 @@ func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 	return SetupRouter(jwtManager, authHandler, categoryHandler, productHandler), jwtManager
 }
 
+func TestRBAC_PublicProductRoutes_WithoutToken_ReturnsOK(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	tests := []struct {
+		name string
+		path string
+	}{
+		{
+			name: "GET products",
+			path: "/api/v1/products",
+		},
+		{
+			name: "GET product by id",
+			path: "/api/v1/products/product-id",
+		},
+		{
+			name: "GET product by slug",
+			path: "/api/v1/products/slug/product",
+		},
+		{
+			name: "GET categories",
+			path: "/api/v1/categories",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+			}
+		})
+	}
+}
+
+func TestRBAC_ProtectedMe_WithoutToken_ReturnsUnauthorized(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestRBAC_ProtectedMe_WithCustomerToken_ReturnsOK(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("customer-id", "customer@example.com", "customer")
+	if err != nil {
+		t.Fatalf("failed to generate customer token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestRBAC_AdminPing_WithCustomerToken_ReturnsForbidden(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("customer-id", "customer@example.com", "customer")
+	if err != nil {
+		t.Fatalf("failed to generate customer token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/ping", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestRBAC_AdminPing_WithAdminToken_ReturnsOK(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("admin-id", "admin@example.com", "admin")
+	if err != nil {
+		t.Fatalf("failed to generate admin token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/ping", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestCategoryAdminRoutes_WithoutToken_ReturnsUnauthorized(t *testing.T) {
 	r, _ := setupRouterForCategoryAuthTest()
 

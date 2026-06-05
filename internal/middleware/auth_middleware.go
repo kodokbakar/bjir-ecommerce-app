@@ -109,3 +109,41 @@ func IsUnauthorizedError(err error) bool {
 		errors.Is(err, auth.ErrInvalidToken) ||
 		errors.Is(err, auth.ErrInvalidAuthHeader)
 }
+
+func RequireSelfOrAdmin(userIDParam string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		currentUserID, ok := GetCurrentUserID(c)
+		if !ok || currentUserID == "" {
+			response.Unauthorized(c, "unauthorized", "user id not found in context")
+			c.Abort()
+			return
+		}
+
+		currentUserRole, ok := GetCurrentUserRole(c)
+		if !ok || currentUserRole == "" {
+			response.Forbidden(c, "forbidden", "user role not found in context")
+			c.Abort()
+			return
+		}
+
+		if currentUserRole == "admin" {
+			c.Next()
+			return
+		}
+
+		targetUserID := c.Param(userIDParam)
+		if targetUserID == "" {
+			response.BadRequest(c, "bad request", "user id parameter is required")
+			c.Abort()
+			return
+		}
+
+		if currentUserID != targetUserID {
+			response.Forbidden(c, "forbidden", "you can only access your own resource")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
