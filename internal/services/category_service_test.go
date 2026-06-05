@@ -8,19 +8,21 @@ import (
 	"time"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/models"
+	"github.com/kodokbakar/go-ecommerce-api/internal/repository"
 )
 
 type fakeCategoryRepository struct {
-	createFunc       func(ctx context.Context, category *models.Category) error
-	findAllFunc      func(ctx context.Context) ([]models.Category, error)
-	findByIDFunc     func(ctx context.Context, id string) (*models.Category, error)
-	findBySlugFunc   func(ctx context.Context, slug string) (*models.Category, error)
-	existsByNameFunc func(ctx context.Context, name string, excludeID string) (bool, error)
-	existsBySlugFunc func(ctx context.Context, slug string, excludeID string) (bool, error)
-	hasProductsFunc  func(ctx context.Context, categoryID string) (bool, error)
-	hasChildrenFunc  func(ctx context.Context, categoryID string) (bool, error)
-	updateFunc       func(ctx context.Context, category *models.Category) error
-	deleteFunc       func(ctx context.Context, id string) error
+	createFunc           func(ctx context.Context, category *models.Category) error
+	findAllFunc          func(ctx context.Context) ([]models.Category, error)
+	findByIDFunc         func(ctx context.Context, id string) (*models.Category, error)
+	findBySlugFunc       func(ctx context.Context, slug string) (*models.Category, error)
+	existsByNameFunc     func(ctx context.Context, name string, excludeID string) (bool, error)
+	existsBySlugFunc     func(ctx context.Context, slug string, excludeID string) (bool, error)
+	hasProductsFunc      func(ctx context.Context, categoryID string) (bool, error)
+	hasChildrenFunc      func(ctx context.Context, categoryID string) (bool, error)
+	updateFunc           func(ctx context.Context, category *models.Category) error
+	findAllPaginatedFunc func(ctx context.Context, filter repository.CategoryListFilter) ([]models.Category, int, error)
+	deleteFunc           func(ctx context.Context, id string) error
 }
 
 func newFakeCategoryRepository() *fakeCategoryRepository {
@@ -70,6 +72,9 @@ func newFakeCategoryRepository() *fakeCategoryRepository {
 			category.UpdatedAt = now
 			return nil
 		},
+		findAllPaginatedFunc: func(ctx context.Context, filter repository.CategoryListFilter) ([]models.Category, int, error) {
+			return []models.Category{}, 0, nil
+		},
 		deleteFunc: func(ctx context.Context, id string) error {
 			return nil
 		},
@@ -82,6 +87,10 @@ func (f *fakeCategoryRepository) Create(ctx context.Context, category *models.Ca
 
 func (f *fakeCategoryRepository) FindAll(ctx context.Context) ([]models.Category, error) {
 	return f.findAllFunc(ctx)
+}
+
+func (f *fakeCategoryRepository) FindAllPaginated(ctx context.Context, filter repository.CategoryListFilter) ([]models.Category, int, error) {
+	return f.findAllPaginatedFunc(ctx, filter)
 }
 
 func (f *fakeCategoryRepository) FindByID(ctx context.Context, id string) (*models.Category, error) {
@@ -433,5 +442,107 @@ func TestCategoryService_BuildCategoryTree_CycleDoesNotPanic(t *testing.T) {
 
 	if len(tree) != 0 {
 		t.Fatalf("expected no root categories for pure cycle, got %d", len(tree))
+	}
+}
+
+func TestCategoryService_GetAll_WithPagination(t *testing.T) {
+	repo := newFakeCategoryRepository()
+
+	repo.findAllPaginatedFunc = func(ctx context.Context, filter repository.CategoryListFilter) ([]models.Category, int, error) {
+		if filter.Limit != 10 {
+			t.Fatalf("expected limit 10, got %d", filter.Limit)
+		}
+
+		if filter.Offset != 10 {
+			t.Fatalf("expected offset 10, got %d", filter.Offset)
+		}
+
+		return []models.Category{}, 25, nil
+	}
+
+	service := NewCategoryService(repo)
+
+	result, err := service.GetAll(context.Background(), CategoryListInput{
+		Page:  2,
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Page != 2 {
+		t.Fatalf("expected page 2, got %d", result.Page)
+	}
+
+	if result.Limit != 10 {
+		t.Fatalf("expected limit 10, got %d", result.Limit)
+	}
+
+	if result.Total != 25 {
+		t.Fatalf("expected total 25, got %d", result.Total)
+	}
+
+	if result.TotalPages != 3 {
+		t.Fatalf("expected total_pages 3, got %d", result.TotalPages)
+	}
+}
+
+func TestCategoryService_GetAll_InvalidPaginationDefaults(t *testing.T) {
+	repo := newFakeCategoryRepository()
+
+	repo.findAllPaginatedFunc = func(ctx context.Context, filter repository.CategoryListFilter) ([]models.Category, int, error) {
+		if filter.Limit != DefaultCategoryLimit {
+			t.Fatalf("expected default limit %d, got %d", DefaultCategoryLimit, filter.Limit)
+		}
+
+		if filter.Offset != 0 {
+			t.Fatalf("expected offset 0, got %d", filter.Offset)
+		}
+
+		return []models.Category{}, 0, nil
+	}
+
+	service := NewCategoryService(repo)
+
+	result, err := service.GetAll(context.Background(), CategoryListInput{
+		Page:  -1,
+		Limit: -1,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Page != DefaultCategoryPage {
+		t.Fatalf("expected default page %d, got %d", DefaultCategoryPage, result.Page)
+	}
+
+	if result.Limit != DefaultCategoryLimit {
+		t.Fatalf("expected default limit %d, got %d", DefaultCategoryLimit, result.Limit)
+	}
+}
+
+func TestCategoryService_GetAll_LimitCappedAtMax(t *testing.T) {
+	repo := newFakeCategoryRepository()
+
+	repo.findAllPaginatedFunc = func(ctx context.Context, filter repository.CategoryListFilter) ([]models.Category, int, error) {
+		if filter.Limit != MaxCategoryLimit {
+			t.Fatalf("expected max limit %d, got %d", MaxCategoryLimit, filter.Limit)
+		}
+
+		return []models.Category{}, 0, nil
+	}
+
+	service := NewCategoryService(repo)
+
+	result, err := service.GetAll(context.Background(), CategoryListInput{
+		Page:  1,
+		Limit: MaxCategoryLimit + 1,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Limit != MaxCategoryLimit {
+		t.Fatalf("expected max limit %d, got %d", MaxCategoryLimit, result.Limit)
 	}
 }

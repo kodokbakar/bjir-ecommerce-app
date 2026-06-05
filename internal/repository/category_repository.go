@@ -11,6 +11,7 @@ import (
 type CategoryRepository interface {
 	Create(ctx context.Context, category *models.Category) error
 	FindAll(ctx context.Context) ([]models.Category, error)
+	FindAllPaginated(ctx context.Context, filter CategoryListFilter) ([]models.Category, int, error)
 	FindByID(ctx context.Context, id string) (*models.Category, error)
 	FindBySlug(ctx context.Context, slug string) (*models.Category, error)
 	ExistsByName(ctx context.Context, name string, excludeID string) (bool, error)
@@ -19,6 +20,11 @@ type CategoryRepository interface {
 	HasChildren(ctx context.Context, categoryID string) (bool, error)
 	Update(ctx context.Context, category *models.Category) error
 	Delete(ctx context.Context, id string) error
+}
+
+type CategoryListFilter struct {
+	Limit  int
+	Offset int
 }
 
 type categoryRepository struct {
@@ -110,6 +116,72 @@ func (r *categoryRepository) FindAll(ctx context.Context) ([]models.Category, er
 	}
 
 	return categories, nil
+}
+
+func (r *categoryRepository) FindAllPaginated(ctx context.Context, filter CategoryListFilter) ([]models.Category, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM categories
+	`
+
+	var total int
+
+	if err := r.db.QueryRow(ctx, countQuery).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	query := `
+	SELECT
+		id::text,
+		COALESCE(parent_id::text, ''),
+		name,
+		slug,
+		COALESCE(description, ''),
+		COALESCE(image_url, ''),
+		created_at,
+		updated_at
+	FROM categories
+	ORDER BY created_at DESC
+	LIMIT $1 OFFSET $2
+`
+
+	rows, err := r.db.Query(ctx, query, filter.Limit, filter.Offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	categories := make([]models.Category, 0)
+
+	for rows.Next() {
+		category := models.Category{}
+		var parentID string
+
+		if err := rows.Scan(
+			&category.ID,
+			&parentID,
+			&category.Name,
+			&category.Slug,
+			&category.Description,
+			&category.ImageURL,
+			&category.CreatedAt,
+			&category.UpdatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+
+		if parentID != "" {
+			category.ParentID = &parentID
+		}
+
+		categories = append(categories, category)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return categories, total, nil
 }
 
 func (r *categoryRepository) FindByID(ctx context.Context, id string) (*models.Category, error) {

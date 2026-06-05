@@ -55,13 +55,25 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 }
 
 func (h *CategoryHandler) GetAllCategories(c *gin.Context) {
-	categories, err := h.categoryService.GetAll(c.Request.Context())
+	pagination := GetPaginationQuery(c)
+
+	result, err := h.categoryService.GetAll(c.Request.Context(), services.CategoryListInput{
+		Page:  pagination.Page,
+		Limit: pagination.Limit,
+	})
 	if err != nil {
-		response.InternalServerError(c, "failed to retrieve categories", err.Error())
+		h.handleCategoryError(c, err)
 		return
 	}
 
-	response.Success(c, http.StatusOK, "categories retrieved successfully", categories)
+	meta := gin.H{
+		"page":        result.Page,
+		"limit":       result.Limit,
+		"total":       result.Total,
+		"total_pages": result.TotalPages,
+	}
+
+	response.SuccessWithMeta(c, http.StatusOK, "categories retrieved successfully", result.Categories, meta)
 }
 
 func (h *CategoryHandler) GetCategoryByID(c *gin.Context) {

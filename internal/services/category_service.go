@@ -11,6 +11,12 @@ import (
 	"github.com/kodokbakar/go-ecommerce-api/internal/repository"
 )
 
+const (
+	DefaultCategoryPage  = 1
+	DefaultCategoryLimit = 20
+	MaxCategoryLimit     = 100
+)
+
 type CreateCategoryInput struct {
 	ParentID    *string
 	Name        string
@@ -25,9 +31,22 @@ type UpdateCategoryInput struct {
 	ImageURL    string
 }
 
+type CategoryListInput struct {
+	Page  int
+	Limit int
+}
+
+type CategoryListResult struct {
+	Categories []models.Category
+	Page       int
+	Limit      int
+	Total      int
+	TotalPages int
+}
+
 type CategoryService interface {
 	Create(ctx context.Context, input CreateCategoryInput) (*models.Category, error)
-	GetAll(ctx context.Context) ([]models.Category, error)
+	GetAll(ctx context.Context, input CategoryListInput) (*CategoryListResult, error)
 	GetByID(ctx context.Context, id string) (*models.Category, error)
 	GetBySlug(ctx context.Context, slug string) (*models.Category, error)
 	Update(ctx context.Context, id string, input UpdateCategoryInput) (*models.Category, error)
@@ -90,13 +109,43 @@ func (s *categoryService) Create(ctx context.Context, input CreateCategoryInput)
 	return category, nil
 }
 
-func (s *categoryService) GetAll(ctx context.Context) ([]models.Category, error) {
-	categories, err := s.categoryRepo.FindAll(ctx)
+func (s *categoryService) GetAll(ctx context.Context, input CategoryListInput) (*CategoryListResult, error) {
+	page := input.Page
+	if page < 1 {
+		page = DefaultCategoryPage
+	}
+
+	limit := input.Limit
+	if limit < 1 {
+		limit = DefaultCategoryLimit
+	}
+
+	if limit > MaxCategoryLimit {
+		limit = MaxCategoryLimit
+	}
+
+	offset := (page - 1) * limit
+
+	categories, total, err := s.categoryRepo.FindAllPaginated(ctx, repository.CategoryListFilter{
+		Limit:  limit,
+		Offset: offset,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return buildCategoryTree(categories), nil
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
+	return &CategoryListResult{
+		Categories: categories,
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
 }
 
 func (s *categoryService) GetByID(ctx context.Context, id string) (*models.Category, error) {

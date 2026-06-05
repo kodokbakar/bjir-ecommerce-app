@@ -19,7 +19,7 @@ import (
 
 type fakeCategoryService struct {
 	createFunc    func(ctx context.Context, input services.CreateCategoryInput) (*models.Category, error)
-	getAllFunc    func(ctx context.Context) ([]models.Category, error)
+	getAllFunc    func(ctx context.Context, input services.CategoryListInput) (*services.CategoryListResult, error)
 	getByIDFunc   func(ctx context.Context, id string) (*models.Category, error)
 	getBySlugFunc func(ctx context.Context, slug string) (*models.Category, error)
 	updateFunc    func(ctx context.Context, id string, input services.UpdateCategoryInput) (*models.Category, error)
@@ -100,23 +100,23 @@ func (f *fakeCategoryService) Create(ctx context.Context, input services.CreateC
 	}, nil
 }
 
-func (f *fakeCategoryService) GetAll(ctx context.Context) ([]models.Category, error) {
+func (f *fakeCategoryService) GetAll(ctx context.Context, input services.CategoryListInput) (*services.CategoryListResult, error) {
 	if f.getAllFunc != nil {
-		return f.getAllFunc(ctx)
+		return f.getAllFunc(ctx, input)
 	}
 
-	now := time.Now()
-
-	return []models.Category{
-		{
-			ID:          "category-id",
-			Name:        "Electronics",
-			Slug:        "electronics",
-			Description: "Electronic products",
-			ImageURL:    "https://example.com/electronics.jpg",
-			CreatedAt:   now,
-			UpdatedAt:   now,
+	return &services.CategoryListResult{
+		Categories: []models.Category{
+			{
+				ID:   "category-id",
+				Name: "Electronics",
+				Slug: "electronics",
+			},
 		},
+		Page:       1,
+		Limit:      20,
+		Total:      1,
+		TotalPages: 1,
 	}, nil
 }
 

@@ -745,36 +745,63 @@ func TestProductService_GetAll_WithPagination(t *testing.T) {
 	}
 }
 
-func TestProductService_GetAll_InvalidPagination(t *testing.T) {
-	service := NewProductService(newFakeProductRepository(), newFakeCategoryRepository())
+func TestProductService_GetAll_LimitTooLargeCappedAtMax(t *testing.T) {
+	productRepo := newFakeProductRepository()
 
-	tests := []struct {
-		name  string
-		input ProductListInput
-	}{
-		{
-			name: "negative limit",
-			input: ProductListInput{
-				Page:  1,
-				Limit: -1,
-			},
-		},
-		{
-			name: "limit too large",
-			input: ProductListInput{
-				Page:  1,
-				Limit: MaxProductLimit + 1,
-			},
-		},
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.Limit != MaxProductLimit {
+			t.Fatalf("expected max limit %d, got %d", MaxProductLimit, filter.Limit)
+		}
+
+		if filter.Offset != 0 {
+			t.Fatalf("expected offset 0, got %d", filter.Offset)
+		}
+
+		return []models.Product{}, 0, nil
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := service.GetAll(context.Background(), tt.input)
-			if !errors.Is(err, models.ErrInvalidProductInput) {
-				t.Fatalf("expected ErrInvalidProductInput, got %v", err)
-			}
-		})
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		Page:  1,
+		Limit: MaxProductLimit + 1,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Limit != MaxProductLimit {
+		t.Fatalf("expected max limit %d, got %d", MaxProductLimit, result.Limit)
+	}
+}
+
+func TestProductService_GetAll_InvalidLimitDefaults(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.Limit != DefaultProductLimit {
+			t.Fatalf("expected default limit %d, got %d", DefaultProductLimit, filter.Limit)
+		}
+
+		if filter.Offset != 0 {
+			t.Fatalf("expected offset 0, got %d", filter.Offset)
+		}
+
+		return []models.Product{}, 0, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		Page:  1,
+		Limit: -1,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Limit != DefaultProductLimit {
+		t.Fatalf("expected default limit %d, got %d", DefaultProductLimit, result.Limit)
 	}
 }
 

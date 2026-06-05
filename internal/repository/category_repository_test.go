@@ -334,3 +334,68 @@ func TestCategoryRepository_Delete_NotFound(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
+
+func TestCategoryRepository_FindAllPaginated(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewCategoryRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(25)
+
+	rows := pgxmock.NewRows([]string{
+		"id",
+		"parent_id",
+		"name",
+		"slug",
+		"description",
+		"image_url",
+		"created_at",
+		"updated_at",
+	}).AddRow(
+		"category-id",
+		"",
+		"Electronics",
+		"electronics",
+		"Electronic products",
+		"https://example.com/electronics.jpg",
+		now,
+		now,
+	)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("FROM categories").
+		WithArgs(10, 10).
+		WillReturnRows(rows)
+
+	categories, total, err := repo.FindAllPaginated(context.Background(), CategoryListFilter{
+		Limit:  10,
+		Offset: 10,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 25 {
+		t.Fatalf("expected total 25, got %d", total)
+	}
+
+	if len(categories) != 1 {
+		t.Fatalf("expected 1 category, got %d", len(categories))
+	}
+
+	if categories[0].Name != "Electronics" {
+		t.Fatalf("expected Electronics, got %s", categories[0].Name)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}

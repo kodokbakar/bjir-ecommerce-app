@@ -669,11 +669,22 @@ func TestProductHandler_GetAllProducts_InvalidPageDefaultsToOne(t *testing.T) {
 	}
 }
 
-func TestProductHandler_GetAllProducts_InvalidLimitQuery(t *testing.T) {
+func TestProductHandler_GetAllProducts_InvalidLimitDefaults(t *testing.T) {
 	service := &fakeProductService{
 		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
-			t.Fatal("service should not be called for invalid limit query")
-			return nil, nil
+			if input.Limit != 20 {
+				t.Fatalf("expected limit default 20, got %d", input.Limit)
+			}
+
+			return &services.ProductListResult{
+				Products:   []models.Product{},
+				Page:       1,
+				Limit:      20,
+				Total:      0,
+				TotalPages: 0,
+				SortBy:     services.DefaultProductSortBy,
+				SortOrder:  services.DefaultProductSortOrder,
+			}, nil
 		},
 	}
 
@@ -684,15 +695,27 @@ func TestProductHandler_GetAllProducts_InvalidLimitQuery(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
 	}
 }
 
-func TestProductHandler_GetAllProducts_LimitTooLarge(t *testing.T) {
+func TestProductHandler_GetAllProducts_LimitTooLargeCappedAtMax(t *testing.T) {
 	service := &fakeProductService{
 		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
-			return nil, models.ErrInvalidProductInput
+			if input.Limit != 100 {
+				t.Fatalf("expected limit capped at 100, got %d", input.Limit)
+			}
+
+			return &services.ProductListResult{
+				Products:   []models.Product{},
+				Page:       1,
+				Limit:      100,
+				Total:      0,
+				TotalPages: 0,
+				SortBy:     services.DefaultProductSortBy,
+				SortOrder:  services.DefaultProductSortOrder,
+			}, nil
 		},
 	}
 
@@ -703,8 +726,8 @@ func TestProductHandler_GetAllProducts_LimitTooLarge(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
 	}
 }
 

@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -69,20 +68,14 @@ func (h *ProductHandler) GetAllProducts(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	sortOrder := c.Query("sort_order")
 
-	page := parsePageQuery(c, "page", services.DefaultProductPage)
-
-	limit, err := parseLimitQuery(c, "limit", services.DefaultProductLimit)
-	if err != nil {
-		response.BadRequest(c, "invalid query parameter", "limit must be a valid number")
-		return
-	}
+	pagination := GetPaginationQuery(c)
 
 	result, err := h.productService.GetAll(c.Request.Context(), services.ProductListInput{
 		CategoryID:   categoryID,
 		CategorySlug: categorySlug,
 		Search:       search,
-		Page:         page,
-		Limit:        limit,
+		Page:         pagination.Page,
+		Limit:        pagination.Limit,
 		SortBy:       sortBy,
 		SortOrder:    sortOrder,
 	})
@@ -208,32 +201,4 @@ func (h *ProductHandler) UploadProductImage(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusCreated, "product image uploaded successfully", product)
-}
-
-func parsePageQuery(c *gin.Context, key string, defaultValue int) int {
-	rawValue := c.Query(key)
-	if rawValue == "" {
-		return defaultValue
-	}
-
-	value, err := strconv.Atoi(rawValue)
-	if err != nil || value < 1 {
-		return defaultValue
-	}
-
-	return value
-}
-
-func parseLimitQuery(c *gin.Context, key string, defaultValue int) (int, error) {
-	rawValue := c.Query(key)
-	if rawValue == "" {
-		return defaultValue, nil
-	}
-
-	value, err := strconv.Atoi(rawValue)
-	if err != nil {
-		return 0, err
-	}
-
-	return value, nil
 }

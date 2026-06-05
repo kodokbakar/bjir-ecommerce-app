@@ -178,16 +178,12 @@ func (s *productService) GetAll(ctx context.Context, input ProductListInput) (*P
 	}
 
 	limit := input.Limit
-	if limit == 0 {
+	if limit < 1 {
 		limit = DefaultProductLimit
 	}
 
-	if limit < 1 {
-		return nil, fmt.Errorf("%w: limit must be greater than 0", models.ErrInvalidProductInput)
-	}
-
 	if limit > MaxProductLimit {
-		return nil, fmt.Errorf("%w: limit must be at most 100", models.ErrInvalidProductInput)
+		limit = MaxProductLimit
 	}
 
 	sortBy, sortOrder, err := normalizeProductSort(input.SortBy, input.SortOrder)
