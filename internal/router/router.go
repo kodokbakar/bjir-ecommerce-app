@@ -11,7 +11,11 @@ import (
 	"github.com/kodokbakar/go-ecommerce-api/internal/middleware"
 )
 
-func SetupRouter(jwtManager *jwtAuth.JWTManager, authHandler *handlers.AuthHandler) *gin.Engine {
+func SetupRouter(
+	jwtManager *jwtAuth.JWTManager,
+	authHandler *handlers.AuthHandler,
+	categoryHandler *handlers.CategoryHandler,
+) *gin.Engine {
 	r := gin.New()
 
 	r.Use(gin.Logger())
@@ -37,6 +41,19 @@ func SetupRouter(jwtManager *jwtAuth.JWTManager, authHandler *handlers.AuthHandl
 	admin.Use(middleware.RequireRole("admin"))
 
 	admin.GET("/ping", handlers.AdminPing)
+
+	categoryRoutes := api.Group("/categories")
+	categoryRoutes.GET("", categoryHandler.GetAllCategories)
+	categoryRoutes.GET("/slug/:slug", categoryHandler.GetCategoryBySlug)
+	categoryRoutes.GET("/:id", categoryHandler.GetCategoryByID)
+
+	adminCategoryRoutes := categoryRoutes.Group("")
+	adminCategoryRoutes.Use(middleware.AuthMiddleware(jwtManager))
+	adminCategoryRoutes.Use(middleware.RequireRole("admin"))
+
+	adminCategoryRoutes.POST("", categoryHandler.CreateCategory)
+	adminCategoryRoutes.PUT("/:id", categoryHandler.UpdateCategory)
+	adminCategoryRoutes.DELETE("/:id", categoryHandler.DeleteCategory)
 
 	return r
 }

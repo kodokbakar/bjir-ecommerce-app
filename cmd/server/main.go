@@ -61,7 +61,11 @@ func main() {
 	authService := services.NewAuthService(userRepository, jwtManager)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	r := router.SetupRouter(jwtManager, authHandler)
+	categoryRepository := repository.NewCategoryRepository(dbPool)
+	categoryService := services.NewCategoryService(categoryRepository)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
+
+	r := router.SetupRouter(jwtManager, authHandler, categoryHandler)
 
 	log.Printf("Server running on port %s", cfg.App.Port)
 
