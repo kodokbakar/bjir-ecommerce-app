@@ -13,4 +13,8 @@ var (
 	ErrCategoryHasProducts   = errors.New("category has related products")
 	ErrCategoryHasChildren   = errors.New("category has child categories")
 	ErrInvalidCategoryInput  = errors.New("invalid category input")
+
+	ErrProductNotFound      = errors.New("product not found")
+	ErrProductAlreadyExists = errors.New("product already exists")
+	ErrInvalidProductInput  = errors.New("invalid product input")
 )

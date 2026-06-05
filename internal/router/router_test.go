@@ -26,6 +26,61 @@ type fakeCategoryService struct {
 	deleteFunc    func(ctx context.Context, id string) error
 }
 
+type fakeRouterProductService struct{}
+
+func (f *fakeRouterProductService) Create(ctx context.Context, input services.CreateProductInput) (*models.Product, error) {
+	return &models.Product{
+		ID:         "product-id",
+		CategoryID: input.CategoryID,
+		Name:       input.Name,
+		Slug:       "product-slug",
+		Price:      input.Price,
+		Stock:      input.Stock,
+		IsActive:   true,
+	}, nil
+}
+
+func (f *fakeRouterProductService) GetByID(ctx context.Context, id string) (*models.Product, error) {
+	return &models.Product{
+		ID:         id,
+		CategoryID: "category-id",
+		Name:       "Product",
+		Slug:       "product",
+		Price:      10000,
+		Stock:      10,
+		IsActive:   true,
+	}, nil
+}
+
+func (f *fakeRouterProductService) Update(ctx context.Context, id string, input services.UpdateProductInput) (*models.Product, error) {
+	return &models.Product{
+		ID:         id,
+		CategoryID: input.CategoryID,
+		Name:       input.Name,
+		Slug:       "product-slug",
+		Price:      input.Price,
+		Stock:      input.Stock,
+		IsActive:   true,
+	}, nil
+}
+
+func (f *fakeRouterProductService) UploadImage(ctx context.Context, input services.UploadProductImageInput) (*models.Product, error) {
+	return &models.Product{
+		ID:         input.ProductID,
+		CategoryID: "category-id",
+		Name:       "Product",
+		Slug:       "product",
+		Price:      10000,
+		Stock:      10,
+		ImageURL:   "/uploads/products/test.png",
+		IsActive:   true,
+	}, nil
+}
+
+func (f *fakeRouterProductService) Delete(ctx context.Context, id string) error {
+	return nil
+}
+
 func (f *fakeCategoryService) Create(ctx context.Context, input services.CreateCategoryInput) (*models.Category, error) {
 	if f.createFunc != nil {
 		return f.createFunc(ctx, input)
@@ -139,8 +194,9 @@ func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 
 	authHandler := handlers.NewAuthHandler(nil)
 	categoryHandler := handlers.NewCategoryHandler(&fakeCategoryService{})
+	productHandler := handlers.NewProductHandler(&fakeRouterProductService{})
 
-	return SetupRouter(jwtManager, authHandler, categoryHandler), jwtManager
+	return SetupRouter(jwtManager, authHandler, categoryHandler, productHandler), jwtManager
 }
 
 func TestCategoryAdminRoutes_WithoutToken_ReturnsUnauthorized(t *testing.T) {
@@ -324,4 +380,30 @@ func TestCategoryPublicRoutes_WithoutToken_ReturnsOK(t *testing.T) {
 			}
 		})
 	}
+}
+
+func (f *fakeRouterProductService) GetAll(ctx context.Context) ([]models.Product, error) {
+	return []models.Product{
+		{
+			ID:         "product-id",
+			CategoryID: "category-id",
+			Name:       "Product",
+			Slug:       "product",
+			Price:      10000,
+			Stock:      10,
+			IsActive:   true,
+		},
+	}, nil
+}
+
+func (f *fakeRouterProductService) GetBySlug(ctx context.Context, slug string) (*models.Product, error) {
+	return &models.Product{
+		ID:         "product-id",
+		CategoryID: "category-id",
+		Name:       "Product",
+		Slug:       slug,
+		Price:      10000,
+		Stock:      10,
+		IsActive:   true,
+	}, nil
 }

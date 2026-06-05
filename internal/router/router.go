@@ -15,6 +15,7 @@ func SetupRouter(
 	jwtManager *jwtAuth.JWTManager,
 	authHandler *handlers.AuthHandler,
 	categoryHandler *handlers.CategoryHandler,
+	productHandler *handlers.ProductHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -24,6 +25,8 @@ func SetupRouter(
 	r.GET("/health", handlers.HealthCheck)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
+	r.Static("/uploads", "./uploads")
 
 	api := r.Group("/api/v1")
 
@@ -54,6 +57,20 @@ func SetupRouter(
 	adminCategoryRoutes.POST("", categoryHandler.CreateCategory)
 	adminCategoryRoutes.PUT("/:id", categoryHandler.UpdateCategory)
 	adminCategoryRoutes.DELETE("/:id", categoryHandler.DeleteCategory)
+
+	productRoutes := api.Group("/products")
+	productRoutes.GET("", productHandler.GetAllProducts)
+	productRoutes.GET("/slug/:slug", productHandler.GetProductBySlug)
+	productRoutes.GET("/:id", productHandler.GetProductByID)
+
+	adminProductRoutes := productRoutes.Group("")
+	adminProductRoutes.Use(middleware.AuthMiddleware(jwtManager))
+	adminProductRoutes.Use(middleware.RequireRole("admin"))
+
+	adminProductRoutes.POST("", productHandler.CreateProduct)
+	adminProductRoutes.POST("/:id/image", productHandler.UploadProductImage)
+	adminProductRoutes.PUT("/:id", productHandler.UpdateProduct)
+	adminProductRoutes.DELETE("/:id", productHandler.DeleteProduct)
 
 	return r
 }

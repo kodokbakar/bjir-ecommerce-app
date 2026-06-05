@@ -65,7 +65,11 @@ func main() {
 	categoryService := services.NewCategoryService(categoryRepository)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
-	r := router.SetupRouter(jwtManager, authHandler, categoryHandler)
+	productRepository := repository.NewProductRepository(dbPool)
+	productService := services.NewProductService(productRepository, categoryRepository)
+	productHandler := handlers.NewProductHandler(productService)
+
+	r := router.SetupRouter(jwtManager, authHandler, categoryHandler, productHandler)
 
 	log.Printf("Server running on port %s", cfg.App.Port)
 
