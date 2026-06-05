@@ -45,7 +45,7 @@ type UploadProductImageInput struct {
 
 type ProductService interface {
 	Create(ctx context.Context, input CreateProductInput) (*models.Product, error)
-	GetAll(ctx context.Context) ([]models.Product, error)
+	GetAll(ctx context.Context, input ProductListInput) (*ProductListResult, error)
 	GetByID(ctx context.Context, id string) (*models.Product, error)
 	GetBySlug(ctx context.Context, slug string) (*models.Product, error)
 	Update(ctx context.Context, id string, input UpdateProductInput) (*models.Product, error)
@@ -58,7 +58,46 @@ type productService struct {
 	categoryRepo repository.CategoryRepository
 }
 
+type ProductListInput struct {
+	CategoryID   string
+	CategorySlug string
+	Search       string
+	Page         int
+	Limit        int
+	SortBy       string
+	SortOrder    string
+}
+
+type ProductListResult struct {
+	Products     []models.Product
+	Page         int
+	Limit        int
+	Total        int
+	TotalPages   int
+	SortBy       string
+	SortOrder    string
+	CategoryID   string
+	CategorySlug string
+	Search       string
+}
+
 const MaxProductImageSize int64 = 5 << 20 // 5MB file size limit
+
+const (
+	DefaultProductPage  = 1
+	DefaultProductLimit = 20
+	MaxProductLimit     = 100
+
+	DefaultProductSortBy    = "created_at"
+	DefaultProductSortOrder = "desc"
+
+	ProductSortByCreatedAt = "created_at"
+	ProductSortByPrice     = "price"
+	ProductSortByName      = "name"
+
+	ProductSortOrderAsc  = "asc"
+	ProductSortOrderDesc = "desc"
+)
 
 var (
 	productImageUploadDir  = filepath.Join("uploads", "products")
@@ -128,8 +167,66 @@ func (s *productService) Create(ctx context.Context, input CreateProductInput) (
 	return product, nil
 }
 
-func (s *productService) GetAll(ctx context.Context) ([]models.Product, error) {
-	return s.productRepo.FindAll(ctx)
+func (s *productService) GetAll(ctx context.Context, input ProductListInput) (*ProductListResult, error) {
+	categoryID := strings.TrimSpace(input.CategoryID)
+	categorySlug := strings.TrimSpace(input.CategorySlug)
+	search := strings.TrimSpace(input.Search)
+
+	page := input.Page
+	if page < 1 {
+		page = DefaultProductPage
+	}
+
+	limit := input.Limit
+	if limit == 0 {
+		limit = DefaultProductLimit
+	}
+
+	if limit < 1 {
+		return nil, fmt.Errorf("%w: limit must be greater than 0", models.ErrInvalidProductInput)
+	}
+
+	if limit > MaxProductLimit {
+		return nil, fmt.Errorf("%w: limit must be at most 100", models.ErrInvalidProductInput)
+	}
+
+	sortBy, sortOrder, err := normalizeProductSort(input.SortBy, input.SortOrder)
+	if err != nil {
+		return nil, err
+	}
+
+	offset := (page - 1) * limit
+
+	products, total, err := s.productRepo.FindAll(ctx, repository.ProductListFilter{
+		CategoryID:   categoryID,
+		CategorySlug: categorySlug,
+		Search:       search,
+		Limit:        limit,
+		Offset:       offset,
+		SortBy:       sortBy,
+		SortOrder:    sortOrder,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
+	return &ProductListResult{
+		Products:     products,
+		Page:         page,
+		Limit:        limit,
+		Total:        total,
+		TotalPages:   totalPages,
+		SortBy:       sortBy,
+		SortOrder:    sortOrder,
+		CategoryID:   categoryID,
+		CategorySlug: categorySlug,
+		Search:       search,
+	}, nil
 }
 
 func (s *productService) GetByID(ctx context.Context, id string) (*models.Product, error) {
@@ -378,4 +475,31 @@ func generateProductImageFileName(extension string) (string, error) {
 	}
 
 	return hex.EncodeToString(randomBytes) + extension, nil
+}
+
+func normalizeProductSort(sortBy string, sortOrder string) (string, string, error) {
+	sortBy = strings.ToLower(strings.TrimSpace(sortBy))
+	sortOrder = strings.ToLower(strings.TrimSpace(sortOrder))
+
+	if sortBy == "" {
+		sortBy = DefaultProductSortBy
+	}
+
+	if sortOrder == "" {
+		sortOrder = DefaultProductSortOrder
+	}
+
+	switch sortBy {
+	case ProductSortByCreatedAt, ProductSortByPrice, ProductSortByName:
+	default:
+		return "", "", fmt.Errorf("%w: sort_by must be created_at, price, or name", models.ErrInvalidProductInput)
+	}
+
+	switch sortOrder {
+	case ProductSortOrderAsc, ProductSortOrderDesc:
+	default:
+		return "", "", fmt.Errorf("%w: sort_order must be asc or desc", models.ErrInvalidProductInput)
+	}
+
+	return sortBy, sortOrder, nil
 }

@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/models"
+	"github.com/kodokbakar/go-ecommerce-api/internal/repository"
 )
 
 type fakeProductRepository struct {
 	createFunc         func(ctx context.Context, product *models.Product) error
-	findAllFunc        func(ctx context.Context) ([]models.Product, error)
+	findAllFunc        func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error)
 	findByIDFunc       func(ctx context.Context, id string) (*models.Product, error)
 	findBySlugFunc     func(ctx context.Context, slug string) (*models.Product, error)
 	existsBySlugFunc   func(ctx context.Context, slug string, excludeID string) (bool, error)
@@ -35,7 +36,7 @@ func newFakeProductRepository() *fakeProductRepository {
 			product.UpdatedAt = now
 			return nil
 		},
-		findAllFunc: func(ctx context.Context) ([]models.Product, error) {
+		findAllFunc: func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
 			return []models.Product{
 				{
 					ID:         "product-id",
@@ -48,7 +49,7 @@ func newFakeProductRepository() *fakeProductRepository {
 					CreatedAt:  now,
 					UpdatedAt:  now,
 				},
-			}, nil
+			}, 1, nil
 		},
 		findByIDFunc: func(ctx context.Context, id string) (*models.Product, error) {
 			return &models.Product{
@@ -107,8 +108,8 @@ func (f *fakeProductRepository) Create(ctx context.Context, product *models.Prod
 	return f.createFunc(ctx, product)
 }
 
-func (f *fakeProductRepository) FindAll(ctx context.Context) ([]models.Product, error) {
-	return f.findAllFunc(ctx)
+func (f *fakeProductRepository) FindAll(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+	return f.findAllFunc(ctx, filter)
 }
 
 func (f *fakeProductRepository) FindByID(ctx context.Context, id string) (*models.Product, error) {
@@ -172,17 +173,37 @@ func TestProductService_GetAll_Success(t *testing.T) {
 
 	service := NewProductService(productRepo, categoryRepo)
 
-	products, err := service.GetAll(context.Background())
+	result, err := service.GetAll(context.Background(), ProductListInput{})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if len(products) != 1 {
-		t.Fatalf("expected 1 product, got %d", len(products))
+	if result.Page != DefaultProductPage {
+		t.Fatalf("expected page %d, got %d", DefaultProductPage, result.Page)
 	}
 
-	if products[0].Name != "iPhone 15" {
-		t.Fatalf("expected iPhone 15, got %s", products[0].Name)
+	if result.Limit != DefaultProductLimit {
+		t.Fatalf("expected limit %d, got %d", DefaultProductLimit, result.Limit)
+	}
+
+	if result.Total != 1 {
+		t.Fatalf("expected total 1, got %d", result.Total)
+	}
+
+	if result.TotalPages != 1 {
+		t.Fatalf("expected total_pages 1, got %d", result.TotalPages)
+	}
+
+	if len(result.Products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(result.Products))
+	}
+
+	if result.SortBy != DefaultProductSortBy {
+		t.Fatalf("expected sort_by %s, got %s", DefaultProductSortBy, result.SortBy)
+	}
+
+	if result.SortOrder != DefaultProductSortOrder {
+		t.Fatalf("expected sort_order %s, got %s", DefaultProductSortOrder, result.SortOrder)
 	}
 }
 
@@ -495,5 +516,363 @@ func TestProductService_UploadImage_ProductNotFound(t *testing.T) {
 
 	if !errors.Is(err, models.ErrProductNotFound) {
 		t.Fatalf("expected ErrProductNotFound, got %v", err)
+	}
+}
+
+func TestProductService_GetAll_WithCategoryFilter(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	categoryRepo := newFakeCategoryRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.CategoryID != "category-id" {
+			t.Fatalf("expected category-id, got %s", filter.CategoryID)
+		}
+
+		if filter.Limit != DefaultProductLimit {
+			t.Fatalf("expected limit %d, got %d", DefaultProductLimit, filter.Limit)
+		}
+
+		if filter.SortBy != DefaultProductSortBy {
+			t.Fatalf("expected sort_by %s, got %s", DefaultProductSortBy, filter.SortBy)
+		}
+
+		if filter.SortOrder != DefaultProductSortOrder {
+			t.Fatalf("expected sort_order %s, got %s", DefaultProductSortOrder, filter.SortOrder)
+		}
+
+		if filter.Offset != 0 {
+			t.Fatalf("expected offset 0, got %d", filter.Offset)
+		}
+
+		return []models.Product{
+			{
+				ID:         "product-id",
+				CategoryID: "category-id",
+				Name:       "iPhone 15",
+				Slug:       "iphone-15",
+				Price:      15000000,
+				Stock:      10,
+				IsActive:   true,
+			},
+		}, 1, nil
+	}
+
+	service := NewProductService(productRepo, categoryRepo)
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		CategoryID: "category-id",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Total != 1 {
+		t.Fatalf("expected total 1, got %d", result.Total)
+	}
+}
+
+func TestProductService_GetAll_WithSearch(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.Search != "phone" {
+			t.Fatalf("expected search phone, got %s", filter.Search)
+		}
+
+		if filter.CategoryID != "" {
+			t.Fatalf("expected empty category_id, got %s", filter.CategoryID)
+		}
+
+		return []models.Product{
+			{
+				ID:         "product-id",
+				CategoryID: "category-id",
+				Name:       "iPhone 15",
+				Slug:       "iphone-15",
+				Price:      15000000,
+				Stock:      10,
+				IsActive:   true,
+			},
+		}, 1, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		Search: " phone ",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Search != "phone" {
+		t.Fatalf("expected result search phone, got %s", result.Search)
+	}
+
+	if result.Total != 1 {
+		t.Fatalf("expected total 1, got %d", result.Total)
+	}
+}
+
+func TestProductService_GetAll_WithSearchAndCategoryID(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.Search != "phone" {
+			t.Fatalf("expected search phone, got %s", filter.Search)
+		}
+
+		if filter.CategoryID != "category-id" {
+			t.Fatalf("expected category-id, got %s", filter.CategoryID)
+		}
+
+		return []models.Product{}, 0, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		Search:     "phone",
+		CategoryID: "category-id",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Search != "phone" {
+		t.Fatalf("expected result search phone, got %s", result.Search)
+	}
+
+	if result.CategoryID != "category-id" {
+		t.Fatalf("expected result category-id, got %s", result.CategoryID)
+	}
+}
+
+func TestProductService_GetAll_InvalidCategoryIDReturnsEmptyResult(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.CategoryID != "invalid-category-id" {
+			t.Fatalf("expected invalid-category-id, got %s", filter.CategoryID)
+		}
+
+		return []models.Product{}, 0, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		CategoryID: "invalid-category-id",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Total != 0 {
+		t.Fatalf("expected total 0, got %d", result.Total)
+	}
+
+	if len(result.Products) != 0 {
+		t.Fatalf("expected empty products, got %d", len(result.Products))
+	}
+}
+
+func TestProductService_GetAll_WithCategorySlug(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.CategorySlug != "phones" {
+			t.Fatalf("expected category slug phones, got %s", filter.CategorySlug)
+		}
+
+		return []models.Product{}, 0, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		CategorySlug: " phones ",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.CategorySlug != "phones" {
+		t.Fatalf("expected result category slug phones, got %s", result.CategorySlug)
+	}
+}
+
+func TestProductService_GetAll_WithPagination(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	categoryRepo := newFakeCategoryRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.Limit != 10 {
+			t.Fatalf("expected limit 10, got %d", filter.Limit)
+		}
+
+		if filter.Offset != 20 {
+			t.Fatalf("expected offset 20, got %d", filter.Offset)
+		}
+
+		return []models.Product{}, 45, nil
+	}
+
+	service := NewProductService(productRepo, categoryRepo)
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		Page:  3,
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Page != 3 {
+		t.Fatalf("expected page 3, got %d", result.Page)
+	}
+
+	if result.Limit != 10 {
+		t.Fatalf("expected limit 10, got %d", result.Limit)
+	}
+
+	if result.Total != 45 {
+		t.Fatalf("expected total 45, got %d", result.Total)
+	}
+
+	if result.TotalPages != 5 {
+		t.Fatalf("expected total_pages 5, got %d", result.TotalPages)
+	}
+}
+
+func TestProductService_GetAll_InvalidPagination(t *testing.T) {
+	service := NewProductService(newFakeProductRepository(), newFakeCategoryRepository())
+
+	tests := []struct {
+		name  string
+		input ProductListInput
+	}{
+		{
+			name: "negative limit",
+			input: ProductListInput{
+				Page:  1,
+				Limit: -1,
+			},
+		},
+		{
+			name: "limit too large",
+			input: ProductListInput{
+				Page:  1,
+				Limit: MaxProductLimit + 1,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := service.GetAll(context.Background(), tt.input)
+			if !errors.Is(err, models.ErrInvalidProductInput) {
+				t.Fatalf("expected ErrInvalidProductInput, got %v", err)
+			}
+		})
+	}
+}
+
+func TestProductService_GetAll_InvalidPageDefaultsToOne(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.Offset != 0 {
+			t.Fatalf("expected offset 0 for invalid page default, got %d", filter.Offset)
+		}
+
+		return []models.Product{}, 0, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		Page:  -1,
+		Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Page != 1 {
+		t.Fatalf("expected page default to 1, got %d", result.Page)
+	}
+}
+
+func TestProductService_GetAll_WithSort(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		if filter.SortBy != ProductSortByPrice {
+			t.Fatalf("expected sort_by price, got %s", filter.SortBy)
+		}
+
+		if filter.SortOrder != ProductSortOrderAsc {
+			t.Fatalf("expected sort_order asc, got %s", filter.SortOrder)
+		}
+
+		return []models.Product{}, 0, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		Page:      1,
+		Limit:     20,
+		SortBy:    "price",
+		SortOrder: "asc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.SortBy != "price" {
+		t.Fatalf("expected result sort_by price, got %s", result.SortBy)
+	}
+
+	if result.SortOrder != "asc" {
+		t.Fatalf("expected result sort_order asc, got %s", result.SortOrder)
+	}
+}
+
+func TestProductService_GetAll_InvalidSort(t *testing.T) {
+	service := NewProductService(newFakeProductRepository(), newFakeCategoryRepository())
+
+	tests := []struct {
+		name  string
+		input ProductListInput
+	}{
+		{
+			name: "invalid sort_by",
+			input: ProductListInput{
+				Page:      1,
+				Limit:     20,
+				SortBy:    "stock",
+				SortOrder: "asc",
+			},
+		},
+		{
+			name: "invalid sort_order",
+			input: ProductListInput{
+				Page:      1,
+				Limit:     20,
+				SortBy:    "price",
+				SortOrder: "sideways",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := service.GetAll(context.Background(), tt.input)
+			if !errors.Is(err, models.ErrInvalidProductInput) {
+				t.Fatalf("expected ErrInvalidProductInput, got %v", err)
+			}
+		})
 	}
 }

@@ -3,15 +3,26 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/models"
 )
 
+type ProductListFilter struct {
+	CategoryID   string
+	CategorySlug string
+	Search       string
+	Limit        int
+	Offset       int
+	SortBy       string
+	SortOrder    string
+}
+
 type ProductRepository interface {
 	Create(ctx context.Context, product *models.Product) error
-	FindAll(ctx context.Context) ([]models.Product, error)
+	FindAll(ctx context.Context, filter ProductListFilter) ([]models.Product, int, error)
 	FindByID(ctx context.Context, id string) (*models.Product, error)
 	FindBySlug(ctx context.Context, slug string) (*models.Product, error)
 	ExistsBySlug(ctx context.Context, slug string, excludeID string) (bool, error)
@@ -26,6 +37,26 @@ type productRepository struct {
 
 func NewProductRepository(db PgxQuerier) ProductRepository {
 	return &productRepository{db: db}
+}
+
+func buildProductOrderBy(sortBy string, sortOrder string) string {
+	sortBy = strings.ToLower(strings.TrimSpace(sortBy))
+	sortOrder = strings.ToUpper(strings.TrimSpace(sortOrder))
+
+	if sortOrder != "ASC" && sortOrder != "DESC" {
+		sortOrder = "DESC"
+	}
+
+	switch sortBy {
+	case "price":
+		return "p.price " + sortOrder + ", p.created_at DESC"
+	case "name":
+		return "LOWER(p.name) " + sortOrder + ", p.created_at DESC"
+	case "created_at":
+		return "p.created_at " + sortOrder
+	default:
+		return "p.created_at DESC"
+	}
 }
 
 func (r *productRepository) Create(ctx context.Context, product *models.Product) error {
@@ -87,7 +118,31 @@ func (r *productRepository) Create(ctx context.Context, product *models.Product)
 	return nil
 }
 
-func (r *productRepository) FindAll(ctx context.Context) ([]models.Product, error) {
+func (r *productRepository) FindAll(ctx context.Context, filter ProductListFilter) ([]models.Product, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM products p
+		LEFT JOIN categories c ON c.id = p.category_id
+		WHERE p.is_active = true
+		AND ($1 = '' OR p.category_id::text = $1)
+		AND ($2 = '' OR p.name ILIKE '%' || $2 || '%')
+		AND ($3 = '' OR c.slug = $3)
+	`
+
+	var total int
+
+	if err := r.db.QueryRow(
+		ctx,
+		countQuery,
+		filter.CategoryID,
+		filter.Search,
+		filter.CategorySlug,
+	).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	orderBy := buildProductOrderBy(filter.SortBy, filter.SortOrder)
+
 	query := `
 		SELECT
 			p.id::text,
@@ -112,12 +167,24 @@ func (r *productRepository) FindAll(ctx context.Context) ([]models.Product, erro
 		FROM products p
 		LEFT JOIN categories c ON c.id = p.category_id
 		WHERE p.is_active = true
-		ORDER BY p.created_at DESC
+		AND ($1 = '' OR p.category_id::text = $1)
+		AND ($2 = '' OR p.name ILIKE '%' || $2 || '%')
+		AND ($3 = '' OR c.slug = $3)
+		ORDER BY ` + orderBy + `
+		LIMIT $4 OFFSET $5
 	`
 
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(
+		ctx,
+		query,
+		filter.CategoryID,
+		filter.Search,
+		filter.CategorySlug,
+		filter.Limit,
+		filter.Offset,
+	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -126,19 +193,18 @@ func (r *productRepository) FindAll(ctx context.Context) ([]models.Product, erro
 	for rows.Next() {
 		product := models.Product{}
 
-		err := scanProduct(&product, rows)
-		if err != nil {
-			return nil, err
+		if err := scanProduct(&product, rows); err != nil {
+			return nil, 0, err
 		}
 
 		products = append(products, product)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return products, nil
+	return products, total, nil
 }
 
 func (r *productRepository) FindByID(ctx context.Context, id string) (*models.Product, error) {

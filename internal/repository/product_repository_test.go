@@ -306,12 +306,31 @@ func TestProductRepository_FindAll_Success(t *testing.T) {
 
 	now := time.Now()
 
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(1)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("", "", "").
+		WillReturnRows(countRows)
+
 	mock.ExpectQuery("FROM products").
+		WithArgs("", "", "", 20, 0).
 		WillReturnRows(newProductRows(now))
 
-	products, err := repo.FindAll(context.Background())
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "",
+		Search:       "",
+		CategorySlug: "",
+		Limit:        20,
+		Offset:       0,
+		SortBy:       "created_at",
+		SortOrder:    "desc",
+	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 1 {
+		t.Fatalf("expected total 1, got %d", total)
 	}
 
 	if len(products) != 1 {
@@ -456,6 +475,339 @@ func TestProductRepository_UpdateImageURL_NotFound(t *testing.T) {
 
 	if !errors.Is(err, models.ErrProductNotFound) {
 		t.Fatalf("expected ErrProductNotFound, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_FindAll_WithCategoryFilter(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(1)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("category-id", "", "").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("FROM products").
+		WithArgs("category-id", "", "", 20, 0).
+		WillReturnRows(newProductRows(now))
+
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "category-id",
+		CategorySlug: "",
+		Search:       "",
+		Limit:        20,
+		Offset:       0,
+		SortBy:       "created_at",
+		SortOrder:    "desc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 1 {
+		t.Fatalf("expected total 1, got %d", total)
+	}
+
+	if len(products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(products))
+	}
+
+	if products[0].CategoryID != "category-id" {
+		t.Fatalf("expected category-id, got %s", products[0].CategoryID)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_FindAll_WithSearch(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(1)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("", "phone", "").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("ILIKE").
+		WithArgs("", "phone", "", 20, 0).
+		WillReturnRows(newProductRows(now))
+
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "",
+		CategorySlug: "",
+		Search:       "phone",
+		Limit:        20,
+		Offset:       0,
+		SortBy:       "created_at",
+		SortOrder:    "desc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 1 {
+		t.Fatalf("expected total 1, got %d", total)
+	}
+
+	if len(products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(products))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_FindAll_WithSearchAndCategoryID(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(1)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("category-id", "phone", "").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("ILIKE").
+		WithArgs("category-id", "phone", "", 20, 0).
+		WillReturnRows(newProductRows(now))
+
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "category-id",
+		CategorySlug: "",
+		Search:       "phone",
+		Limit:        20,
+		Offset:       0,
+		SortBy:       "created_at",
+		SortOrder:    "desc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 1 {
+		t.Fatalf("expected total 1, got %d", total)
+	}
+
+	if len(products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(products))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_FindAll_WithCategorySlug(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(1)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("", "", "phones").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("c.slug").
+		WithArgs("", "", "phones", 20, 0).
+		WillReturnRows(newProductRows(now))
+
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "",
+		CategorySlug: "phones",
+		Search:       "",
+		Limit:        20,
+		Offset:       0,
+		SortBy:       "created_at",
+		SortOrder:    "desc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 1 {
+		t.Fatalf("expected total 1, got %d", total)
+	}
+
+	if len(products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(products))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_FindAll_WithPagination(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(25)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("", "", "").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("FROM products").
+		WithArgs("", "", "", 10, 10).
+		WillReturnRows(newProductRows(now))
+
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "",
+		CategorySlug: "",
+		Search:       "",
+		Limit:        10,
+		Offset:       10,
+		SortBy:       "created_at",
+		SortOrder:    "desc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 25 {
+		t.Fatalf("expected total 25, got %d", total)
+	}
+
+	if len(products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(products))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_FindAll_SortByPriceAsc(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(1)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("", "", "").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("p.price ASC").
+		WithArgs("", "", "", 20, 0).
+		WillReturnRows(newProductRows(now))
+
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "",
+		CategorySlug: "",
+		Search:       "",
+		Limit:        20,
+		Offset:       0,
+		SortBy:       "price",
+		SortOrder:    "asc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 1 {
+		t.Fatalf("expected total 1, got %d", total)
+	}
+
+	if len(products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(products))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_FindAll_SortByNameDesc(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	now := time.Now()
+
+	countRows := pgxmock.NewRows([]string{"count"}).AddRow(1)
+
+	mock.ExpectQuery("SELECT COUNT").
+		WithArgs("", "", "").
+		WillReturnRows(countRows)
+
+	mock.ExpectQuery("LOWER\\(p.name\\) DESC").
+		WithArgs("", "", "", 20, 0).
+		WillReturnRows(newProductRows(now))
+
+	products, total, err := repo.FindAll(context.Background(), ProductListFilter{
+		CategoryID:   "",
+		CategorySlug: "",
+		Search:       "",
+		Limit:        20,
+		Offset:       0,
+		SortBy:       "name",
+		SortOrder:    "desc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if total != 1 {
+		t.Fatalf("expected total 1, got %d", total)
+	}
+
+	if len(products) != 1 {
+		t.Fatalf("expected 1 product, got %d", len(products))
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

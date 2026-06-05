@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -62,13 +63,47 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) GetAllProducts(c *gin.Context) {
-	products, err := h.productService.GetAll(c.Request.Context())
+	categoryID := c.Query("category_id")
+	categorySlug := c.Query("category")
+	search := c.Query("search")
+	sortBy := c.Query("sort_by")
+	sortOrder := c.Query("sort_order")
+
+	page := parsePageQuery(c, "page", services.DefaultProductPage)
+
+	limit, err := parseLimitQuery(c, "limit", services.DefaultProductLimit)
 	if err != nil {
-		response.InternalServerError(c, "failed to retrieve products", err.Error())
+		response.BadRequest(c, "invalid query parameter", "limit must be a valid number")
 		return
 	}
 
-	response.Success(c, http.StatusOK, "products retrieved successfully", products)
+	result, err := h.productService.GetAll(c.Request.Context(), services.ProductListInput{
+		CategoryID:   categoryID,
+		CategorySlug: categorySlug,
+		Search:       search,
+		Page:         page,
+		Limit:        limit,
+		SortBy:       sortBy,
+		SortOrder:    sortOrder,
+	})
+	if err != nil {
+		h.handleProductError(c, err)
+		return
+	}
+
+	meta := gin.H{
+		"page":        result.Page,
+		"limit":       result.Limit,
+		"total":       result.Total,
+		"total_pages": result.TotalPages,
+		"sort_by":     result.SortBy,
+		"sort_order":  result.SortOrder,
+		"category_id": result.CategoryID,
+		"category":    result.CategorySlug,
+		"search":      result.Search,
+	}
+
+	response.SuccessWithMeta(c, http.StatusOK, "products retrieved successfully", result.Products, meta)
 }
 
 func (h *ProductHandler) GetProductByID(c *gin.Context) {
@@ -173,4 +208,32 @@ func (h *ProductHandler) UploadProductImage(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusCreated, "product image uploaded successfully", product)
+}
+
+func parsePageQuery(c *gin.Context, key string, defaultValue int) int {
+	rawValue := c.Query(key)
+	if rawValue == "" {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(rawValue)
+	if err != nil || value < 1 {
+		return defaultValue
+	}
+
+	return value
+}
+
+func parseLimitQuery(c *gin.Context, key string, defaultValue int) (int, error) {
+	rawValue := c.Query(key)
+	if rawValue == "" {
+		return defaultValue, nil
+	}
+
+	value, err := strconv.Atoi(rawValue)
+	if err != nil {
+		return 0, err
+	}
+
+	return value, nil
 }

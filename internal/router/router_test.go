@@ -382,17 +382,28 @@ func TestCategoryPublicRoutes_WithoutToken_ReturnsOK(t *testing.T) {
 	}
 }
 
-func (f *fakeRouterProductService) GetAll(ctx context.Context) ([]models.Product, error) {
-	return []models.Product{
-		{
-			ID:         "product-id",
-			CategoryID: "category-id",
-			Name:       "Product",
-			Slug:       "product",
-			Price:      10000,
-			Stock:      10,
-			IsActive:   true,
+func (f *fakeRouterProductService) GetAll(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+	return &services.ProductListResult{
+		Products: []models.Product{
+			{
+				ID:         "product-id",
+				CategoryID: "category-id",
+				Name:       "Product",
+				Slug:       "product",
+				Price:      10000,
+				Stock:      10,
+				IsActive:   true,
+			},
 		},
+		Page:         1,
+		Limit:        20,
+		Total:        1,
+		TotalPages:   1,
+		SortBy:       services.DefaultProductSortBy,
+		SortOrder:    services.DefaultProductSortOrder,
+		CategoryID:   input.CategoryID,
+		CategorySlug: input.CategorySlug,
+		Search:       input.Search,
 	}, nil
 }
 

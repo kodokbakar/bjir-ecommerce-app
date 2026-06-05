@@ -19,7 +19,7 @@ import (
 
 type fakeProductService struct {
 	createFunc      func(ctx context.Context, input services.CreateProductInput) (*models.Product, error)
-	getAllFunc      func(ctx context.Context) ([]models.Product, error)
+	getAllFunc      func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error)
 	getByIDFunc     func(ctx context.Context, id string) (*models.Product, error)
 	getBySlugFunc   func(ctx context.Context, slug string) (*models.Product, error)
 	updateFunc      func(ctx context.Context, id string, input services.UpdateProductInput) (*models.Product, error)
@@ -31,8 +31,8 @@ func (f *fakeProductService) Create(ctx context.Context, input services.CreatePr
 	return f.createFunc(ctx, input)
 }
 
-func (f *fakeProductService) GetAll(ctx context.Context) ([]models.Product, error) {
-	return f.getAllFunc(ctx)
+func (f *fakeProductService) GetAll(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+	return f.getAllFunc(ctx, input)
 }
 
 func (f *fakeProductService) GetByID(ctx context.Context, id string) (*models.Product, error) {
@@ -299,9 +299,40 @@ func TestProductHandler_InternalError(t *testing.T) {
 
 func TestProductHandler_GetAllProducts_Success(t *testing.T) {
 	service := &fakeProductService{
-		getAllFunc: func(ctx context.Context) ([]models.Product, error) {
-			return []models.Product{
-				*newTestProduct(),
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.CategoryID != "" {
+				t.Fatalf("expected empty category_id, got %s", input.CategoryID)
+			}
+
+			if input.Page != services.DefaultProductPage {
+				t.Fatalf("expected default page %d, got %d", services.DefaultProductPage, input.Page)
+			}
+
+			if input.Limit != services.DefaultProductLimit {
+				t.Fatalf("expected default limit %d, got %d", services.DefaultProductLimit, input.Limit)
+			}
+
+			if input.SortBy != "" {
+				t.Fatalf("expected empty sort_by from query, got %s", input.SortBy)
+			}
+
+			if input.SortOrder != "" {
+				t.Fatalf("expected empty sort_order from query, got %s", input.SortOrder)
+			}
+
+			return &services.ProductListResult{
+				Products: []models.Product{
+					*newTestProduct(),
+				},
+				Page:         1,
+				Limit:        20,
+				Total:        1,
+				TotalPages:   1,
+				SortBy:       services.DefaultProductSortBy,
+				SortOrder:    services.DefaultProductSortOrder,
+				Search:       input.Search,
+				CategoryID:   input.CategoryID,
+				CategorySlug: input.CategorySlug,
 			}, nil
 		},
 	}
@@ -320,6 +351,31 @@ func TestProductHandler_GetAllProducts_Success(t *testing.T) {
 	if !strings.Contains(w.Body.String(), "iPhone 15") {
 		t.Fatalf("expected response to contain product name, got: %s", w.Body.String())
 	}
+
+	if !strings.Contains(w.Body.String(), `"page":1`) {
+		t.Fatalf("expected response to contain page meta, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"limit":20`) {
+		t.Fatalf("expected response to contain limit meta, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"total":1`) {
+		t.Fatalf("expected response to contain total meta, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"total_pages":1`) {
+		t.Fatalf("expected response to contain total_pages meta, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"sort_by":"created_at"`) {
+		t.Fatalf("expected response to contain sort_by created_at, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"sort_order":"desc"`) {
+		t.Fatalf("expected response to contain sort_order desc, got: %s", w.Body.String())
+	}
+
 }
 
 func TestProductHandler_GetProductBySlug_Success(t *testing.T) {
@@ -517,5 +573,356 @@ func TestProductHandler_UploadProductImage_ProductNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_WithCategoryFilter(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.CategoryID != "category-id" {
+				t.Fatalf("expected category-id, got %s", input.CategoryID)
+			}
+
+			if input.Page != 2 {
+				t.Fatalf("expected page 2, got %d", input.Page)
+			}
+
+			if input.Limit != 10 {
+				t.Fatalf("expected limit 10, got %d", input.Limit)
+			}
+
+			return &services.ProductListResult{
+				Products: []models.Product{
+					*newTestProduct(),
+				},
+				Page:         2,
+				Limit:        10,
+				Total:        21,
+				TotalPages:   3,
+				Search:       input.Search,
+				CategoryID:   input.CategoryID,
+				CategorySlug: input.CategorySlug,
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?category_id=category-id&page=2&limit=10", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"page":2`) {
+		t.Fatalf("expected response to contain page 2, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"limit":10`) {
+		t.Fatalf("expected response to contain limit 10, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"total":21`) {
+		t.Fatalf("expected response to contain total 21, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"total_pages":3`) {
+		t.Fatalf("expected response to contain total_pages 3, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_InvalidPageDefaultsToOne(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.Page != 1 {
+				t.Fatalf("expected page to default to 1, got %d", input.Page)
+			}
+
+			return &services.ProductListResult{
+				Products:   []models.Product{},
+				Page:       1,
+				Limit:      20,
+				Total:      0,
+				TotalPages: 0,
+				SortBy:     services.DefaultProductSortBy,
+				SortOrder:  services.DefaultProductSortOrder,
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?page=abc", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"page":1`) {
+		t.Fatalf("expected response page to default to 1, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_InvalidLimitQuery(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			t.Fatal("service should not be called for invalid limit query")
+			return nil, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?limit=abc", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_LimitTooLarge(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			return nil, models.ErrInvalidProductInput
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?limit=101", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_WithSort(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.SortBy != "price" {
+				t.Fatalf("expected sort_by price, got %s", input.SortBy)
+			}
+
+			if input.SortOrder != "asc" {
+				t.Fatalf("expected sort_order asc, got %s", input.SortOrder)
+			}
+
+			return &services.ProductListResult{
+				Products: []models.Product{
+					*newTestProduct(),
+				},
+				Page:       1,
+				Limit:      20,
+				Total:      1,
+				TotalPages: 1,
+				SortBy:     "price",
+				SortOrder:  "asc",
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?sort_by=price&sort_order=asc", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"sort_by":"price"`) {
+		t.Fatalf("expected response to contain sort_by price, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"sort_order":"asc"`) {
+		t.Fatalf("expected response to contain sort_order asc, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_InvalidSort(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			return nil, models.ErrInvalidProductInput
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?sort_by=stock", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_WithSearch(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.Search != "phone" {
+				t.Fatalf("expected search phone, got %s", input.Search)
+			}
+
+			return &services.ProductListResult{
+				Products: []models.Product{
+					*newTestProduct(),
+				},
+				Page:       1,
+				Limit:      20,
+				Total:      1,
+				TotalPages: 1,
+				SortBy:     services.DefaultProductSortBy,
+				SortOrder:  services.DefaultProductSortOrder,
+				Search:     "phone",
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?search=phone", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"search":"phone"`) {
+		t.Fatalf("expected response to contain search phone, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_WithSearchAndCategoryID(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.Search != "phone" {
+				t.Fatalf("expected search phone, got %s", input.Search)
+			}
+
+			if input.CategoryID != "category-id" {
+				t.Fatalf("expected category-id, got %s", input.CategoryID)
+			}
+
+			return &services.ProductListResult{
+				Products:   []models.Product{},
+				Page:       1,
+				Limit:      20,
+				Total:      0,
+				TotalPages: 0,
+				SortBy:     services.DefaultProductSortBy,
+				SortOrder:  services.DefaultProductSortOrder,
+				Search:     "phone",
+				CategoryID: "category-id",
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?search=phone&category_id=category-id", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"search":"phone"`) {
+		t.Fatalf("expected response to contain search phone, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"category_id":"category-id"`) {
+		t.Fatalf("expected response to contain category_id, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_WithCategorySlug(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.CategorySlug != "phones" {
+				t.Fatalf("expected category slug phones, got %s", input.CategorySlug)
+			}
+
+			return &services.ProductListResult{
+				Products:     []models.Product{},
+				Page:         1,
+				Limit:        20,
+				Total:        0,
+				TotalPages:   0,
+				SortBy:       services.DefaultProductSortBy,
+				SortOrder:    services.DefaultProductSortOrder,
+				CategorySlug: "phones",
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?category=phones", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"category":"phones"`) {
+		t.Fatalf("expected response to contain category phones, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetAllProducts_InvalidCategoryIDReturnsEmptyResult(t *testing.T) {
+	service := &fakeProductService{
+		getAllFunc: func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error) {
+			if input.CategoryID != "invalid-category-id" {
+				t.Fatalf("expected invalid-category-id, got %s", input.CategoryID)
+			}
+
+			return &services.ProductListResult{
+				Products:   []models.Product{},
+				Page:       1,
+				Limit:      20,
+				Total:      0,
+				TotalPages: 0,
+				SortBy:     services.DefaultProductSortBy,
+				SortOrder:  services.DefaultProductSortOrder,
+				CategoryID: "invalid-category-id",
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products?category_id=invalid-category-id", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"total":0`) {
+		t.Fatalf("expected response total 0, got: %s", w.Body.String())
 	}
 }
