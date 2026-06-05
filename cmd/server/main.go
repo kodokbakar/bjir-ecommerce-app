@@ -45,15 +45,16 @@ func main() {
 
 	redisClient, err := database.NewRedisClient(ctx, cfg.Redis)
 	if err != nil {
-		log.Fatalf("failed to connect redis: %v", err)
-	}
-	defer func() {
-		if err := redisClient.Close(); err != nil {
-			log.Printf("failed to close redis client: %v", err)
-		}
-	}()
+		log.Printf("failed to connect redis, continuing without cache: %v", err)
+	} else {
+		defer func() {
+			if err := redisClient.Close(); err != nil {
+				log.Printf("failed to close redis client: %v", err)
+			}
+		}()
 
-	log.Println("Redis connected successfully")
+		log.Println("Redis connected successfully")
+	}
 
 	jwtManager := auth.NewJWTManager(cfg.JWT)
 
@@ -66,7 +67,13 @@ func main() {
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
 	productRepository := repository.NewProductRepository(dbPool)
-	productService := services.NewProductService(productRepository, categoryRepository)
+
+	var productCache services.ProductCache
+	if redisClient != nil {
+		productCache = services.NewRedisProductCache(redisClient)
+	}
+
+	productService := services.NewProductServiceWithCache(productRepository, categoryRepository, productCache)
 	productHandler := handlers.NewProductHandler(productService)
 
 	r := router.SetupRouter(jwtManager, authHandler, categoryHandler, productHandler)

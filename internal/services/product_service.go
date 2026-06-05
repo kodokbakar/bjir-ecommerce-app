@@ -56,6 +56,7 @@ type ProductService interface {
 type productService struct {
 	productRepo  repository.ProductRepository
 	categoryRepo repository.CategoryRepository
+	productCache ProductCache
 }
 
 type ProductListInput struct {
@@ -108,9 +109,18 @@ func NewProductService(
 	productRepo repository.ProductRepository,
 	categoryRepo repository.CategoryRepository,
 ) ProductService {
+	return NewProductServiceWithCache(productRepo, categoryRepo, nil)
+}
+
+func NewProductServiceWithCache(
+	productRepo repository.ProductRepository,
+	categoryRepo repository.CategoryRepository,
+	productCache ProductCache,
+) ProductService {
 	return &productService{
 		productRepo:  productRepo,
 		categoryRepo: categoryRepo,
+		productCache: productCache,
 	}
 }
 
@@ -164,6 +174,8 @@ func (s *productService) Create(ctx context.Context, input CreateProductInput) (
 		return nil, err
 	}
 
+	s.invalidateProductListCache(ctx)
+
 	return product, nil
 }
 
@@ -191,6 +203,25 @@ func (s *productService) GetAll(ctx context.Context, input ProductListInput) (*P
 		return nil, err
 	}
 
+	normalizedInput := ProductListInput{
+		CategoryID:   categoryID,
+		CategorySlug: categorySlug,
+		Search:       search,
+		Page:         page,
+		Limit:        limit,
+		SortBy:       sortBy,
+		SortOrder:    sortOrder,
+	}
+
+	cacheKey := buildProductListCacheKey(normalizedInput)
+
+	if s.productCache != nil {
+		cachedResult, err := s.productCache.GetProductList(ctx, cacheKey)
+		if err == nil && cachedResult != nil {
+			return cachedResult, nil
+		}
+	}
+
 	offset := (page - 1) * limit
 
 	products, total, err := s.productRepo.FindAll(ctx, repository.ProductListFilter{
@@ -211,7 +242,7 @@ func (s *productService) GetAll(ctx context.Context, input ProductListInput) (*P
 		totalPages = (total + limit - 1) / limit
 	}
 
-	return &ProductListResult{
+	result := &ProductListResult{
 		Products:     products,
 		Page:         page,
 		Limit:        limit,
@@ -222,7 +253,13 @@ func (s *productService) GetAll(ctx context.Context, input ProductListInput) (*P
 		CategoryID:   categoryID,
 		CategorySlug: categorySlug,
 		Search:       search,
-	}, nil
+	}
+
+	if s.productCache != nil {
+		_ = s.productCache.SetProductList(ctx, cacheKey, result, ProductListCacheTTL)
+	}
+
+	return result, nil
 }
 
 func (s *productService) GetByID(ctx context.Context, id string) (*models.Product, error) {
@@ -303,6 +340,8 @@ func (s *productService) Update(ctx context.Context, id string, input UpdateProd
 		return nil, err
 	}
 
+	s.invalidateProductListCache(ctx)
+
 	return product, nil
 }
 
@@ -365,6 +404,8 @@ func (s *productService) UploadImage(ctx context.Context, input UploadProductIma
 		return nil, err
 	}
 
+	s.invalidateProductListCache(ctx)
+
 	return product, nil
 }
 
@@ -374,7 +415,17 @@ func (s *productService) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("%w: product id is required", models.ErrInvalidProductInput)
 	}
 
+	s.invalidateProductListCache(ctx)
+
 	return s.productRepo.Delete(ctx, id)
+}
+
+func (s *productService) invalidateProductListCache(ctx context.Context) {
+	if s.productCache == nil {
+		return
+	}
+
+	_ = s.productCache.InvalidateProductList(ctx)
 }
 
 func normalizeProductInput(

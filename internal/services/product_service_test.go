@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -108,6 +109,33 @@ func (f *fakeProductRepository) Create(ctx context.Context, product *models.Prod
 	return f.createFunc(ctx, product)
 }
 
+func TestProductService_Create_InvalidatesProductListCache(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	cache := newFakeProductCache()
+
+	var invalidated bool
+	cache.invalidateFunc = func(ctx context.Context) error {
+		invalidated = true
+		return nil
+	}
+
+	service := NewProductServiceWithCache(productRepo, newFakeCategoryRepository(), cache)
+
+	_, err := service.Create(context.Background(), CreateProductInput{
+		CategoryID: "category-id",
+		Name:       "iPhone 15",
+		Price:      15000000,
+		Stock:      10,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !invalidated {
+		t.Fatal("expected product list cache to be invalidated")
+	}
+}
+
 func (f *fakeProductRepository) FindAll(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
 	return f.findAllFunc(ctx, filter)
 }
@@ -128,12 +156,93 @@ func (f *fakeProductRepository) Update(ctx context.Context, product *models.Prod
 	return f.updateFunc(ctx, product)
 }
 
+func TestProductService_Update_InvalidatesProductListCache(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	cache := newFakeProductCache()
+
+	var invalidated bool
+	cache.invalidateFunc = func(ctx context.Context) error {
+		invalidated = true
+		return nil
+	}
+
+	service := NewProductServiceWithCache(productRepo, newFakeCategoryRepository(), cache)
+
+	_, err := service.Update(context.Background(), "product-id", UpdateProductInput{
+		CategoryID: "category-id",
+		Name:       "iPhone 15 Pro",
+		Price:      18000000,
+		Stock:      5,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !invalidated {
+		t.Fatal("expected product list cache to be invalidated")
+	}
+}
+
 func (f *fakeProductRepository) UpdateImageURL(ctx context.Context, id string, imageURL string) (*models.Product, error) {
 	return f.updateImageURLFunc(ctx, id, imageURL)
 }
 
 func (f *fakeProductRepository) Delete(ctx context.Context, id string) error {
 	return f.deleteFunc(ctx, id)
+}
+
+func TestProductService_Delete_InvalidatesProductListCache(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	cache := newFakeProductCache()
+
+	var invalidated bool
+	cache.invalidateFunc = func(ctx context.Context) error {
+		invalidated = true
+		return nil
+	}
+
+	service := NewProductServiceWithCache(productRepo, newFakeCategoryRepository(), cache)
+
+	err := service.Delete(context.Background(), "product-id")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !invalidated {
+		t.Fatal("expected product list cache to be invalidated")
+	}
+}
+
+type fakeProductCache struct {
+	getFunc        func(ctx context.Context, key string) (*ProductListResult, error)
+	setFunc        func(ctx context.Context, key string, result *ProductListResult, ttl time.Duration) error
+	invalidateFunc func(ctx context.Context) error
+}
+
+func newFakeProductCache() *fakeProductCache {
+	return &fakeProductCache{
+		getFunc: func(ctx context.Context, key string) (*ProductListResult, error) {
+			return nil, nil
+		},
+		setFunc: func(ctx context.Context, key string, result *ProductListResult, ttl time.Duration) error {
+			return nil
+		},
+		invalidateFunc: func(ctx context.Context) error {
+			return nil
+		},
+	}
+}
+
+func (f *fakeProductCache) GetProductList(ctx context.Context, key string) (*ProductListResult, error) {
+	return f.getFunc(ctx, key)
+}
+
+func (f *fakeProductCache) SetProductList(ctx context.Context, key string, result *ProductListResult, ttl time.Duration) error {
+	return f.setFunc(ctx, key, result, ttl)
+}
+
+func (f *fakeProductCache) InvalidateProductList(ctx context.Context) error {
+	return f.invalidateFunc(ctx)
 }
 
 func TestProductService_Create_Success(t *testing.T) {
@@ -204,6 +313,158 @@ func TestProductService_GetAll_Success(t *testing.T) {
 
 	if result.SortOrder != DefaultProductSortOrder {
 		t.Fatalf("expected sort_order %s, got %s", DefaultProductSortOrder, result.SortOrder)
+	}
+}
+
+func TestProductService_GetAll_CacheHit(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		t.Fatal("expected repository not to be called on cache hit")
+		return nil, 0, nil
+	}
+
+	cache := newFakeProductCache()
+	cache.getFunc = func(ctx context.Context, key string) (*ProductListResult, error) {
+		if !strings.Contains(key, "products:list") {
+			t.Fatalf("expected products list cache key, got %s", key)
+		}
+
+		return &ProductListResult{
+			Products: []models.Product{
+				{
+					ID:         "cached-product-id",
+					CategoryID: "category-id",
+					Name:       "Cached Product",
+					Slug:       "cached-product",
+					Price:      10000,
+					Stock:      1,
+					IsActive:   true,
+				},
+			},
+			Page:       1,
+			Limit:      20,
+			Total:      1,
+			TotalPages: 1,
+			SortBy:     DefaultProductSortBy,
+			SortOrder:  DefaultProductSortOrder,
+		}, nil
+	}
+
+	service := NewProductServiceWithCache(productRepo, newFakeCategoryRepository(), cache)
+
+	result, err := service.GetAll(context.Background(), ProductListInput{})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(result.Products) != 1 {
+		t.Fatalf("expected 1 cached product, got %d", len(result.Products))
+	}
+
+	if result.Products[0].ID != "cached-product-id" {
+		t.Fatalf("expected cached-product-id, got %s", result.Products[0].ID)
+	}
+}
+
+func TestProductService_GetAll_CacheMissSetsCache(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	cache := newFakeProductCache()
+
+	var cacheSetCalled bool
+	var cacheKey string
+
+	cache.getFunc = func(ctx context.Context, key string) (*ProductListResult, error) {
+		return nil, nil
+	}
+
+	cache.setFunc = func(ctx context.Context, key string, result *ProductListResult, ttl time.Duration) error {
+		cacheSetCalled = true
+		cacheKey = key
+
+		if ttl != ProductListCacheTTL {
+			t.Fatalf("expected ttl %v, got %v", ProductListCacheTTL, ttl)
+		}
+
+		if result.Total != 1 {
+			t.Fatalf("expected total 1, got %d", result.Total)
+		}
+
+		return nil
+	}
+
+	service := NewProductServiceWithCache(productRepo, newFakeCategoryRepository(), cache)
+
+	result, err := service.GetAll(context.Background(), ProductListInput{
+		CategoryID: "category-id",
+		Search:     "phone",
+		Page:       2,
+		Limit:      10,
+		SortBy:     "price",
+		SortOrder:  "asc",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if result.Total != 1 {
+		t.Fatalf("expected total 1, got %d", result.Total)
+	}
+
+	if !cacheSetCalled {
+		t.Fatal("expected cache set to be called")
+	}
+
+	if !strings.Contains(cacheKey, "category_id=category-id") {
+		t.Fatalf("expected cache key to contain category_id, got %s", cacheKey)
+	}
+
+	if !strings.Contains(cacheKey, "search=phone") {
+		t.Fatalf("expected cache key to contain search, got %s", cacheKey)
+	}
+
+	if !strings.Contains(cacheKey, "sort_by=price") {
+		t.Fatalf("expected cache key to contain sort_by, got %s", cacheKey)
+	}
+}
+
+func TestProductService_GetAll_CacheErrorFallsBackToRepository(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	var repositoryCalled bool
+	productRepo.findAllFunc = func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error) {
+		repositoryCalled = true
+		return []models.Product{
+			{
+				ID:         "product-id",
+				CategoryID: "category-id",
+				Name:       "iPhone 15",
+				Slug:       "iphone-15",
+				Price:      15000000,
+				Stock:      10,
+				IsActive:   true,
+			},
+		}, 1, nil
+	}
+
+	cache := newFakeProductCache()
+	cache.getFunc = func(ctx context.Context, key string) (*ProductListResult, error) {
+		return nil, fmt.Errorf("redis unavailable")
+	}
+
+	service := NewProductServiceWithCache(productRepo, newFakeCategoryRepository(), cache)
+
+	result, err := service.GetAll(context.Background(), ProductListInput{})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !repositoryCalled {
+		t.Fatal("expected repository to be called when cache returns error")
+	}
+
+	if result.Total != 1 {
+		t.Fatalf("expected total 1, got %d", result.Total)
 	}
 }
 
@@ -463,6 +724,40 @@ func TestProductService_UploadImage_Success(t *testing.T) {
 
 	if _, err := os.Stat(filePath); err != nil {
 		t.Fatalf("expected uploaded file to exist, got %v", err)
+	}
+}
+
+func TestProductService_UploadImage_InvalidatesProductListCache(t *testing.T) {
+	oldUploadDir := productImageUploadDir
+	productImageUploadDir = t.TempDir()
+	defer func() {
+		productImageUploadDir = oldUploadDir
+	}()
+
+	productRepo := newFakeProductRepository()
+	cache := newFakeProductCache()
+
+	var invalidated bool
+	cache.invalidateFunc = func(ctx context.Context) error {
+		invalidated = true
+		return nil
+	}
+
+	service := NewProductServiceWithCache(productRepo, newFakeCategoryRepository(), cache)
+
+	_, err := service.UploadImage(context.Background(), UploadProductImageInput{
+		ProductID:   "product-id",
+		FileName:    "test.png",
+		Size:        int64(len(validPNGBytes())),
+		ContentType: "image/png",
+		File:        bytes.NewReader(validPNGBytes()),
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !invalidated {
+		t.Fatal("expected product list cache to be invalidated")
 	}
 }
 
