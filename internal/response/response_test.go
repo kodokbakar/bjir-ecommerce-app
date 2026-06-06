@@ -2,6 +2,7 @@ package response_test
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -164,5 +165,58 @@ func TestErrorResponse(t *testing.T) {
 
 	if body.Error.Code != response.CodeBadRequest {
 		t.Fatalf("expected code bad_request, got %s", body.Error.Code)
+	}
+}
+
+func TestAppErrorResponse(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	r.GET("/app-error", func(c *gin.Context) {
+		response.AppErrorResponse(c, response.NewNotFound("resource not found", errors.New("product not found"), "product not found"))
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/app-error", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", w.Code)
+	}
+
+	var body response.Body
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if body.Success {
+		t.Fatal("expected success false")
+	}
+
+	if body.Error == nil {
+		t.Fatal("expected error body")
+	}
+
+	if body.Error.Code != response.CodeNotFound {
+		t.Fatalf("expected code not_found, got %s", body.Error.Code)
+	}
+
+	if body.Error.Message != "resource not found" {
+		t.Fatalf("expected error message resource not found, got %s", body.Error.Message)
+	}
+}
+
+func TestAppErrorUnwrap(t *testing.T) {
+	baseErr := errors.New("database error")
+
+	appErr := response.NewInternalServerError("internal server error", baseErr, nil)
+
+	if !errors.Is(appErr, baseErr) {
+		t.Fatal("expected AppError to unwrap base error")
+	}
+
+	if appErr.Error() != baseErr.Error() {
+		t.Fatalf("expected error message %q, got %q", baseErr.Error(), appErr.Error())
 	}
 }
