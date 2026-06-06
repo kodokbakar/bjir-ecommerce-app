@@ -23,6 +23,7 @@ type AppConfig struct {
 }
 
 type DatabaseConfig struct {
+	URL               string
 	Host              string
 	Port              int
 	User              string
@@ -60,9 +61,10 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		App: AppConfig{
 			Env:  getEnv("APP_ENV", "development"),
-			Port: getEnv("APP_PORT", "8080"),
+			Port: getEnv("PORT", getEnv("APP_PORT", "8080")),
 		},
 		Database: DatabaseConfig{
+			URL:               getEnv("DATABASE_URL", ""),
 			Host:              getEnv("DB_HOST", "localhost"),
 			Port:              getEnvAsInt("DB_PORT", 5432),
 			User:              getEnv("DB_USER", "postgres"),
@@ -105,20 +107,22 @@ func (cfg *Config) validate() error {
 		return fmt.Errorf("APP_PORT is required")
 	}
 
-	if cfg.Database.Host == "" {
-		return fmt.Errorf("DB_HOST is required")
-	}
+	if cfg.Database.URL == "" {
+		if cfg.Database.Host == "" {
+			return fmt.Errorf("DB_HOST is required")
+		}
 
-	if cfg.Database.Port <= 0 {
-		return fmt.Errorf("DB_PORT must be greater than 0")
-	}
+		if cfg.Database.Port <= 0 {
+			return fmt.Errorf("DB_PORT must be greater than 0")
+		}
 
-	if cfg.Database.User == "" {
-		return fmt.Errorf("DB_USER is required")
-	}
+		if cfg.Database.User == "" {
+			return fmt.Errorf("DB_USER is required")
+		}
 
-	if cfg.Database.Name == "" {
-		return fmt.Errorf("DB_NAME is required")
+		if cfg.Database.Name == "" {
+			return fmt.Errorf("DB_NAME is required")
+		}
 	}
 
 	if cfg.Database.MaxConns <= 0 {
@@ -169,6 +173,10 @@ func (cfg *Config) validate() error {
 }
 
 func (db DatabaseConfig) DSN() string {
+	if db.URL != "" {
+		return db.URL
+	}
+
 	dsn := url.URL{
 		Scheme: "postgres",
 		User:   url.UserPassword(db.User, db.Password),
