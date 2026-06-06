@@ -17,4 +17,7 @@ var (
 	ErrProductNotFound      = errors.New("product not found")
 	ErrProductAlreadyExists = errors.New("product already exists")
 	ErrInvalidProductInput  = errors.New("invalid product input")
+
+	ErrCartItemNotFound = errors.New("cart item not found")
+	ErrInvalidCartInput = errors.New("invalid cart input")
 )

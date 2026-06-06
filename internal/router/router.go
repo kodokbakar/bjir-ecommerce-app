@@ -16,6 +16,7 @@ func SetupRouter(
 	authHandler *handlers.AuthHandler,
 	categoryHandler *handlers.CategoryHandler,
 	productHandler *handlers.ProductHandler,
+	cartHandlers ...*handlers.CartHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -38,6 +39,16 @@ func SetupRouter(
 	protected.Use(middleware.AuthMiddleware(jwtManager))
 
 	protected.GET("/me", handlers.Me)
+
+	if len(cartHandlers) > 0 && cartHandlers[0] != nil {
+		cartHandler := cartHandlers[0]
+
+		cartRoutes := protected.Group("/cart")
+		cartRoutes.GET("", cartHandler.GetCart)
+		cartRoutes.POST("/items", cartHandler.AddCartItem)
+		cartRoutes.PUT("/items/:id", cartHandler.UpdateCartItem)
+		cartRoutes.DELETE("/items/:id", cartHandler.DeleteCartItem)
+	}
 
 	admin := api.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(jwtManager))
