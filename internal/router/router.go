@@ -22,7 +22,7 @@ func SetupRouter(
 ) *gin.Engine {
 	r := gin.New()
 
-	r.Use(gin.Logger())
+	r.Use(middleware.RequestLogger())
 	r.Use(middleware.Recovery())
 
 	r.GET("/health", handlers.HealthCheck)
