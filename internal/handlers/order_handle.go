@@ -46,7 +46,55 @@ func handleOrderError(c *gin.Context, err error) {
 		response.Conflict(c, "insufficient product stock", nil)
 	case errors.Is(err, models.ErrProductNotFound):
 		response.NotFound(c, "product not found", nil)
+	case errors.Is(err, models.ErrOrderNotFound):
+		response.NotFound(c, "order not found", nil)
 	default:
 		response.InternalServerError(c, "internal server error", nil)
 	}
+}
+
+func (h *OrderHandler) GetMyOrders(c *gin.Context) {
+	userID, ok := middleware.GetCurrentUserID(c)
+	if !ok || userID == "" {
+		response.Unauthorized(c, "unauthorized", "user id not found in context")
+		return
+	}
+
+	pagination := GetPaginationQuery(c)
+
+	result, err := h.orderService.GetMyOrders(c.Request.Context(), userID, services.OrderListInput{
+		Page:  pagination.Page,
+		Limit: pagination.Limit,
+	})
+	if err != nil {
+		handleOrderError(c, err)
+		return
+	}
+
+	meta := gin.H{
+		"page":        result.Page,
+		"limit":       result.Limit,
+		"total":       result.Total,
+		"total_pages": result.TotalPages,
+	}
+
+	response.SuccessWithMeta(c, http.StatusOK, "orders retrieved successfully", result.Orders, meta)
+}
+
+func (h *OrderHandler) GetMyOrderDetail(c *gin.Context) {
+	userID, ok := middleware.GetCurrentUserID(c)
+	if !ok || userID == "" {
+		response.Unauthorized(c, "unauthorized", "user id not found in context")
+		return
+	}
+
+	orderID := c.Param("id")
+
+	order, err := h.orderService.GetMyOrderDetail(c.Request.Context(), userID, orderID)
+	if err != nil {
+		handleOrderError(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "order retrieved successfully", order)
 }

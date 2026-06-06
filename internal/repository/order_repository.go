@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,17 +15,26 @@ import (
 
 type OrderRepository interface {
 	Checkout(ctx context.Context, userID string) (*models.Order, error)
+	FindAllByUserID(ctx context.Context, userID string, filter OrderListFilter) ([]models.Order, int, error)
+	FindByIDAndUserID(ctx context.Context, orderID string, userID string) (*models.Order, error)
+}
+
+type OrderListFilter struct {
+	Limit  int
+	Offset int
 }
 
 type orderRepository struct {
-	db PgxTxBeginner
+	db PgxOrderDB
 }
 
-type PgxTxBeginner interface {
+type PgxOrderDB interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func NewOrderRepository(db PgxTxBeginner) OrderRepository {
+func NewOrderRepository(db PgxOrderDB) OrderRepository {
 	return &orderRepository{db: db}
 }
 
@@ -108,6 +118,148 @@ func (r *orderRepository) Checkout(ctx context.Context, userID string) (*models.
 	committed = true
 
 	return order, nil
+}
+
+func (r *orderRepository) FindAllByUserID(ctx context.Context, userID string, filter OrderListFilter) ([]models.Order, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM orders
+		WHERE user_id = $1
+	`
+
+	var total int
+
+	if err := r.db.QueryRow(ctx, countQuery, userID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	query := `
+		SELECT
+			id::text,
+			user_id::text,
+			order_number,
+			status,
+			total_amount::float8,
+			COALESCE(shipping_address, ''),
+			COALESCE(notes, ''),
+			created_at,
+			updated_at
+		FROM orders
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.Query(ctx, query, userID, filter.Limit, filter.Offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	orders := make([]models.Order, 0)
+
+	for rows.Next() {
+		var order models.Order
+
+		if err := scanOrder(&order, rows); err != nil {
+			return nil, 0, err
+		}
+
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return orders, total, nil
+}
+
+func (r *orderRepository) FindByIDAndUserID(ctx context.Context, orderID string, userID string) (*models.Order, error) {
+	query := `
+		SELECT
+			id::text,
+			user_id::text,
+			order_number,
+			status,
+			total_amount::float8,
+			COALESCE(shipping_address, ''),
+			COALESCE(notes, ''),
+			created_at,
+			updated_at
+		FROM orders
+		WHERE id = $1
+		AND user_id = $2
+	`
+
+	order := &models.Order{}
+
+	if err := scanOrder(order, r.db.QueryRow(ctx, query, orderID, userID)); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrOrderNotFound
+		}
+
+		return nil, err
+	}
+
+	items, err := r.findOrderItemsByOrderID(ctx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	order.Items = items
+
+	return order, nil
+}
+
+func (r *orderRepository) findOrderItemsByOrderID(ctx context.Context, orderID string) ([]models.OrderItem, error) {
+	query := `
+		SELECT
+			id::text,
+			order_id::text,
+			product_id::text,
+			product_name,
+			quantity,
+			price::float8,
+			subtotal::float8,
+			created_at
+		FROM order_items
+		WHERE order_id = $1
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]models.OrderItem, 0)
+
+	for rows.Next() {
+		var item models.OrderItem
+
+		if err := rows.Scan(
+			&item.ID,
+			&item.OrderID,
+			&item.ProductID,
+			&item.ProductName,
+			&item.Quantity,
+			&item.Price,
+			&item.Subtotal,
+			&item.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
 }
 
 func (r *orderRepository) getCheckoutCartItems(ctx context.Context, tx pgx.Tx, userID string) ([]checkoutCartItem, error) {
@@ -305,6 +457,24 @@ func (r *orderRepository) clearCart(ctx context.Context, tx pgx.Tx, userID strin
 
 	_, err := tx.Exec(ctx, query, userID)
 	return err
+}
+
+type orderRowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanOrder(order *models.Order, row orderRowScanner) error {
+	return row.Scan(
+		&order.ID,
+		&order.UserID,
+		&order.OrderNumber,
+		&order.Status,
+		&order.TotalAmount,
+		&order.ShippingAddress,
+		&order.Notes,
+		&order.CreatedAt,
+		&order.UpdatedAt,
+	)
 }
 
 func calculateOrderTotal(items []checkoutCartItem) float64 {

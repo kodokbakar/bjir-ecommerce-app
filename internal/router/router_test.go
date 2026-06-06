@@ -301,6 +301,54 @@ func (f *fakeRouterOrderService) Checkout(ctx context.Context, userID string) (*
 	}, nil
 }
 
+func (f *fakeRouterOrderService) GetMyOrders(ctx context.Context, userID string, input services.OrderListInput) (*services.OrderListResult, error) {
+	now := time.Now()
+
+	return &services.OrderListResult{
+		Orders: []models.Order{
+			{
+				ID:          "order-id",
+				UserID:      userID,
+				OrderNumber: "ORD-TEST",
+				Status:      models.OrderStatusPending,
+				TotalAmount: 10000,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			},
+		},
+		Page:       1,
+		Limit:      20,
+		Total:      1,
+		TotalPages: 1,
+	}, nil
+}
+
+func (f *fakeRouterOrderService) GetMyOrderDetail(ctx context.Context, userID string, orderID string) (*models.Order, error) {
+	now := time.Now()
+
+	return &models.Order{
+		ID:          orderID,
+		UserID:      userID,
+		OrderNumber: "ORD-TEST",
+		Status:      models.OrderStatusPending,
+		TotalAmount: 10000,
+		Items: []models.OrderItem{
+			{
+				ID:          "order-item-id",
+				OrderID:     orderID,
+				ProductID:   "product-id",
+				ProductName: "Product",
+				Quantity:    1,
+				Price:       10000,
+				Subtotal:    10000,
+				CreatedAt:   now,
+			},
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}, nil
+}
+
 func TestRBAC_PublicProductRoutes_WithoutToken_ReturnsOK(t *testing.T) {
 	r, _ := setupRouterForCategoryAuthTest()
 

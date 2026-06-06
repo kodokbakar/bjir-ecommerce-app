@@ -48,7 +48,9 @@ func SetupRouter(
 	cartRoutes.DELETE("/items/:id", cartHandler.DeleteCartItem)
 
 	orderRoutes := protected.Group("/orders")
+	orderRoutes.GET("", orderHandler.GetMyOrders)
 	orderRoutes.POST("/checkout", orderHandler.Checkout)
+	orderRoutes.GET("/:id", orderHandler.GetMyOrderDetail)
 
 	admin := api.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(jwtManager))

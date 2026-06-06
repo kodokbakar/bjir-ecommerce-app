@@ -11,6 +11,27 @@ import (
 
 type OrderService interface {
 	Checkout(ctx context.Context, userID string) (*models.Order, error)
+	GetMyOrders(ctx context.Context, userID string, input OrderListInput) (*OrderListResult, error)
+	GetMyOrderDetail(ctx context.Context, userID string, orderID string) (*models.Order, error)
+}
+
+const (
+	DefaultOrderPage  = 1
+	DefaultOrderLimit = 20
+	MaxOrderLimit     = 100
+)
+
+type OrderListInput struct {
+	Page  int
+	Limit int
+}
+
+type OrderListResult struct {
+	Orders     []models.Order `json:"orders"`
+	Page       int            `json:"page"`
+	Limit      int            `json:"limit"`
+	Total      int            `json:"total"`
+	TotalPages int            `json:"total_pages"`
 }
 
 type orderService struct {
@@ -28,6 +49,69 @@ func (s *orderService) Checkout(ctx context.Context, userID string) (*models.Ord
 	}
 
 	order, err := s.orderRepo.Checkout(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
+}
+
+func (s *orderService) GetMyOrders(ctx context.Context, userID string, input OrderListInput) (*OrderListResult, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user id is required", models.ErrInvalidOrderInput)
+	}
+
+	page := input.Page
+	if page < 1 {
+		page = DefaultOrderPage
+	}
+
+	limit := input.Limit
+	if limit < 1 {
+		limit = DefaultOrderLimit
+	}
+
+	if limit > MaxOrderLimit {
+		limit = MaxOrderLimit
+	}
+
+	offset := (page - 1) * limit
+
+	orders, total, err := s.orderRepo.FindAllByUserID(ctx, userID, repository.OrderListFilter{
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
+	return &OrderListResult{
+		Orders:     orders,
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (s *orderService) GetMyOrderDetail(ctx context.Context, userID string, orderID string) (*models.Order, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, fmt.Errorf("%w: user id is required", models.ErrInvalidOrderInput)
+	}
+
+	orderID = strings.TrimSpace(orderID)
+	if orderID == "" {
+		return nil, fmt.Errorf("%w: order id is required", models.ErrInvalidOrderInput)
+	}
+
+	order, err := s.orderRepo.FindByIDAndUserID(ctx, orderID, userID)
 	if err != nil {
 		return nil, err
 	}
