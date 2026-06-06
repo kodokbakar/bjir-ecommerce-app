@@ -17,6 +17,8 @@ type OrderRepository interface {
 	Checkout(ctx context.Context, userID string) (*models.Order, error)
 	FindAllByUserID(ctx context.Context, userID string, filter OrderListFilter) ([]models.Order, int, error)
 	FindByIDAndUserID(ctx context.Context, orderID string, userID string) (*models.Order, error)
+	FindByID(ctx context.Context, orderID string) (*models.Order, error)
+	UpdateStatus(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error)
 }
 
 type OrderListFilter struct {
@@ -208,6 +210,66 @@ func (r *orderRepository) FindByIDAndUserID(ctx context.Context, orderID string,
 	}
 
 	order.Items = items
+
+	return order, nil
+}
+
+func (r *orderRepository) FindByID(ctx context.Context, orderID string) (*models.Order, error) {
+	query := `
+		SELECT
+			id::text,
+			user_id::text,
+			order_number,
+			status,
+			total_amount::float8,
+			COALESCE(shipping_address, ''),
+			COALESCE(notes, ''),
+			created_at,
+			updated_at
+		FROM orders
+		WHERE id = $1
+	`
+
+	order := &models.Order{}
+
+	if err := scanOrder(order, r.db.QueryRow(ctx, query, orderID)); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrOrderNotFound
+		}
+
+		return nil, err
+	}
+
+	return order, nil
+}
+
+func (r *orderRepository) UpdateStatus(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error) {
+	query := `
+		UPDATE orders
+		SET status = $3
+		WHERE id = $1
+		AND status = $2
+		RETURNING
+			id::text,
+			user_id::text,
+			order_number,
+			status,
+			total_amount::float8,
+			COALESCE(shipping_address, ''),
+			COALESCE(notes, ''),
+			created_at,
+			updated_at
+	`
+
+	order := &models.Order{}
+
+	if err := scanOrder(order, r.db.QueryRow(ctx, query, orderID, currentStatus, nextStatus)); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrInvalidOrderStatusTransition
+		}
+
+		return nil, err
+	}
 
 	return order, nil
 }

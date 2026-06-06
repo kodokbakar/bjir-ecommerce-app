@@ -14,6 +14,8 @@ type fakeOrderRepository struct {
 	checkoutFunc          func(ctx context.Context, userID string) (*models.Order, error)
 	findAllByUserIDFunc   func(ctx context.Context, userID string, filter repository.OrderListFilter) ([]models.Order, int, error)
 	findByIDAndUserIDFunc func(ctx context.Context, orderID string, userID string) (*models.Order, error)
+	findByIDFunc          func(ctx context.Context, orderID string) (*models.Order, error)
+	updateStatusFunc      func(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error)
 }
 
 func newFakeOrderRepository() *fakeOrderRepository {
@@ -79,6 +81,28 @@ func newFakeOrderRepository() *fakeOrderRepository {
 				UpdatedAt: now,
 			}, nil
 		},
+		findByIDFunc: func(ctx context.Context, orderID string) (*models.Order, error) {
+			return &models.Order{
+				ID:          orderID,
+				UserID:      "user-id",
+				OrderNumber: "ORD-TEST",
+				Status:      models.OrderStatusPending,
+				TotalAmount: 30000000,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			}, nil
+		},
+		updateStatusFunc: func(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error) {
+			return &models.Order{
+				ID:          orderID,
+				UserID:      "user-id",
+				OrderNumber: "ORD-TEST",
+				Status:      nextStatus,
+				TotalAmount: 30000000,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+			}, nil
+		},
 	}
 }
 
@@ -92,6 +116,14 @@ func (f *fakeOrderRepository) FindAllByUserID(ctx context.Context, userID string
 
 func (f *fakeOrderRepository) FindByIDAndUserID(ctx context.Context, orderID string, userID string) (*models.Order, error) {
 	return f.findByIDAndUserIDFunc(ctx, orderID, userID)
+}
+
+func (f *fakeOrderRepository) FindByID(ctx context.Context, orderID string) (*models.Order, error) {
+	return f.findByIDFunc(ctx, orderID)
+}
+
+func (f *fakeOrderRepository) UpdateStatus(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error) {
+	return f.updateStatusFunc(ctx, orderID, currentStatus, nextStatus)
 }
 
 func TestOrderService_Checkout_Success(t *testing.T) {
@@ -303,6 +335,149 @@ func TestOrderService_GetMyOrderDetail_EmptyOrderID(t *testing.T) {
 	service := NewOrderService(newFakeOrderRepository())
 
 	_, err := service.GetMyOrderDetail(context.Background(), "user-id", "")
+
+	if !errors.Is(err, models.ErrInvalidOrderInput) {
+		t.Fatalf("expected ErrInvalidOrderInput, got %v", err)
+	}
+}
+
+func TestOrderService_UpdateStatus_PendingToPaid_Success(t *testing.T) {
+	service := NewOrderService(newFakeOrderRepository())
+
+	order, err := service.UpdateStatus(context.Background(), "order-id", "paid")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.Status != models.OrderStatusPaid {
+		t.Fatalf("expected paid, got %s", order.Status)
+	}
+}
+
+func TestOrderService_UpdateStatus_PendingToCanceled_Success(t *testing.T) {
+	service := NewOrderService(newFakeOrderRepository())
+
+	order, err := service.UpdateStatus(context.Background(), "order-id", "canceled")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.Status != models.OrderStatusCancelled {
+		t.Fatalf("expected cancelled, got %s", order.Status)
+	}
+}
+
+func TestOrderService_UpdateStatus_PaidToShipped_Success(t *testing.T) {
+	repo := newFakeOrderRepository()
+	repo.findByIDFunc = func(ctx context.Context, orderID string) (*models.Order, error) {
+		return &models.Order{
+			ID:     orderID,
+			Status: models.OrderStatusPaid,
+		}, nil
+	}
+
+	service := NewOrderService(repo)
+
+	order, err := service.UpdateStatus(context.Background(), "order-id", "shipped")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.Status != models.OrderStatusShipped {
+		t.Fatalf("expected shipped, got %s", order.Status)
+	}
+}
+
+func TestOrderService_UpdateStatus_ShippedToDelivered_Success(t *testing.T) {
+	repo := newFakeOrderRepository()
+	repo.findByIDFunc = func(ctx context.Context, orderID string) (*models.Order, error) {
+		return &models.Order{
+			ID:     orderID,
+			Status: models.OrderStatusShipped,
+		}, nil
+	}
+
+	service := NewOrderService(repo)
+
+	order, err := service.UpdateStatus(context.Background(), "order-id", "delivered")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.Status != models.OrderStatusDelivered {
+		t.Fatalf("expected delivered, got %s", order.Status)
+	}
+}
+
+func TestOrderService_UpdateStatus_InvalidTransition(t *testing.T) {
+	service := NewOrderService(newFakeOrderRepository())
+
+	_, err := service.UpdateStatus(context.Background(), "order-id", "shipped")
+
+	if !errors.Is(err, models.ErrInvalidOrderStatusTransition) {
+		t.Fatalf("expected ErrInvalidOrderStatusTransition, got %v", err)
+	}
+}
+
+func TestOrderService_UpdateStatus_ConcurrentStatusChanged(t *testing.T) {
+	repo := newFakeOrderRepository()
+
+	repo.findByIDFunc = func(ctx context.Context, orderID string) (*models.Order, error) {
+		return &models.Order{
+			ID:     orderID,
+			Status: models.OrderStatusPending,
+		}, nil
+	}
+
+	repo.updateStatusFunc = func(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error) {
+		if currentStatus != models.OrderStatusPending {
+			t.Fatalf("expected current status pending, got %s", currentStatus)
+		}
+
+		if nextStatus != models.OrderStatusPaid {
+			t.Fatalf("expected next status paid, got %s", nextStatus)
+		}
+
+		return nil, models.ErrInvalidOrderStatusTransition
+	}
+
+	service := NewOrderService(repo)
+
+	_, err := service.UpdateStatus(context.Background(), "order-id", "paid")
+	if !errors.Is(err, models.ErrInvalidOrderStatusTransition) {
+		t.Fatalf("expected ErrInvalidOrderStatusTransition, got %v", err)
+	}
+}
+
+func TestOrderService_UpdateStatus_InvalidStatus(t *testing.T) {
+	service := NewOrderService(newFakeOrderRepository())
+
+	_, err := service.UpdateStatus(context.Background(), "order-id", "unknown")
+
+	if !errors.Is(err, models.ErrInvalidOrderStatus) {
+		t.Fatalf("expected ErrInvalidOrderStatus, got %v", err)
+	}
+}
+
+func TestOrderService_UpdateStatus_OrderNotFound(t *testing.T) {
+	repo := newFakeOrderRepository()
+	repo.findByIDFunc = func(ctx context.Context, orderID string) (*models.Order, error) {
+		return nil, models.ErrOrderNotFound
+	}
+
+	service := NewOrderService(repo)
+
+	_, err := service.UpdateStatus(context.Background(), "missing-id", "paid")
+
+	if !errors.Is(err, models.ErrOrderNotFound) {
+		t.Fatalf("expected ErrOrderNotFound, got %v", err)
+	}
+}
+
+func TestOrderService_UpdateStatus_EmptyOrderID(t *testing.T) {
+	service := NewOrderService(newFakeOrderRepository())
+
+	_, err := service.UpdateStatus(context.Background(), "", "paid")
 
 	if !errors.Is(err, models.ErrInvalidOrderInput) {
 		t.Fatalf("expected ErrInvalidOrderInput, got %v", err)

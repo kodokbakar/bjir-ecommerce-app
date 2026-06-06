@@ -677,3 +677,81 @@ func (f *fakeRouterProductService) GetBySlug(ctx context.Context, slug string) (
 		IsActive:   true,
 	}, nil
 }
+
+func (f *fakeRouterOrderService) UpdateStatus(ctx context.Context, orderID string, status string) (*models.Order, error) {
+	return &models.Order{
+		ID:          orderID,
+		UserID:      "user-id",
+		OrderNumber: "ORD-TEST",
+		Status:      status,
+		TotalAmount: 30000000,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func TestOrderAdminRoutes_WithoutToken_ReturnsUnauthorized(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/admin/orders/order-id/status",
+		strings.NewReader(`{"status":"paid"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestOrderAdminRoutes_WithCustomerToken_ReturnsForbidden(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("customer-id", "customer@example.com", "customer")
+	if err != nil {
+		t.Fatalf("failed to generate customer token: %v", err)
+	}
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/admin/orders/order-id/status",
+		strings.NewReader(`{"status":"paid"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestOrderAdminRoutes_WithAdminToken_ReturnsOK(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("admin-id", "admin@example.com", "admin")
+	if err != nil {
+		t.Fatalf("failed to generate admin token: %v", err)
+	}
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/admin/orders/order-id/status",
+		strings.NewReader(`{"status":"paid"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+}

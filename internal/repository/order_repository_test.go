@@ -386,3 +386,151 @@ func TestOrderRepository_FindByIDAndUserID_NotFound(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
+
+func TestOrderRepository_FindByID_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewOrderRepository(mock)
+
+	now := time.Now()
+
+	mock.ExpectQuery("FROM orders").
+		WithArgs("order-id").
+		WillReturnRows(newOrderRows(now))
+
+	order, err := repo.FindByID(context.Background(), "order-id")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.ID != "order-id" {
+		t.Fatalf("expected order-id, got %s", order.ID)
+	}
+
+	if order.Status != models.OrderStatusPending {
+		t.Fatalf("expected pending, got %s", order.Status)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestOrderRepository_FindByID_NotFound(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewOrderRepository(mock)
+
+	mock.ExpectQuery("FROM orders").
+		WithArgs("missing-id").
+		WillReturnError(pgx.ErrNoRows)
+
+	order, err := repo.FindByID(context.Background(), "missing-id")
+	if order != nil {
+		t.Fatal("expected nil order")
+	}
+
+	if !errors.Is(err, models.ErrOrderNotFound) {
+		t.Fatalf("expected ErrOrderNotFound, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestOrderRepository_UpdateStatus_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewOrderRepository(mock)
+
+	now := time.Now()
+
+	rows := pgxmock.NewRows([]string{
+		"id",
+		"user_id",
+		"order_number",
+		"status",
+		"total_amount",
+		"shipping_address",
+		"notes",
+		"created_at",
+		"updated_at",
+	}).AddRow(
+		"order-id",
+		"user-id",
+		"ORD-TEST",
+		models.OrderStatusPaid,
+		30000000.0,
+		"",
+		"",
+		now,
+		now,
+	)
+
+	mock.ExpectQuery("UPDATE orders").
+		WithArgs("order-id", models.OrderStatusPending, models.OrderStatusPaid).
+		WillReturnRows(rows)
+
+	order, err := repo.UpdateStatus(
+		context.Background(),
+		"order-id",
+		models.OrderStatusPending,
+		models.OrderStatusPaid,
+	)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.Status != models.OrderStatusPaid {
+		t.Fatalf("expected paid, got %s", order.Status)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestOrderRepository_UpdateStatus_StatusChanged(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewOrderRepository(mock)
+
+	mock.ExpectQuery("UPDATE orders").
+		WithArgs("order-id", models.OrderStatusPending, models.OrderStatusPaid).
+		WillReturnError(pgx.ErrNoRows)
+
+	order, err := repo.UpdateStatus(
+		context.Background(),
+		"order-id",
+		models.OrderStatusPending,
+		models.OrderStatusPaid,
+	)
+	if order != nil {
+		t.Fatal("expected nil order")
+	}
+
+	if !errors.Is(err, models.ErrInvalidOrderStatusTransition) {
+		t.Fatalf("expected ErrInvalidOrderStatusTransition, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}

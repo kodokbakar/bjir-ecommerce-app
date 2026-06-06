@@ -16,6 +16,10 @@ type OrderHandler struct {
 	orderService services.OrderService
 }
 
+type updateOrderStatusRequest struct {
+	Status string `json:"status" binding:"required"`
+}
+
 func NewOrderHandler(orderService services.OrderService) *OrderHandler {
 	return &OrderHandler{orderService: orderService}
 }
@@ -48,6 +52,10 @@ func handleOrderError(c *gin.Context, err error) {
 		response.NotFound(c, "product not found", nil)
 	case errors.Is(err, models.ErrOrderNotFound):
 		response.NotFound(c, "order not found", nil)
+	case errors.Is(err, models.ErrInvalidOrderStatus):
+		response.BadRequest(c, "invalid order status", err.Error())
+	case errors.Is(err, models.ErrInvalidOrderStatusTransition):
+		response.Conflict(c, "invalid order status transition", err.Error())
 	default:
 		response.InternalServerError(c, "internal server error", nil)
 	}
@@ -97,4 +105,22 @@ func (h *OrderHandler) GetMyOrderDetail(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "order retrieved successfully", order)
+}
+
+func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
+	orderID := c.Param("id")
+
+	var req updateOrderStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request body", err.Error())
+		return
+	}
+
+	order, err := h.orderService.UpdateStatus(c.Request.Context(), orderID, req.Status)
+	if err != nil {
+		handleOrderError(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "order status updated successfully", order)
 }

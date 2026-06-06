@@ -57,6 +57,7 @@ func SetupRouter(
 	admin.Use(middleware.RequireRole("admin"))
 
 	admin.GET("/ping", handlers.AdminPing)
+	admin.PATCH("/orders/:id/status", orderHandler.UpdateOrderStatus)
 
 	categoryRoutes := api.Group("/categories")
 	categoryRoutes.GET("", categoryHandler.GetAllCategories)

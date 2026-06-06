@@ -13,6 +13,7 @@ type OrderService interface {
 	Checkout(ctx context.Context, userID string) (*models.Order, error)
 	GetMyOrders(ctx context.Context, userID string, input OrderListInput) (*OrderListResult, error)
 	GetMyOrderDetail(ctx context.Context, userID string, orderID string) (*models.Order, error)
+	UpdateStatus(ctx context.Context, orderID string, status string) (*models.Order, error)
 }
 
 const (
@@ -117,4 +118,80 @@ func (s *orderService) GetMyOrderDetail(ctx context.Context, userID string, orde
 	}
 
 	return order, nil
+}
+
+func (s *orderService) UpdateStatus(ctx context.Context, orderID string, status string) (*models.Order, error) {
+	orderID = strings.TrimSpace(orderID)
+	if orderID == "" {
+		return nil, fmt.Errorf("%w: order id is required", models.ErrInvalidOrderInput)
+	}
+
+	nextStatus, err := normalizeOrderStatus(status)
+	if err != nil {
+		return nil, err
+	}
+
+	order, err := s.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	if order.Status == nextStatus {
+		return order, nil
+	}
+
+	if !isValidOrderStatusTransition(order.Status, nextStatus) {
+		return nil, fmt.Errorf(
+			"%w: cannot change status from %s to %s",
+			models.ErrInvalidOrderStatusTransition,
+			order.Status,
+			nextStatus,
+		)
+	}
+
+	updatedOrder, err := s.orderRepo.UpdateStatus(ctx, orderID, order.Status, nextStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedOrder, nil
+}
+
+func normalizeOrderStatus(status string) (string, error) {
+	status = strings.ToLower(strings.TrimSpace(status))
+
+	switch status {
+	case models.OrderStatusPending:
+		return models.OrderStatusPending, nil
+	case models.OrderStatusPaid:
+		return models.OrderStatusPaid, nil
+	case models.OrderStatusShipped:
+		return models.OrderStatusShipped, nil
+	case models.OrderStatusDelivered:
+		return models.OrderStatusDelivered, nil
+	case models.OrderStatusCancelled:
+		return models.OrderStatusCancelled, nil
+	case "canceled":
+		return models.OrderStatusCancelled, nil
+	default:
+		return "", fmt.Errorf("%w: unsupported status %q", models.ErrInvalidOrderStatus, status)
+	}
+}
+
+func isValidOrderStatusTransition(currentStatus string, nextStatus string) bool {
+	if currentStatus == nextStatus {
+		return true
+	}
+
+	switch currentStatus {
+	case models.OrderStatusPending:
+		return nextStatus == models.OrderStatusPaid ||
+			nextStatus == models.OrderStatusCancelled
+	case models.OrderStatusPaid:
+		return nextStatus == models.OrderStatusShipped
+	case models.OrderStatusShipped:
+		return nextStatus == models.OrderStatusDelivered
+	default:
+		return false
+	}
 }

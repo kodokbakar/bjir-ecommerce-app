@@ -20,6 +20,7 @@ type fakeOrderService struct {
 	checkoutFunc         func(ctx context.Context, userID string) (*models.Order, error)
 	getMyOrdersFunc      func(ctx context.Context, userID string, input services.OrderListInput) (*services.OrderListResult, error)
 	getMyOrderDetailFunc func(ctx context.Context, userID string, orderID string) (*models.Order, error)
+	updateStatusFunc     func(ctx context.Context, orderID string, status string) (*models.Order, error)
 }
 
 func (f *fakeOrderService) Checkout(ctx context.Context, userID string) (*models.Order, error) {
@@ -32,6 +33,10 @@ func (f *fakeOrderService) GetMyOrders(ctx context.Context, userID string, input
 
 func (f *fakeOrderService) GetMyOrderDetail(ctx context.Context, userID string, orderID string) (*models.Order, error) {
 	return f.getMyOrderDetailFunc(ctx, userID, orderID)
+}
+
+func (f *fakeOrderService) UpdateStatus(ctx context.Context, orderID string, status string) (*models.Order, error) {
+	return f.updateStatusFunc(ctx, orderID, status)
 }
 
 func setupOrderRouter(service *fakeOrderService, withUserContext bool) *gin.Engine {
@@ -52,6 +57,7 @@ func setupOrderRouter(service *fakeOrderService, withUserContext bool) *gin.Engi
 	router.GET("/api/v1/orders", handler.GetMyOrders)
 	router.POST("/api/v1/orders/checkout", handler.Checkout)
 	router.GET("/api/v1/orders/:id", handler.GetMyOrderDetail)
+	router.PATCH("/api/v1/admin/orders/:id/status", handler.UpdateOrderStatus)
 
 	return router
 }
@@ -340,5 +346,126 @@ func TestOrderHandler_GetMyOrderDetail_WithoutUserContext_ReturnsUnauthorized(t 
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestOrderHandler_UpdateOrderStatus_Success(t *testing.T) {
+	service := &fakeOrderService{
+		updateStatusFunc: func(ctx context.Context, orderID string, status string) (*models.Order, error) {
+			if orderID != "order-id" {
+				t.Fatalf("expected order-id, got %s", orderID)
+			}
+
+			if status != "paid" {
+				t.Fatalf("expected paid, got %s", status)
+			}
+
+			order := newTestOrder()
+			order.Status = models.OrderStatusPaid
+			return order, nil
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	body := `{"status":"paid"}`
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/orders/order-id/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "order status updated successfully") {
+		t.Fatalf("expected success message, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), models.OrderStatusPaid) {
+		t.Fatalf("expected paid status, got: %s", w.Body.String())
+	}
+}
+
+func TestOrderHandler_UpdateOrderStatus_InvalidBody(t *testing.T) {
+	service := &fakeOrderService{
+		updateStatusFunc: func(ctx context.Context, orderID string, status string) (*models.Order, error) {
+			t.Fatal("expected service not to be called")
+			return nil, nil
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/orders/order-id/status", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestOrderHandler_UpdateOrderStatus_InvalidTransition(t *testing.T) {
+	service := &fakeOrderService{
+		updateStatusFunc: func(ctx context.Context, orderID string, status string) (*models.Order, error) {
+			return nil, models.ErrInvalidOrderStatusTransition
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/orders/order-id/status", strings.NewReader(`{"status":"shipped"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestOrderHandler_UpdateOrderStatus_InvalidStatus(t *testing.T) {
+	service := &fakeOrderService{
+		updateStatusFunc: func(ctx context.Context, orderID string, status string) (*models.Order, error) {
+			return nil, models.ErrInvalidOrderStatus
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/orders/order-id/status", strings.NewReader(`{"status":"unknown"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestOrderHandler_UpdateOrderStatus_NotFound(t *testing.T) {
+	service := &fakeOrderService{
+		updateStatusFunc: func(ctx context.Context, orderID string, status string) (*models.Order, error) {
+			return nil, models.ErrOrderNotFound
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/orders/missing-id/status", strings.NewReader(`{"status":"paid"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
 	}
 }
