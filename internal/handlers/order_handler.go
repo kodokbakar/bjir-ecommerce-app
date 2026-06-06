@@ -17,7 +17,7 @@ type OrderHandler struct {
 }
 
 type updateOrderStatusRequest struct {
-	Status string `json:"status" binding:"required"`
+	Status string `json:"status" binding:"required,oneof=pending paid shipped delivered canceled cancelled"`
 }
 
 func NewOrderHandler(orderService services.OrderService) *OrderHandler {
@@ -111,8 +111,7 @@ func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 	orderID := c.Param("id")
 
 	var req updateOrderStatusRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 

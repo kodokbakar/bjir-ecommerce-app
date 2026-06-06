@@ -18,7 +18,7 @@ type CartHandler struct {
 
 type addCartItemRequest struct {
 	ProductID string `json:"product_id" binding:"required"`
-	Quantity  int    `json:"quantity" binding:"required"`
+	Quantity  int    `json:"quantity" binding:"required,gt=0"`
 }
 
 func NewCartHandler(cartService services.CartService) *CartHandler {
@@ -26,7 +26,7 @@ func NewCartHandler(cartService services.CartService) *CartHandler {
 }
 
 type updateCartItemRequest struct {
-	Quantity int `json:"quantity" binding:"required"`
+	Quantity int `json:"quantity" binding:"required,gt=0"`
 }
 
 func (h *CartHandler) AddCartItem(c *gin.Context) {
@@ -37,8 +37,7 @@ func (h *CartHandler) AddCartItem(c *gin.Context) {
 	}
 
 	var req addCartItemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 
@@ -77,8 +76,7 @@ func (h *CartHandler) UpdateCartItem(c *gin.Context) {
 	itemID := c.Param("id")
 
 	var req updateCartItemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 

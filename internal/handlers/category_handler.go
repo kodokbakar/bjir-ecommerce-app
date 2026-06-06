@@ -20,23 +20,22 @@ func NewCategoryHandler(categoryService services.CategoryService) *CategoryHandl
 
 type createCategoryRequest struct {
 	ParentID    *string `json:"parent_id"`
-	Name        string  `json:"name" binding:"required"`
+	Name        string  `json:"name" binding:"required,max=100"`
 	Description string  `json:"description"`
-	ImageURL    string  `json:"image_url"`
+	ImageURL    string  `json:"image_url" binding:"omitempty,url"`
 }
 
 type updateCategoryRequest struct {
 	ParentID    *string `json:"parent_id"`
-	Name        string  `json:"name" binding:"required"`
+	Name        string  `json:"name" binding:"required,max=100"`
 	Description string  `json:"description"`
-	ImageURL    string  `json:"image_url"`
+	ImageURL    string  `json:"image_url" binding:"omitempty,url"`
 }
 
 func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	var req createCategoryRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 
@@ -104,8 +103,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	id := c.Param("id")
 
 	var req updateCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 

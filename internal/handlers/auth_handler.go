@@ -21,9 +21,9 @@ func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 }
 
 type RegisterRequest struct {
-	Name     string `json:"name" binding:"required,min=2,max=100" example:"Test User"`
+	Name     string `json:"name" binding:"required,max=100" example:"Test User"`
 	Email    string `json:"email" binding:"required,email" example:"test@example.com"`
-	Password string `json:"password" binding:"required" example:"password123"`
+	Password string `json:"password" binding:"required,min=8" example:"password123"`
 }
 
 type LoginRequest struct {
@@ -46,8 +46,7 @@ type LoginRequest struct {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 
@@ -80,8 +79,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 

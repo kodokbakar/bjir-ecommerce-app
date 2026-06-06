@@ -22,7 +22,7 @@ func NewPaymentHandler(paymentService services.PaymentService) *PaymentHandler {
 
 type payOrderRequest struct {
 	OrderID string `json:"order_id" binding:"required"`
-	Method  string `json:"method" binding:"required"`
+	Method  string `json:"method" binding:"required,oneof=bank_transfer credit_card ewallet"`
 }
 
 // PayOrder godoc
@@ -48,8 +48,7 @@ func (h *PaymentHandler) PayOrder(c *gin.Context) {
 	}
 
 	var req payOrderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 

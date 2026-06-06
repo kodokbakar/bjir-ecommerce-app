@@ -21,27 +21,26 @@ func NewProductHandler(productService services.ProductService) *ProductHandler {
 
 type createProductRequest struct {
 	CategoryID  string  `json:"category_id" binding:"required"`
-	Name        string  `json:"name" binding:"required"`
+	Name        string  `json:"name" binding:"required,max=150"`
 	Description string  `json:"description"`
-	Price       float64 `json:"price" binding:"required"`
-	Stock       int     `json:"stock"`
-	ImageURL    string  `json:"image_url"`
+	Price       float64 `json:"price" binding:"required,gt=0"`
+	Stock       int     `json:"stock" binding:"gte=0"`
+	ImageURL    string  `json:"image_url" binding:"omitempty,url"`
 }
 
 type updateProductRequest struct {
 	CategoryID  string  `json:"category_id" binding:"required"`
-	Name        string  `json:"name" binding:"required"`
+	Name        string  `json:"name" binding:"required,max=150"`
 	Description string  `json:"description"`
-	Price       float64 `json:"price" binding:"required"`
-	Stock       int     `json:"stock"`
-	ImageURL    string  `json:"image_url"`
+	Price       float64 `json:"price" binding:"required,gt=0"`
+	Stock       int     `json:"stock" binding:"gte=0"`
+	ImageURL    string  `json:"image_url" binding:"omitempty,url"`
 }
 
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	var req createProductRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 
@@ -127,8 +126,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	id := c.Param("id")
 
 	var req updateProductRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "invalid request body", err.Error())
+	if !bindAndValidateJSON(c, &req) {
 		return
 	}
 
