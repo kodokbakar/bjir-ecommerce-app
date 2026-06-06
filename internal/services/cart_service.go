@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -49,31 +48,12 @@ func (s *cartService) AddItem(ctx context.Context, userID string, productID stri
 		return nil, err
 	}
 
-	existingItem, err := s.cartRepo.FindByUserAndProduct(ctx, userID, productID)
-	if err != nil && !errors.Is(err, models.ErrCartItemNotFound) {
-		return nil, err
-	}
-
-	if existingItem != nil {
-		newQuantity := existingItem.Quantity + quantity
-		if newQuantity > product.Stock {
-			return nil, fmt.Errorf("%w: quantity exceeds product stock", models.ErrInvalidCartInput)
-		}
-
-		return s.cartRepo.UpdateQuantity(ctx, existingItem.ID, userID, newQuantity)
-	}
-
 	if quantity > product.Stock {
 		return nil, fmt.Errorf("%w: quantity exceeds product stock", models.ErrInvalidCartInput)
 	}
 
-	item := &models.CartItem{
-		UserID:    userID,
-		ProductID: productID,
-		Quantity:  quantity,
-	}
-
-	if err := s.cartRepo.Create(ctx, item); err != nil {
+	item, err := s.cartRepo.AddOrIncrement(ctx, userID, productID, quantity)
+	if err != nil {
 		return nil, err
 	}
 
@@ -115,19 +95,6 @@ func (s *cartService) UpdateItem(ctx context.Context, userID string, itemID stri
 
 	if quantity <= 0 {
 		return nil, fmt.Errorf("%w: quantity must be greater than 0", models.ErrInvalidCartInput)
-	}
-
-	existingItem, err := s.cartRepo.FindByID(ctx, itemID, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if existingItem.Product == nil {
-		return nil, fmt.Errorf("%w: product is required", models.ErrInvalidCartInput)
-	}
-
-	if quantity > existingItem.Product.Stock {
-		return nil, fmt.Errorf("%w: quantity exceeds product stock", models.ErrInvalidCartInput)
 	}
 
 	item, err := s.cartRepo.UpdateQuantity(ctx, itemID, userID, quantity)

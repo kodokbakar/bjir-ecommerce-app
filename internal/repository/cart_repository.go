@@ -11,6 +11,7 @@ import (
 
 type CartRepository interface {
 	Create(ctx context.Context, item *models.CartItem) error
+	AddOrIncrement(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error)
 	FindAllByUserID(ctx context.Context, userID string) ([]models.CartItem, error)
 	FindByID(ctx context.Context, id string, userID string) (*models.CartItem, error)
 	FindByUserAndProduct(ctx context.Context, userID string, productID string) (*models.CartItem, error)
@@ -63,6 +64,63 @@ func (r *cartRepository) Create(ctx context.Context, item *models.CartItem) erro
 	*item = *createdItem
 
 	return nil
+}
+
+func (r *cartRepository) AddOrIncrement(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error) {
+	query := `
+		WITH upserted AS (
+			INSERT INTO carts (user_id, product_id, quantity)
+			SELECT $1, $2, $3
+			WHERE EXISTS (
+				SELECT 1
+				FROM products
+				WHERE id = $2
+				AND is_active = true
+				AND stock >= $3
+			)
+			ON CONFLICT (user_id, product_id)
+			DO UPDATE SET
+				quantity = carts.quantity + EXCLUDED.quantity
+			WHERE carts.quantity + EXCLUDED.quantity <= (
+				SELECT stock
+				FROM products
+				WHERE id = carts.product_id
+				AND is_active = true
+			)
+			RETURNING *
+		)
+		SELECT
+			c.id::text,
+			c.user_id::text,
+			c.product_id::text,
+			c.quantity,
+			c.created_at,
+			c.updated_at,
+			p.id::text,
+			COALESCE(p.category_id::text, ''),
+			p.name,
+			p.slug,
+			COALESCE(p.description, ''),
+			p.price::float8,
+			p.stock,
+			COALESCE(p.image_url, ''),
+			p.is_active,
+			p.created_at,
+			p.updated_at
+		FROM upserted c
+		JOIN products p ON p.id = c.product_id
+	`
+
+	item, err := r.scanCartItemRow(ctx, query, userID, productID, quantity)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrInvalidCartInput
+		}
+
+		return nil, err
+	}
+
+	return item, nil
 }
 
 func (r *cartRepository) FindAllByUserID(ctx context.Context, userID string) ([]models.CartItem, error) {
@@ -194,10 +252,17 @@ func (r *cartRepository) FindByUserAndProduct(ctx context.Context, userID string
 func (r *cartRepository) UpdateQuantity(ctx context.Context, id string, userID string, quantity int) (*models.CartItem, error) {
 	query := `
 		WITH updated AS (
-			UPDATE carts
+			UPDATE carts c
 			SET quantity = $3
-			WHERE id = $1
-			AND user_id = $2
+			WHERE c.id = $1
+			AND c.user_id = $2
+			AND EXISTS (
+				SELECT 1
+				FROM products p
+				WHERE p.id = c.product_id
+				AND p.is_active = true
+				AND p.stock >= $3
+			)
 			RETURNING *
 		)
 		SELECT
@@ -225,7 +290,20 @@ func (r *cartRepository) UpdateQuantity(ctx context.Context, id string, userID s
 	item, err := r.scanCartItemRow(ctx, query, id, userID, quantity)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, models.ErrCartItemNotFound
+			existingItem, findErr := r.FindByID(ctx, id, userID)
+			if errors.Is(findErr, models.ErrCartItemNotFound) {
+				return nil, models.ErrCartItemNotFound
+			}
+
+			if findErr != nil {
+				return nil, findErr
+			}
+
+			if existingItem.Product != nil && quantity > existingItem.Product.Stock {
+				return nil, models.ErrInvalidCartInput
+			}
+
+			return nil, models.ErrInvalidCartInput
 		}
 
 		return nil, err

@@ -11,6 +11,7 @@ import (
 
 type fakeCartRepository struct {
 	createFunc               func(ctx context.Context, item *models.CartItem) error
+	addOrIncrementFunc       func(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error)
 	findAllByUserIDFunc      func(ctx context.Context, userID string) ([]models.CartItem, error)
 	findByIDFunc             func(ctx context.Context, id string, userID string) (*models.CartItem, error)
 	findByUserAndProductFunc func(ctx context.Context, userID string, productID string) (*models.CartItem, error)
@@ -56,6 +57,29 @@ func newFakeCartRepository() *fakeCartRepository {
 			return nil
 		},
 
+		addOrIncrementFunc: func(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error) {
+			item := models.CartItem{
+				ID:        "cart-item-id",
+				UserID:    userID,
+				ProductID: productID,
+				Quantity:  quantity,
+				CreatedAt: now,
+				UpdatedAt: now,
+				Product: &models.Product{
+					ID:       productID,
+					Name:     "iPhone 15",
+					Slug:     "iphone-15",
+					Price:    15000000,
+					Stock:    10,
+					IsActive: true,
+				},
+			}
+
+			item.Subtotal = item.Product.Price * float64(item.Quantity)
+
+			return &item, nil
+		},
+
 		findAllByUserIDFunc: func(ctx context.Context, userID string) ([]models.CartItem, error) {
 			return []models.CartItem{item}, nil
 		},
@@ -82,6 +106,10 @@ func newFakeCartRepository() *fakeCartRepository {
 
 func (f *fakeCartRepository) Create(ctx context.Context, item *models.CartItem) error {
 	return f.createFunc(ctx, item)
+}
+
+func (f *fakeCartRepository) AddOrIncrement(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error) {
+	return f.addOrIncrementFunc(ctx, userID, productID, quantity)
 }
 
 func (f *fakeCartRepository) FindByID(ctx context.Context, id string, userID string) (*models.CartItem, error) {
@@ -130,12 +158,28 @@ func TestCartService_AddItem_NewItemSuccess(t *testing.T) {
 func TestCartService_AddItem_ExistingItemAddsQuantity(t *testing.T) {
 	repo := newFakeCartRepository()
 
-	repo.findByUserAndProductFunc = func(ctx context.Context, userID string, productID string) (*models.CartItem, error) {
+	var called bool
+
+	repo.addOrIncrementFunc = func(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error) {
+		called = true
+
+		if userID != "user-id" {
+			t.Fatalf("expected user-id, got %s", userID)
+		}
+
+		if productID != "product-id" {
+			t.Fatalf("expected product-id, got %s", productID)
+		}
+
+		if quantity != 3 {
+			t.Fatalf("expected quantity 3, got %d", quantity)
+		}
+
 		item := models.CartItem{
 			ID:        "cart-item-id",
 			UserID:    userID,
 			ProductID: productID,
-			Quantity:  2,
+			Quantity:  5,
 			Product: &models.Product{
 				ID:       productID,
 				Name:     "iPhone 15",
@@ -146,28 +190,7 @@ func TestCartService_AddItem_ExistingItemAddsQuantity(t *testing.T) {
 			},
 		}
 
-		return &item, nil
-	}
-
-	var updatedQuantity int
-	repo.updateQuantityFunc = func(ctx context.Context, id string, userID string, quantity int) (*models.CartItem, error) {
-		updatedQuantity = quantity
-
-		item := models.CartItem{
-			ID:        id,
-			UserID:    userID,
-			ProductID: "product-id",
-			Quantity:  quantity,
-			Product: &models.Product{
-				ID:       "product-id",
-				Name:     "iPhone 15",
-				Slug:     "iphone-15",
-				Price:    15000000,
-				Stock:    10,
-				IsActive: true,
-			},
-		}
-		item.Subtotal = item.Product.Price * float64(quantity)
+		item.Subtotal = item.Product.Price * float64(item.Quantity)
 
 		return &item, nil
 	}
@@ -179,8 +202,8 @@ func TestCartService_AddItem_ExistingItemAddsQuantity(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if updatedQuantity != 5 {
-		t.Fatalf("expected updated quantity 5, got %d", updatedQuantity)
+	if !called {
+		t.Fatal("expected AddOrIncrement to be called")
 	}
 
 	if item.Quantity != 5 {

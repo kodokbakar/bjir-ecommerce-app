@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v5"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/models"
@@ -87,6 +88,70 @@ func TestCartRepository_Create(t *testing.T) {
 
 	if item.Product == nil {
 		t.Fatal("expected product to be preloaded")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestCartRepository_AddOrIncrement(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewCartRepository(mock)
+
+	now := time.Now()
+
+	mock.ExpectQuery("INSERT INTO carts").
+		WithArgs("user-id", "product-id", 2).
+		WillReturnRows(newCartItemRows(now))
+
+	item, err := repo.AddOrIncrement(context.Background(), "user-id", "product-id", 2)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if item.ID != "cart-item-id" {
+		t.Fatalf("expected cart-item-id, got %s", item.ID)
+	}
+
+	if item.Quantity != 2 {
+		t.Fatalf("expected quantity 2, got %d", item.Quantity)
+	}
+
+	if item.Product == nil {
+		t.Fatal("expected product to be preloaded")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestCartRepository_AddOrIncrement_InsufficientStock(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewCartRepository(mock)
+
+	mock.ExpectQuery("INSERT INTO carts").
+		WithArgs("user-id", "product-id", 99).
+		WillReturnError(pgx.ErrNoRows)
+
+	item, err := repo.AddOrIncrement(context.Background(), "user-id", "product-id", 99)
+	if item != nil {
+		t.Fatal("expected nil item")
+	}
+
+	if !errors.Is(err, models.ErrInvalidCartInput) {
+		t.Fatalf("expected ErrInvalidCartInput, got %v", err)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -241,11 +306,19 @@ func TestCartRepository_UpdateQuantity_NotFound(t *testing.T) {
 
 	mock.ExpectQuery("UPDATE carts").
 		WithArgs("missing-id", "user-id", 2).
-		WillReturnError(models.ErrCartItemNotFound)
+		WillReturnError(pgx.ErrNoRows)
+
+	mock.ExpectQuery("FROM carts").
+		WithArgs("missing-id", "user-id").
+		WillReturnError(pgx.ErrNoRows)
 
 	item, err := repo.UpdateQuantity(context.Background(), "missing-id", "user-id", 2)
 	if item != nil {
 		t.Fatal("expected nil item")
+	}
+
+	if !errors.Is(err, models.ErrCartItemNotFound) {
+		t.Fatalf("expected ErrCartItemNotFound, got %v", err)
 	}
 
 	if err == nil {
