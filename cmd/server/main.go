@@ -80,7 +80,11 @@ func main() {
 	cartService := services.NewCartService(cartRepository, productRepository)
 	cartHandler := handlers.NewCartHandler(cartService)
 
-	r := router.SetupRouter(jwtManager, authHandler, categoryHandler, productHandler, cartHandler)
+	orderRepository := repository.NewOrderRepository(dbPool)
+	orderService := services.NewOrderService(orderRepository)
+	orderHandler := handlers.NewOrderHandler(orderService)
+
+	r := router.SetupRouter(jwtManager, authHandler, categoryHandler, productHandler, cartHandler, orderHandler)
 
 	log.Printf("Server running on port %s", cfg.App.Port)
 

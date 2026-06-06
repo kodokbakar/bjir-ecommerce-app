@@ -20,4 +20,9 @@ var (
 
 	ErrCartItemNotFound = errors.New("cart item not found")
 	ErrInvalidCartInput = errors.New("invalid cart input")
+	ErrCartEmpty        = errors.New("cart is empty")
+
+	ErrOrderNotFound     = errors.New("order not found")
+	ErrInvalidOrderInput = errors.New("invalid order input")
+	ErrInsufficientStock = errors.New("insufficient product stock")
 )

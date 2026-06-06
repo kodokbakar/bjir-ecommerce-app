@@ -183,6 +183,71 @@ func (f *fakeCategoryService) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+type fakeRouterCartService struct{}
+
+func (f *fakeRouterCartService) AddItem(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error) {
+	return &models.CartItem{
+		ID:        "cart-item-id",
+		UserID:    userID,
+		ProductID: productID,
+		Quantity:  quantity,
+		Product: &models.Product{
+			ID:       productID,
+			Name:     "Product",
+			Slug:     "product",
+			Price:    10000,
+			Stock:    10,
+			IsActive: true,
+		},
+		Subtotal: 10000 * float64(quantity),
+	}, nil
+}
+
+func (f *fakeRouterCartService) GetCart(ctx context.Context, userID string) (*models.Cart, error) {
+	return &models.Cart{
+		Items: []models.CartItem{
+			{
+				ID:        "cart-item-id",
+				UserID:    userID,
+				ProductID: "product-id",
+				Quantity:  1,
+				Product: &models.Product{
+					ID:       "product-id",
+					Name:     "Product",
+					Slug:     "product",
+					Price:    10000,
+					Stock:    10,
+					IsActive: true,
+				},
+				Subtotal: 10000,
+			},
+		},
+		TotalPrice: 10000,
+	}, nil
+}
+
+func (f *fakeRouterCartService) UpdateItem(ctx context.Context, userID string, itemID string, quantity int) (*models.CartItem, error) {
+	return &models.CartItem{
+		ID:        itemID,
+		UserID:    userID,
+		ProductID: "product-id",
+		Quantity:  quantity,
+		Product: &models.Product{
+			ID:       "product-id",
+			Name:     "Product",
+			Slug:     "product",
+			Price:    10000,
+			Stock:    10,
+			IsActive: true,
+		},
+		Subtotal: 10000 * float64(quantity),
+	}, nil
+}
+
+func (f *fakeRouterCartService) DeleteItem(ctx context.Context, userID string, itemID string) error {
+	return nil
+}
+
 func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 	gin.SetMode(gin.TestMode)
 
@@ -195,8 +260,45 @@ func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 	authHandler := handlers.NewAuthHandler(nil)
 	categoryHandler := handlers.NewCategoryHandler(&fakeCategoryService{})
 	productHandler := handlers.NewProductHandler(&fakeRouterProductService{})
+	cartHandler := handlers.NewCartHandler(&fakeRouterCartService{})
+	orderHandler := handlers.NewOrderHandler(&fakeRouterOrderService{})
 
-	return SetupRouter(jwtManager, authHandler, categoryHandler, productHandler), jwtManager
+	return SetupRouter(
+		jwtManager,
+		authHandler,
+		categoryHandler,
+		productHandler,
+		cartHandler,
+		orderHandler,
+	), jwtManager
+}
+
+type fakeRouterOrderService struct{}
+
+func (f *fakeRouterOrderService) Checkout(ctx context.Context, userID string) (*models.Order, error) {
+	now := time.Now()
+
+	return &models.Order{
+		ID:          "order-id",
+		UserID:      userID,
+		OrderNumber: "ORD-TEST",
+		Status:      models.OrderStatusPending,
+		TotalAmount: 10000,
+		Items: []models.OrderItem{
+			{
+				ID:          "order-item-id",
+				OrderID:     "order-id",
+				ProductID:   "product-id",
+				ProductName: "Product",
+				Quantity:    1,
+				Price:       10000,
+				Subtotal:    10000,
+				CreatedAt:   now,
+			},
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}, nil
 }
 
 func TestRBAC_PublicProductRoutes_WithoutToken_ReturnsOK(t *testing.T) {
