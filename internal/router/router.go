@@ -9,6 +9,7 @@ import (
 	jwtAuth "github.com/kodokbakar/go-ecommerce-api/internal/auth"
 	"github.com/kodokbakar/go-ecommerce-api/internal/handlers"
 	"github.com/kodokbakar/go-ecommerce-api/internal/middleware"
+	"github.com/kodokbakar/go-ecommerce-api/internal/response"
 )
 
 func SetupRouter(
@@ -25,7 +26,12 @@ func SetupRouter(
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.Recovery())
 
+	r.NoRoute(func(c *gin.Context) {
+		response.NotFound(c, "route not found", nil)
+	})
+
 	r.GET("/health", handlers.HealthCheck)
+	r.HEAD("/health", handlers.HealthCheck)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 

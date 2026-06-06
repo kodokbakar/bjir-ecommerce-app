@@ -771,3 +771,41 @@ func (f *fakeRouterPaymentService) PayOrder(ctx context.Context, input services.
 		Status:        models.PaymentStatusPaid,
 	}, nil
 }
+
+func TestRouter_UnknownRoute_ReturnsJSONNotFound(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nonexistent", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"success":false`) {
+		t.Fatalf("expected JSON error response, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"code":"not_found"`) {
+		t.Fatalf("expected not_found error code, got: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"message":"route not found"`) {
+		t.Fatalf("expected route not found message, got: %s", w.Body.String())
+	}
+}
+
+func TestRouter_HealthHead_ReturnsOK(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	req := httptest.NewRequest(http.MethodHead, "/health", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
