@@ -18,6 +18,7 @@ func SetupRouter(
 	productHandler *handlers.ProductHandler,
 	cartHandler *handlers.CartHandler,
 	orderHandler *handlers.OrderHandler,
+	paymentHandler *handlers.PaymentHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -51,6 +52,9 @@ func SetupRouter(
 	orderRoutes.GET("", orderHandler.GetMyOrders)
 	orderRoutes.POST("/checkout", orderHandler.Checkout)
 	orderRoutes.GET("/:id", orderHandler.GetMyOrderDetail)
+
+	paymentRoutes := protected.Group("/payments")
+	paymentRoutes.POST("/pay", paymentHandler.PayOrder)
 
 	admin := api.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(jwtManager))

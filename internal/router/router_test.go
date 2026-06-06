@@ -262,6 +262,7 @@ func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 	productHandler := handlers.NewProductHandler(&fakeRouterProductService{})
 	cartHandler := handlers.NewCartHandler(&fakeRouterCartService{})
 	orderHandler := handlers.NewOrderHandler(&fakeRouterOrderService{})
+	paymentHandler := handlers.NewPaymentHandler(&fakeRouterPaymentService{})
 
 	return SetupRouter(
 		jwtManager,
@@ -270,6 +271,7 @@ func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 		productHandler,
 		cartHandler,
 		orderHandler,
+		paymentHandler,
 	), jwtManager
 }
 
@@ -754,4 +756,18 @@ func TestOrderAdminRoutes_WithAdminToken_ReturnsOK(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
 	}
+}
+
+type fakeRouterPaymentService struct{}
+
+func (f *fakeRouterPaymentService) PayOrder(ctx context.Context, input services.PayOrderInput) (*models.Payment, error) {
+	return &models.Payment{
+		ID:            "payment-id",
+		OrderID:       input.OrderID,
+		Provider:      models.PaymentProviderMock,
+		PaymentMethod: input.Method,
+		TransactionID: "PAY-TEST",
+		Amount:        30000000,
+		Status:        models.PaymentStatusPaid,
+	}, nil
 }

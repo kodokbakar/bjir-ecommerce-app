@@ -18,12 +18,18 @@ var (
 	ErrProductAlreadyExists = errors.New("product already exists")
 	ErrInvalidProductInput  = errors.New("invalid product input")
 
-	ErrCartItemNotFound             = errors.New("cart item not found")
-	ErrInvalidCartInput             = errors.New("invalid cart input")
-	ErrCartEmpty                    = errors.New("cart is empty")
+	ErrCartItemNotFound = errors.New("cart item not found")
+	ErrInvalidCartInput = errors.New("invalid cart input")
+	ErrCartEmpty        = errors.New("cart is empty")
+
 	ErrInvalidOrderStatus           = errors.New("invalid order status")
 	ErrInvalidOrderStatusTransition = errors.New("invalid order status transition")
 	ErrOrderNotFound                = errors.New("order not found")
 	ErrInvalidOrderInput            = errors.New("invalid order input")
 	ErrInsufficientStock            = errors.New("insufficient product stock")
+
+	ErrPaymentNotFound      = errors.New("payment not found")
+	ErrPaymentAlreadyExists = errors.New("payment already exists")
+	ErrInvalidPaymentInput  = errors.New("invalid payment input")
+	ErrOrderNotPayable      = errors.New("order is not payable")
 )
