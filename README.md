@@ -80,7 +80,7 @@ Clean architecture: **Handler → Service → Repository → Database**. Each la
 ### Prerequisites
 
 - Go 1.26.3+
-- PostgreSQL 16+
+- PostgreSQL 17+
 - Redis 7+
 - Docker & Docker Compose (recommended)
 
@@ -105,6 +105,12 @@ go run ./cmd/server
 ```
 
 Server starts at `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagger/index.html`.
+
+### Deployment
+
+Live API: [https://bjir-ecommerce-app-production.up.railway.app](https://bjir-ecommerce-app-production.up.railway.app)
+
+Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.html](https://bjir-ecommerce-app-production.up.railway.app/swagger/index.html)
 
 ---
 
@@ -185,9 +191,11 @@ Server starts at `http://localhost:8080`. Swagger UI at `http://localhost:8080/s
 ```json
 {
   "success": false,
+  "message": "product not found",
   "error": {
     "code": "not_found",
-    "message": "resource not found"
+    "message": "product not found",
+    "details": null
   }
 }
 ```
@@ -260,6 +268,7 @@ Copy `.env.example` to `.env` and configure:
 | `REDIS_PASSWORD` | *(empty)* | Redis password |
 | `JWT_SECRET` | *(required)* | JWT signing secret |
 | `JWT_EXPIRES_IN` | `24h` | Token expiry duration |
+| `JWT_ISSUER` | `go-ecommerce-api` | Token issuer claim |
 
 > Full list of connection pool and timeout variables available in `.env.example`.
 
