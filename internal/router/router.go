@@ -24,6 +24,7 @@ func SetupRouter(
 	r := gin.New()
 
 	r.Use(middleware.CORS())
+	r.Use(middleware.RateLimit())
 	r.Use(middleware.RequestLogger())
 	r.Use(middleware.Recovery())
 

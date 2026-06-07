@@ -13,6 +13,7 @@ const (
 	CodeForbidden           = "forbidden"
 	CodeNotFound            = "not_found"
 	CodeConflict            = "conflict"
+	CodeRateLimited         = "rate_limited"
 	CodeInternalServerError = "internal_server_error"
 )
 
@@ -78,6 +79,10 @@ func NewNotFound(message string, err error, details any) *AppError {
 
 func NewConflict(message string, err error, details any) *AppError {
 	return NewAppError(http.StatusConflict, CodeConflict, message, err, details)
+}
+
+func RateLimited(c *gin.Context, message string, details any) {
+	Error(c, http.StatusTooManyRequests, CodeRateLimited, message, details)
 }
 
 func NewInternalServerError(message string, err error, details any) *AppError {
