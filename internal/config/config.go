@@ -18,8 +18,9 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Env  string
-	Port string
+	Env             string
+	Port            string
+	ShutdownTimeout time.Duration
 }
 
 type DatabaseConfig struct {
@@ -60,8 +61,9 @@ func LoadConfig() (*Config, error) {
 
 	cfg := &Config{
 		App: AppConfig{
-			Env:  getEnv("APP_ENV", "development"),
-			Port: getEnv("PORT", getEnv("APP_PORT", "8080")),
+			Env:             getEnv("APP_ENV", "development"),
+			Port:            getEnv("APP_PORT", getEnv("PORT", "8080")),
+			ShutdownTimeout: getEnvAsDuration("SHUTDOWN_TIMEOUT", 30*time.Second),
 		},
 		Database: DatabaseConfig{
 			URL:               getEnv("DATABASE_URL", ""),
@@ -105,6 +107,10 @@ func LoadConfig() (*Config, error) {
 func (cfg *Config) validate() error {
 	if cfg.App.Port == "" {
 		return fmt.Errorf("APP_PORT is required")
+	}
+
+	if cfg.App.ShutdownTimeout <= 0 {
+		return fmt.Errorf("SHUTDOWN_TIMEOUT must be greater than 0")
 	}
 
 	if cfg.Database.URL == "" {

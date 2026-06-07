@@ -2,7 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/kodokbakar/go-ecommerce-api/internal/auth"
 	"github.com/kodokbakar/go-ecommerce-api/internal/config"
@@ -10,6 +15,7 @@ import (
 	"github.com/kodokbakar/go-ecommerce-api/internal/handlers"
 	"github.com/kodokbakar/go-ecommerce-api/internal/repository"
 	"github.com/kodokbakar/go-ecommerce-api/internal/router"
+	appserver "github.com/kodokbakar/go-ecommerce-api/internal/server"
 	"github.com/kodokbakar/go-ecommerce-api/internal/services"
 )
 
@@ -39,7 +45,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect postgres: %v", err)
 	}
-	defer dbPool.Close()
 
 	log.Println("PostgreSQL connected successfully")
 
@@ -47,12 +52,6 @@ func main() {
 	if err != nil {
 		log.Printf("failed to connect redis, continuing without cache: %v", err)
 	} else {
-		defer func() {
-			if err := redisClient.Close(); err != nil {
-				log.Printf("failed to close redis client: %v", err)
-			}
-		}()
-
 		log.Println("Redis connected successfully")
 	}
 
@@ -90,9 +89,61 @@ func main() {
 
 	r := router.SetupRouter(jwtManager, authHandler, categoryHandler, productHandler, cartHandler, orderHandler, paymentHandler)
 
-	log.Printf("Server running on port %s", cfg.App.Port)
+	httpServer := &http.Server{
+		Addr:    ":" + cfg.App.Port,
+		Handler: r,
+	}
 
-	if err := r.Run(":" + cfg.App.Port); err != nil {
-		log.Fatalf("failed to start server: %v", err)
+	serverErrors := make(chan error, 1)
+
+	go func() {
+		log.Printf("Server running on port %s", cfg.App.Port)
+
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErrors <- err
+			return
+		}
+
+		serverErrors <- nil
+	}()
+
+	shutdownCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	select {
+	case err := <-serverErrors:
+		if err != nil {
+			log.Fatalf("failed to start server: %v", err)
+		}
+
+	case <-shutdownCtx.Done():
+		log.Println("shutdown signal received")
+
+		closeFuncs := []appserver.CloseFunc{
+			func() error {
+				if redisClient == nil {
+					return nil
+				}
+
+				return redisClient.Close()
+			},
+			func() error {
+				dbPool.Close()
+				return nil
+			},
+		}
+
+		if err := appserver.GracefulShutdown(context.Background(), httpServer, appserver.GracefulShutdownOptions{
+			Timeout: cfg.App.ShutdownTimeout,
+			OnShutdownStart: func() {
+				handlers.SetShuttingDown(true)
+			},
+			CloseFuncs: closeFuncs,
+		}); err != nil {
+			log.Printf("server stopped with shutdown error: %v", err)
+			return
+		}
+
+		log.Println("server stopped gracefully")
 	}
 }

@@ -16,6 +16,7 @@ const (
 	CodeConflict            = "conflict"
 	CodeRateLimited         = "rate_limited"
 	CodePayloadTooLarge     = "payload_too_large"
+	CodeServiceUnavailable  = "service_unavailable"
 	CodeInternalServerError = "internal_server_error"
 )
 
@@ -110,6 +111,10 @@ func PayloadTooLarge(c *gin.Context, message string, details any) {
 
 func NewInternalServerError(message string, err error, details any) *AppError {
 	return NewAppError(http.StatusInternalServerError, CodeInternalServerError, message, err, details)
+}
+
+func ServiceUnavailable(c *gin.Context, message string, details any) {
+	Error(c, http.StatusServiceUnavailable, CodeServiceUnavailable, message, details)
 }
 
 func Success(c *gin.Context, statusCode int, message string, data any) {

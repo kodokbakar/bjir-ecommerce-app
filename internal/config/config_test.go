@@ -14,6 +14,9 @@ func clearConfigEnv(t *testing.T) {
 	keys := []string{
 		"APP_ENV",
 		"APP_PORT",
+		"PORT",
+		"SHUTDOWN_TIMEOUT",
+		"DATABASE_URL",
 		"DB_HOST",
 		"DB_PORT",
 		"DB_USER",
@@ -137,6 +140,56 @@ func TestLoadConfigWithEnvOverrides(t *testing.T) {
 
 	if cfg.JWT.ExpiresIn != 2*time.Hour {
 		t.Fatalf("expected expires in 2h, got %s", cfg.JWT.ExpiresIn)
+	}
+}
+
+func TestLoadConfigUsesPortFallbackWhenAppPortIsEmpty(t *testing.T) {
+	clearConfigEnv(t)
+
+	t.Setenv("PORT", "3000")
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.App.Port != "3000" {
+		t.Fatalf("expected PORT fallback 3000, got %s", cfg.App.Port)
+	}
+}
+
+func TestLoadConfigAppPortOverridesPort(t *testing.T) {
+	clearConfigEnv(t)
+
+	t.Setenv("PORT", "3000")
+	t.Setenv("APP_PORT", "9090")
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.App.Port != "9090" {
+		t.Fatalf("expected APP_PORT 9090 to override PORT, got %s", cfg.App.Port)
+	}
+}
+
+func TestLoadConfigWithDatabaseURLSkipsDatabaseFieldValidation(t *testing.T) {
+	clearConfigEnv(t)
+
+	t.Setenv("DATABASE_URL", "postgres://user:password@example.com:5432/app_db?sslmode=require")
+	t.Setenv("DB_HOST", "")
+	t.Setenv("DB_PORT", "0")
+	t.Setenv("DB_USER", "")
+	t.Setenv("DB_NAME", "")
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if cfg.Database.DSN() != "postgres://user:password@example.com:5432/app_db?sslmode=require" {
+		t.Fatalf("expected DSN to use DATABASE_URL, got %s", cfg.Database.DSN())
 	}
 }
 
