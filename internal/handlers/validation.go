@@ -3,8 +3,10 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
+	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -18,9 +20,19 @@ type validationErrorDetail struct {
 	Message string `json:"message"`
 }
 
-func bindAndValidateJSON(c *gin.Context, dst any) bool {
-	if err := c.ShouldBindJSON(dst); err != nil {
-		response.BadRequest(c, "invalid request body", buildValidationErrorDetails(dst, err))
+func bindAndValidateJSON(c *gin.Context, request any) bool {
+	if err := c.ShouldBindJSON(request); err != nil {
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			response.PayloadTooLarge(
+				c,
+				"request body too large",
+				fmt.Sprintf("request body exceeds %s limit", response.HumanReadableBytes(maxBytesError.Limit)),
+			)
+			return false
+		}
+
+		response.BadRequest(c, "invalid request body", buildValidationErrorDetails(request, err))
 		return false
 	}
 
@@ -100,5 +112,38 @@ func validationMessage(field string, fieldError validator.FieldError) string {
 		return fmt.Sprintf("%s must be one of: %s", field, fieldError.Param())
 	default:
 		return fmt.Sprintf("%s is invalid", field)
+	}
+}
+
+func TestHumanReadableBytes(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    int64
+		expected string
+	}{
+		{
+			name:     "bytes",
+			value:    10,
+			expected: "10 bytes",
+		},
+		{
+			name:     "kilobytes",
+			value:    1024,
+			expected: "1KB",
+		},
+		{
+			name:     "megabytes",
+			value:    1048576,
+			expected: "1MB",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := response.HumanReadableBytes(tt.value)
+			if got != tt.expected {
+				t.Fatalf("expected %s, got %s", tt.expected, got)
+			}
+		})
 	}
 }

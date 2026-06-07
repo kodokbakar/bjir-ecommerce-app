@@ -220,3 +220,36 @@ func TestAppErrorUnwrap(t *testing.T) {
 		t.Fatalf("expected error message %q, got %q", baseErr.Error(), appErr.Error())
 	}
 }
+
+func TestHumanReadableBytes(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    int64
+		expected string
+	}{
+		{
+			name:     "bytes",
+			value:    10,
+			expected: "10 bytes",
+		},
+		{
+			name:     "kilobytes",
+			value:    1024,
+			expected: "1KB",
+		},
+		{
+			name:     "megabytes",
+			value:    1048576,
+			expected: "1MB",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := response.HumanReadableBytes(tt.value)
+			if got != tt.expected {
+				t.Fatalf("expected %s, got %s", tt.expected, got)
+			}
+		})
+	}
+}

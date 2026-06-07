@@ -567,3 +567,66 @@ func TestMeHandlerInvalidToken(t *testing.T) {
 	assertStandardResponse(t, w.Body.Bytes(), false)
 	assertErrorCode(t, w.Body.Bytes(), "unauthorized")
 }
+
+func TestRegisterHandlerBodyTooLarge(t *testing.T) {
+	repo := newMockUserRepository()
+
+	gin.SetMode(gin.TestMode)
+
+	jwtManager := newTestJWTManager()
+	authService := services.NewAuthService(repo, jwtManager)
+	authHandler := handlers.NewAuthHandler(authService)
+
+	r := gin.New()
+	r.Use(middleware.BodySizeLimit(20))
+	r.POST("/api/v1/auth/register", authHandler.Register)
+
+	body := `{
+		"name": "Test User",
+		"email": "test@example.com",
+		"password": "password123"
+	}`
+
+	w := performRequest(r, http.MethodPost, "/api/v1/auth/register", body)
+
+	if w.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected status 413, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	assertStandardResponse(t, w.Body.Bytes(), false)
+	assertErrorCode(t, w.Body.Bytes(), "payload_too_large")
+}
+
+func TestRegisterHandlerBodyTooLargeWithoutContentLength(t *testing.T) {
+	repo := newMockUserRepository()
+
+	gin.SetMode(gin.TestMode)
+
+	jwtManager := newTestJWTManager()
+	authService := services.NewAuthService(repo, jwtManager)
+	authHandler := handlers.NewAuthHandler(authService)
+
+	r := gin.New()
+	r.Use(middleware.BodySizeLimit(20))
+	r.POST("/api/v1/auth/register", authHandler.Register)
+
+	body := `{
+		"name": "Test User",
+		"email": "test@example.com",
+		"password": "password123"
+	}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.ContentLength = -1
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected status 413, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	assertStandardResponse(t, w.Body.Bytes(), false)
+	assertErrorCode(t, w.Body.Bytes(), "payload_too_large")
+}

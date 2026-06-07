@@ -41,7 +41,10 @@ func SetupRouter(
 
 	api := r.Group("/api/v1")
 
+	bodyLimitConfig := middleware.LoadBodyLimitConfigFromEnv()
+
 	authRoutes := api.Group("/auth")
+	authRoutes.Use(middleware.BodySizeLimit(bodyLimitConfig.Auth))
 	authRoutes.POST("/register", authHandler.Register)
 	authRoutes.POST("/login", authHandler.Login)
 
@@ -50,26 +53,35 @@ func SetupRouter(
 
 	protected.GET("/me", handlers.Me)
 
-	cartRoutes := protected.Group("/cart")
-	cartRoutes.GET("", cartHandler.GetCart)
-	cartRoutes.POST("/items", cartHandler.AddCartItem)
-	cartRoutes.PUT("/items/:id", cartHandler.UpdateCartItem)
-	cartRoutes.DELETE("/items/:id", cartHandler.DeleteCartItem)
+	if cartHandler != nil {
+		cartRoutes := protected.Group("/cart")
+		cartRoutes.GET("", cartHandler.GetCart)
+		cartRoutes.POST("/items", middleware.BodySizeLimit(bodyLimitConfig.API), cartHandler.AddCartItem)
+		cartRoutes.PUT("/items/:id", middleware.BodySizeLimit(bodyLimitConfig.API), cartHandler.UpdateCartItem)
+		cartRoutes.DELETE("/items/:id", cartHandler.DeleteCartItem)
+	}
 
-	orderRoutes := protected.Group("/orders")
-	orderRoutes.GET("", orderHandler.GetMyOrders)
-	orderRoutes.POST("/checkout", orderHandler.Checkout)
-	orderRoutes.GET("/:id", orderHandler.GetMyOrderDetail)
+	if orderHandler != nil {
+		orderRoutes := protected.Group("/orders")
+		orderRoutes.POST("/checkout", middleware.BodySizeLimit(bodyLimitConfig.API), orderHandler.Checkout)
+		orderRoutes.GET("", orderHandler.GetMyOrders)
+		orderRoutes.GET("/:id", orderHandler.GetMyOrderDetail)
+	}
 
-	paymentRoutes := protected.Group("/payments")
-	paymentRoutes.POST("/pay", paymentHandler.PayOrder)
+	if paymentHandler != nil {
+		paymentRoutes := protected.Group("/payments")
+		paymentRoutes.POST("/pay", middleware.BodySizeLimit(bodyLimitConfig.API), paymentHandler.PayOrder)
+	}
 
 	admin := api.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(jwtManager))
 	admin.Use(middleware.RequireRole("admin"))
 
 	admin.GET("/ping", handlers.AdminPing)
-	admin.PATCH("/orders/:id/status", orderHandler.UpdateOrderStatus)
+
+	if orderHandler != nil {
+		admin.PATCH("/orders/:id/status", middleware.BodySizeLimit(bodyLimitConfig.API), orderHandler.UpdateOrderStatus)
+	}
 
 	categoryRoutes := api.Group("/categories")
 	categoryRoutes.GET("", categoryHandler.GetAllCategories)
@@ -80,8 +92,8 @@ func SetupRouter(
 	adminCategoryRoutes.Use(middleware.AuthMiddleware(jwtManager))
 	adminCategoryRoutes.Use(middleware.RequireRole("admin"))
 
-	adminCategoryRoutes.POST("", categoryHandler.CreateCategory)
-	adminCategoryRoutes.PUT("/:id", categoryHandler.UpdateCategory)
+	adminCategoryRoutes.POST("", middleware.BodySizeLimit(bodyLimitConfig.API), categoryHandler.CreateCategory)
+	adminCategoryRoutes.PUT("/:id", middleware.BodySizeLimit(bodyLimitConfig.API), categoryHandler.UpdateCategory)
 	adminCategoryRoutes.DELETE("/:id", categoryHandler.DeleteCategory)
 
 	productRoutes := api.Group("/products")
@@ -93,9 +105,9 @@ func SetupRouter(
 	adminProductRoutes.Use(middleware.AuthMiddleware(jwtManager))
 	adminProductRoutes.Use(middleware.RequireRole("admin"))
 
-	adminProductRoutes.POST("", productHandler.CreateProduct)
-	adminProductRoutes.POST("/:id/image", productHandler.UploadProductImage)
-	adminProductRoutes.PUT("/:id", productHandler.UpdateProduct)
+	adminProductRoutes.POST("", middleware.BodySizeLimit(bodyLimitConfig.API), productHandler.CreateProduct)
+	adminProductRoutes.POST("/:id/image", middleware.BodySizeLimit(bodyLimitConfig.Upload), productHandler.UploadProductImage)
+	adminProductRoutes.PUT("/:id", middleware.BodySizeLimit(bodyLimitConfig.API), productHandler.UpdateProduct)
 	adminProductRoutes.DELETE("/:id", productHandler.DeleteProduct)
 
 	return r

@@ -2,6 +2,7 @@ package response
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ const (
 	CodeNotFound            = "not_found"
 	CodeConflict            = "conflict"
 	CodeRateLimited         = "rate_limited"
+	CodePayloadTooLarge     = "payload_too_large"
 	CodeInternalServerError = "internal_server_error"
 )
 
@@ -37,6 +39,23 @@ type AppError struct {
 	StatusCode int
 	Details    any
 	Err        error
+}
+
+func HumanReadableBytes(value int64) string {
+	const (
+		kb int64 = 1024
+		mb int64 = 1024 * kb
+	)
+
+	if value%mb == 0 {
+		return fmt.Sprintf("%dMB", value/mb)
+	}
+
+	if value%kb == 0 {
+		return fmt.Sprintf("%dKB", value/kb)
+	}
+
+	return fmt.Sprintf("%d bytes", value)
 }
 
 func (e *AppError) Error() string {
@@ -83,6 +102,10 @@ func NewConflict(message string, err error, details any) *AppError {
 
 func RateLimited(c *gin.Context, message string, details any) {
 	Error(c, http.StatusTooManyRequests, CodeRateLimited, message, details)
+}
+
+func PayloadTooLarge(c *gin.Context, message string, details any) {
+	Error(c, http.StatusRequestEntityTooLarge, CodePayloadTooLarge, message, details)
 }
 
 func NewInternalServerError(message string, err error, details any) *AppError {
