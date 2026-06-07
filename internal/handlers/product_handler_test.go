@@ -251,6 +251,63 @@ func TestProductHandler_UpdateProduct_Success(t *testing.T) {
 	}
 }
 
+func TestProductHandler_UpdateProduct_InvalidBody(t *testing.T) {
+	service := &fakeProductService{
+		updateFunc: func(ctx context.Context, id string, input services.UpdateProductInput) (*models.Product, error) {
+			t.Fatal("expected service not to be called")
+			return nil, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	body := `{
+		"category_id": "category-id",
+		"name": "",
+		"price": 0,
+		"stock": 5
+	}`
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/products/product-id", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_UpdateProduct_NotFound(t *testing.T) {
+	service := &fakeProductService{
+		updateFunc: func(ctx context.Context, id string, input services.UpdateProductInput) (*models.Product, error) {
+			return nil, models.ErrProductNotFound
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	body := `{
+		"category_id": "category-id",
+		"name": "iPhone 15 Pro",
+		"description": "Apple smartphone pro",
+		"price": 18000000,
+		"stock": 5,
+		"image_url": "https://example.com/iphone-pro.jpg"
+	}`
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/products/missing-id", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestProductHandler_DeleteProduct_Success(t *testing.T) {
 	service := &fakeProductService{
 		deleteFunc: func(ctx context.Context, id string) error {
@@ -275,6 +332,29 @@ func TestProductHandler_DeleteProduct_Success(t *testing.T) {
 
 	if w.Body.String() != "" {
 		t.Fatalf("expected empty body, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_DeleteProduct_NotFound(t *testing.T) {
+	service := &fakeProductService{
+		deleteFunc: func(ctx context.Context, id string) error {
+			if id != "missing-id" {
+				t.Fatalf("expected missing-id, got %s", id)
+			}
+
+			return models.ErrProductNotFound
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/products/missing-id", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
 	}
 }
 

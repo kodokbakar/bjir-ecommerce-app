@@ -177,6 +177,25 @@ func TestOrderHandler_Checkout_InsufficientStock(t *testing.T) {
 	}
 }
 
+func TestOrderHandler_Checkout_ProductNotFound(t *testing.T) {
+	service := &fakeOrderService{
+		checkoutFunc: func(ctx context.Context, userID string) (*models.Order, error) {
+			return nil, models.ErrProductNotFound
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/orders/checkout", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestOrderHandler_Checkout_InternalError(t *testing.T) {
 	service := &fakeOrderService{
 		checkoutFunc: func(ctx context.Context, userID string) (*models.Order, error) {
@@ -275,6 +294,25 @@ func TestOrderHandler_GetMyOrders_WithoutUserContext_ReturnsUnauthorized(t *test
 	}
 }
 
+func TestOrderHandler_GetMyOrders_InternalError(t *testing.T) {
+	service := &fakeOrderService{
+		getMyOrdersFunc: func(ctx context.Context, userID string, input services.OrderListInput) (*services.OrderListResult, error) {
+			return nil, errors.New("database error")
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestOrderHandler_GetMyOrderDetail_Success(t *testing.T) {
 	service := &fakeOrderService{
 		getMyOrderDetailFunc: func(ctx context.Context, userID string, orderID string) (*models.Order, error) {
@@ -326,6 +364,25 @@ func TestOrderHandler_GetMyOrderDetail_NotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestOrderHandler_GetMyOrderDetail_InternalError(t *testing.T) {
+	service := &fakeOrderService{
+		getMyOrderDetailFunc: func(ctx context.Context, userID string, orderID string) (*models.Order, error) {
+			return nil, errors.New("database error")
+		},
+	}
+
+	router := setupOrderRouter(service, true)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/orders/order-id", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d. body: %s", w.Code, w.Body.String())
 	}
 }
 

@@ -125,6 +125,27 @@ func TestCartHandler_AddCartItem_Success(t *testing.T) {
 	}
 }
 
+func TestCartHandler_AddCartItem_WithoutUserContext_ReturnsUnauthorized(t *testing.T) {
+	service := &fakeCartService{
+		addItemFunc: func(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error) {
+			t.Fatal("expected service not to be called")
+			return nil, nil
+		},
+	}
+
+	router := setupCartRouter(service, false)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cart/items", strings.NewReader(`{"product_id":"product-id","quantity":2}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestCartHandler_AddCartItem_InvalidBody(t *testing.T) {
 	service := &fakeCartService{
 		addItemFunc: func(ctx context.Context, userID string, productID string, quantity int) (*models.CartItem, error) {
@@ -276,6 +297,27 @@ func TestCartHandler_UpdateCartItem_Success(t *testing.T) {
 	}
 }
 
+func TestCartHandler_UpdateCartItem_WithoutUserContext_ReturnsUnauthorized(t *testing.T) {
+	service := &fakeCartService{
+		updateItemFunc: func(ctx context.Context, userID string, itemID string, quantity int) (*models.CartItem, error) {
+			t.Fatal("expected service not to be called")
+			return nil, nil
+		},
+	}
+
+	router := setupCartRouter(service, false)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/cart/items/cart-item-id", strings.NewReader(`{"quantity":3}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestCartHandler_UpdateCartItem_InvalidBody(t *testing.T) {
 	service := &fakeCartService{
 		updateItemFunc: func(ctx context.Context, userID string, itemID string, quantity int) (*models.CartItem, error) {
@@ -341,6 +383,26 @@ func TestCartHandler_DeleteCartItem_Success(t *testing.T) {
 
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCartHandler_DeleteCartItem_WithoutUserContext_ReturnsUnauthorized(t *testing.T) {
+	service := &fakeCartService{
+		deleteItemFunc: func(ctx context.Context, userID string, itemID string) error {
+			t.Fatal("expected service not to be called")
+			return nil
+		},
+	}
+
+	router := setupCartRouter(service, false)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/cart/items/cart-item-id", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
 	}
 }
 
