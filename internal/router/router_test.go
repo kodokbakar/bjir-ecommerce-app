@@ -77,6 +77,71 @@ func (f *fakeRouterProductService) UploadImage(ctx context.Context, input servic
 	}, nil
 }
 
+func (f *fakeRouterProductService) GetImages(ctx context.Context, productID string) ([]models.ProductImage, error) {
+	return []models.ProductImage{
+		{
+			ID:        "image-id",
+			ProductID: productID,
+			ImageURL:  "/uploads/products/test.png",
+			SortOrder: 0,
+			IsPrimary: true,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}, nil
+}
+
+func (f *fakeRouterProductService) UploadGalleryImage(ctx context.Context, input services.UploadProductImageInput) (*models.ProductImage, error) {
+	return &models.ProductImage{
+		ID:        "image-id",
+		ProductID: input.ProductID,
+		ImageURL:  "/uploads/products/test.png",
+		SortOrder: 0,
+		IsPrimary: true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}, nil
+}
+
+func (f *fakeRouterProductService) DeleteImage(ctx context.Context, productID string, imageID string) error {
+	return nil
+}
+
+func (f *fakeRouterProductService) ReorderImages(ctx context.Context, input services.ReorderProductImagesInput) ([]models.ProductImage, error) {
+	return []models.ProductImage{
+		{
+			ID:        "image-2",
+			ProductID: input.ProductID,
+			ImageURL:  "/uploads/products/2.png",
+			SortOrder: 0,
+			IsPrimary: true,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			ID:        "image-1",
+			ProductID: input.ProductID,
+			ImageURL:  "/uploads/products/1.png",
+			SortOrder: 1,
+			IsPrimary: false,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}, nil
+}
+
+func (f *fakeRouterProductService) SetPrimaryImage(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+	return &models.ProductImage{
+		ID:        imageID,
+		ProductID: productID,
+		ImageURL:  "/uploads/products/primary.png",
+		SortOrder: 0,
+		IsPrimary: true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}, nil
+}
+
 func (f *fakeRouterProductService) Delete(ctx context.Context, id string) error {
 	return nil
 }
@@ -807,5 +872,112 @@ func TestRouter_HealthHead_ReturnsOK(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductImageRoutes_PublicGetImages_ReturnsOK(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products/product-id/images", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "product images retrieved successfully") {
+		t.Fatalf("expected product images response, got body: %s", w.Body.String())
+	}
+}
+
+func TestProductImageRoutes_AdminUploadWithoutToken_ReturnsUnauthorized(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/products/product-id/images", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductImageRoutes_AdminReorderWithAdminToken_ReturnsOK(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("admin-id", "admin@example.com", "admin")
+	if err != nil {
+		t.Fatalf("failed to generate admin token: %v", err)
+	}
+
+	body := `{
+		"images": [
+			{"id": "image-1", "sort_order": 1},
+			{"id": "image-2", "sort_order": 0}
+		]
+	}`
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/products/product-id/images/reorder",
+		strings.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductImageRoutes_AdminSetPrimaryWithAdminToken_ReturnsOK(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("admin-id", "admin@example.com", "admin")
+	if err != nil {
+		t.Fatalf("failed to generate admin token: %v", err)
+	}
+
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/v1/products/product-id/images/image-id/primary",
+		nil,
+	)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductImageRoutes_AdminDeleteWithAdminToken_ReturnsNoContent(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("admin-id", "admin@example.com", "admin")
+	if err != nil {
+		t.Fatalf("failed to generate admin token: %v", err)
+	}
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		"/api/v1/products/product-id/images/image-id",
+		nil,
+	)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d. body: %s", w.Code, w.Body.String())
 	}
 }

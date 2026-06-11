@@ -15,6 +15,7 @@ var (
 	ErrInvalidCategoryInput  = errors.New("invalid category input")
 
 	ErrProductNotFound      = errors.New("product not found")
+	ErrProductImageNotFound = errors.New("product image not found")
 	ErrProductAlreadyExists = errors.New("product already exists")
 	ErrInvalidProductInput  = errors.New("invalid product input")
 

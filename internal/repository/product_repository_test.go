@@ -814,3 +814,55 @@ func TestProductRepository_FindAll_SortByNameDesc(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
+
+func TestProductRepository_BulkUpdateProductImageSortOrders_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	mock.ExpectQuery("WITH input").
+		WithArgs("product-id", "image-1", 1, "image-2", 0).
+		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(2))
+
+	err = repo.BulkUpdateProductImageSortOrders(context.Background(), "product-id", []ProductImageSortOrder{
+		{ID: "image-1", SortOrder: 1},
+		{ID: "image-2", SortOrder: 0},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+func TestProductRepository_BulkUpdateProductImageSortOrders_NotFound(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mock.Close()
+
+	repo := NewProductRepository(mock)
+
+	mock.ExpectQuery("WITH input").
+		WithArgs("product-id", "image-1", 1, "missing-image", 0).
+		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(1))
+
+	err = repo.BulkUpdateProductImageSortOrders(context.Background(), "product-id", []ProductImageSortOrder{
+		{ID: "image-1", SortOrder: 1},
+		{ID: "missing-image", SortOrder: 0},
+	})
+	if !errors.Is(err, models.ErrProductImageNotFound) {
+		t.Fatalf("expected ErrProductImageNotFound, got %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}

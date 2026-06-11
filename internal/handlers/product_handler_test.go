@@ -18,13 +18,18 @@ import (
 )
 
 type fakeProductService struct {
-	createFunc      func(ctx context.Context, input services.CreateProductInput) (*models.Product, error)
-	getAllFunc      func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error)
-	getByIDFunc     func(ctx context.Context, id string) (*models.Product, error)
-	getBySlugFunc   func(ctx context.Context, slug string) (*models.Product, error)
-	updateFunc      func(ctx context.Context, id string, input services.UpdateProductInput) (*models.Product, error)
-	deleteFunc      func(ctx context.Context, id string) error
-	uploadImageFunc func(ctx context.Context, input services.UploadProductImageInput) (*models.Product, error)
+	createFunc             func(ctx context.Context, input services.CreateProductInput) (*models.Product, error)
+	getAllFunc             func(ctx context.Context, input services.ProductListInput) (*services.ProductListResult, error)
+	getByIDFunc            func(ctx context.Context, id string) (*models.Product, error)
+	getBySlugFunc          func(ctx context.Context, slug string) (*models.Product, error)
+	updateFunc             func(ctx context.Context, id string, input services.UpdateProductInput) (*models.Product, error)
+	deleteFunc             func(ctx context.Context, id string) error
+	uploadImageFunc        func(ctx context.Context, input services.UploadProductImageInput) (*models.Product, error)
+	getImagesFunc          func(ctx context.Context, productID string) ([]models.ProductImage, error)
+	uploadGalleryImageFunc func(ctx context.Context, input services.UploadProductImageInput) (*models.ProductImage, error)
+	deleteImageFunc        func(ctx context.Context, productID string, imageID string) error
+	reorderImagesFunc      func(ctx context.Context, input services.ReorderProductImagesInput) ([]models.ProductImage, error)
+	setPrimaryImageFunc    func(ctx context.Context, productID string, imageID string) (*models.ProductImage, error)
 }
 
 func (f *fakeProductService) Create(ctx context.Context, input services.CreateProductInput) (*models.Product, error) {
@@ -55,6 +60,26 @@ func (f *fakeProductService) Delete(ctx context.Context, id string) error {
 	return f.deleteFunc(ctx, id)
 }
 
+func (f *fakeProductService) GetImages(ctx context.Context, productID string) ([]models.ProductImage, error) {
+	return f.getImagesFunc(ctx, productID)
+}
+
+func (f *fakeProductService) UploadGalleryImage(ctx context.Context, input services.UploadProductImageInput) (*models.ProductImage, error) {
+	return f.uploadGalleryImageFunc(ctx, input)
+}
+
+func (f *fakeProductService) DeleteImage(ctx context.Context, productID string, imageID string) error {
+	return f.deleteImageFunc(ctx, productID, imageID)
+}
+
+func (f *fakeProductService) ReorderImages(ctx context.Context, input services.ReorderProductImagesInput) ([]models.ProductImage, error) {
+	return f.reorderImagesFunc(ctx, input)
+}
+
+func (f *fakeProductService) SetPrimaryImage(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+	return f.setPrimaryImageFunc(ctx, productID, imageID)
+}
+
 func setupProductRouter(service services.ProductService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 
@@ -63,10 +88,15 @@ func setupProductRouter(service services.ProductService) *gin.Engine {
 
 	router.POST("/api/v1/products", handler.CreateProduct)
 	router.POST("/api/v1/products/:id/image", handler.UploadProductImage)
+	router.POST("/api/v1/products/:id/images", handler.UploadProductGalleryImage)
 	router.GET("/api/v1/products", handler.GetAllProducts)
 	router.GET("/api/v1/products/slug/:slug", handler.GetProductBySlug)
+	router.GET("/api/v1/products/:id/images", handler.GetProductImages)
 	router.GET("/api/v1/products/:id", handler.GetProductByID)
+	router.PATCH("/api/v1/products/:id/images/reorder", handler.ReorderProductImages)
+	router.PATCH("/api/v1/products/:id/images/:image_id/primary", handler.SetPrimaryProductImage)
 	router.PUT("/api/v1/products/:id", handler.UpdateProduct)
+	router.DELETE("/api/v1/products/:id/images/:image_id", handler.DeleteProductImage)
 	router.DELETE("/api/v1/products/:id", handler.DeleteProduct)
 
 	return router
@@ -92,6 +122,20 @@ func newTestProduct() *models.Product {
 		IsActive:    true,
 		CreatedAt:   now,
 		UpdatedAt:   now,
+	}
+}
+
+func newTestProductImage() models.ProductImage {
+	now := time.Now()
+
+	return models.ProductImage{
+		ID:        "image-id",
+		ProductID: "product-id",
+		ImageURL:  "/uploads/products/test.png",
+		SortOrder: 0,
+		IsPrimary: true,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 }
 
@@ -1027,5 +1071,314 @@ func TestProductHandler_GetAllProducts_InvalidCategoryIDReturnsEmptyResult(t *te
 
 	if !strings.Contains(w.Body.String(), `"total":0`) {
 		t.Fatalf("expected response total 0, got: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetProductImages_Success(t *testing.T) {
+	service := &fakeProductService{
+		getImagesFunc: func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+			if productID != "product-id" {
+				t.Fatalf("expected product-id, got %s", productID)
+			}
+
+			return []models.ProductImage{
+				newTestProductImage(),
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products/product-id/images", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "product images retrieved successfully") {
+		t.Fatalf("expected success message, got body: %s", w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), `"is_primary":true`) {
+		t.Fatalf("expected primary image in response, got body: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_GetProductImages_ProductNotFound(t *testing.T) {
+	service := &fakeProductService{
+		getImagesFunc: func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+			return nil, models.ErrProductNotFound
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/products/missing-id/images", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_UploadProductGalleryImage_Success(t *testing.T) {
+	pngFile := []byte{
+		0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a,
+		0x00, 0x00, 0x00, 0x0d, 'I', 'H', 'D', 'R',
+	}
+
+	service := &fakeProductService{
+		uploadGalleryImageFunc: func(ctx context.Context, input services.UploadProductImageInput) (*models.ProductImage, error) {
+			if input.ProductID != "product-id" {
+				t.Fatalf("expected product-id, got %s", input.ProductID)
+			}
+
+			if input.File == nil {
+				t.Fatal("expected file reader")
+			}
+
+			image := newTestProductImage()
+			return &image, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := newMultipartImageRequest(
+		t,
+		"/api/v1/products/product-id/images",
+		"image",
+		"test.png",
+		pngFile,
+	)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "product image uploaded successfully") {
+		t.Fatalf("expected success message, got body: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_UploadProductGalleryImage_MissingFile(t *testing.T) {
+	service := &fakeProductService{
+		uploadGalleryImageFunc: func(ctx context.Context, input services.UploadProductImageInput) (*models.ProductImage, error) {
+			t.Fatal("service should not be called when file is missing")
+			return nil, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if err := writer.Close(); err != nil {
+		t.Fatalf("failed to close multipart writer: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/products/product-id/images", &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_UploadProductGalleryImage_MaxExceeded(t *testing.T) {
+	pngFile := []byte{
+		0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a,
+		0x00, 0x00, 0x00, 0x0d, 'I', 'H', 'D', 'R',
+	}
+
+	service := &fakeProductService{
+		uploadGalleryImageFunc: func(ctx context.Context, input services.UploadProductImageInput) (*models.ProductImage, error) {
+			return nil, models.ErrInvalidProductInput
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := newMultipartImageRequest(
+		t,
+		"/api/v1/products/product-id/images",
+		"image",
+		"test.png",
+		pngFile,
+	)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_DeleteProductImage_Success(t *testing.T) {
+	service := &fakeProductService{
+		deleteImageFunc: func(ctx context.Context, productID string, imageID string) error {
+			if productID != "product-id" {
+				t.Fatalf("expected product-id, got %s", productID)
+			}
+
+			if imageID != "image-id" {
+				t.Fatalf("expected image-id, got %s", imageID)
+			}
+
+			return nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/products/product-id/images/image-id", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_DeleteProductImage_NotFound(t *testing.T) {
+	service := &fakeProductService{
+		deleteImageFunc: func(ctx context.Context, productID string, imageID string) error {
+			return models.ErrProductImageNotFound
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/products/product-id/images/missing-image-id", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "product image not found") {
+		t.Fatalf("expected product image not found message, got body: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_ReorderProductImages_Success(t *testing.T) {
+	service := &fakeProductService{
+		reorderImagesFunc: func(ctx context.Context, input services.ReorderProductImagesInput) ([]models.ProductImage, error) {
+			if input.ProductID != "product-id" {
+				t.Fatalf("expected product-id, got %s", input.ProductID)
+			}
+
+			if len(input.Images) != 2 {
+				t.Fatalf("expected 2 images, got %d", len(input.Images))
+			}
+
+			return []models.ProductImage{
+				{
+					ID:        "image-2",
+					ProductID: "product-id",
+					ImageURL:  "/uploads/products/2.png",
+					SortOrder: 0,
+				},
+				{
+					ID:        "image-1",
+					ProductID: "product-id",
+					ImageURL:  "/uploads/products/1.png",
+					SortOrder: 1,
+				},
+			}, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	body := `{
+		"images": [
+			{"id": "image-1", "sort_order": 1},
+			{"id": "image-2", "sort_order": 0}
+		]
+	}`
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/products/product-id/images/reorder", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "product images reordered successfully") {
+		t.Fatalf("expected success message, got body: %s", w.Body.String())
+	}
+}
+
+func TestProductHandler_ReorderProductImages_InvalidBody(t *testing.T) {
+	service := &fakeProductService{
+		reorderImagesFunc: func(ctx context.Context, input services.ReorderProductImagesInput) ([]models.ProductImage, error) {
+			t.Fatal("service should not be called when body is invalid")
+			return nil, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	body := `{"images":[{"id":"","sort_order":0}]}`
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/products/product-id/images/reorder", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProductHandler_SetPrimaryProductImage_Success(t *testing.T) {
+	service := &fakeProductService{
+		setPrimaryImageFunc: func(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+			if productID != "product-id" {
+				t.Fatalf("expected product-id, got %s", productID)
+			}
+
+			if imageID != "image-id" {
+				t.Fatalf("expected image-id, got %s", imageID)
+			}
+
+			image := newTestProductImage()
+			return &image, nil
+		},
+	}
+
+	router := setupProductRouter(service)
+
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/products/product-id/images/image-id/primary", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "primary product image updated successfully") {
+		t.Fatalf("expected success message, got body: %s", w.Body.String())
 	}
 }
