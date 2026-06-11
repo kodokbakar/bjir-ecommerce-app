@@ -1,17 +1,6 @@
 import React from "react";
-import { useAuth } from "../context/AuthContext";
-
-const C = {
-    primary:       "#A67B7B",
-    primaryDark:   "#8f6464",
-    primaryLight:  "#b98e8e",
-    secondary:     "#E7D7C9",
-    accent:        "#36454F",
-    textDark:      "#22303a",
-    textMuted:     "#7a6e6e",
-    textLabel:     "#4a3535",
-    border:        "#d4bfb0",
-} as const;
+import { useAuth } from '../hooks/useAuth';
+import { C } from "../styles/tokens";
 
 // ── Data Dummy untuk Pembeli ───────────────────────────────────────────────
 const BUYER_STATS = [

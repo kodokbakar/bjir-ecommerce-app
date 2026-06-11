@@ -1,25 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
-
-// ── Colour tokens (sama dengan Login) ─────────────────────────────────────
-const C = {
-    primary:       "#A67B7B",
-    primaryDark:   "#8f6464",
-    primaryLight: "#b98e8e",
-    secondary:     "#E7D7C9",
-    accent:        "#36454F",
-    textDark:      "#22303a",
-    textMuted:     "#7a6e6e",
-    textLabel:     "#4a3535",
-    border:        "#d4bfb0",
-    pillText:      "rgba(231,215,201,0.88)",
-    pillBg:        "rgba(255,255,255,0.10)",
-    pillBorder:    "rgba(255,255,255,0.18)",
-    heroDeco1:     "#b98e8e",
-    heroDeco2:     "#8f6464",
-    heroDeco3:     "#c9a0a0",
-} as const;
+import { useAuth } from "../hooks/useAuth";
+import { C } from "../styles/tokens";
 
 // ── Sub-komponen: LeftPanel ────────────────────────────────────────────────
 const LeftPanel: React.FC = () => (
@@ -37,7 +20,6 @@ const LeftPanel: React.FC = () => (
         <span style={{ position:"absolute", bottom:-40, left:-40, width:140, height:140, borderRadius:"50%", background:C.heroDeco2, opacity:0.35 }} />
         <span style={{ position:"absolute", bottom:100, right:24, width:80, height:80, borderRadius:"50%", background:C.heroDeco3, opacity:0.3 }} />
 
-        {/* Logo */}
         <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative", zIndex:1 }}>
             <div style={{ width:38, height:38, background:C.secondary, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -45,12 +27,9 @@ const LeftPanel: React.FC = () => (
                     <path d="M12 2c0 5.5-4 10-10 10" />
                 </svg>
             </div>
-            <span style={{ fontSize:16, fontWeight:500, color:C.secondary, letterSpacing:"0.3px" }}>
-                Bjir E-commerce
-            </span>
+            <span style={{ fontSize:16, fontWeight:500, color:C.secondary, letterSpacing:"0.3px" }}>Bjir E-Commerce</span>
         </div>
 
-        {/* Hero */}
         <div style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"center", padding:"28px 0", position:"relative", zIndex:1 }}>
             <div style={{ display:"flex", gap:10, marginBottom:20 }}>
                 {[
@@ -80,7 +59,6 @@ const LeftPanel: React.FC = () => (
             </p>
         </div>
 
-        {/* Trust pills */}
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", position:"relative", zIndex:1 }}>
             {["Gratis daftar", "Promo member", "Belanja aman"].map((label) => (
                 <span key={label} style={{
@@ -94,7 +72,7 @@ const LeftPanel: React.FC = () => (
     </div>
 );
 
-// ── Sub-komponen: InputField (reusable) ────────────────────────────────────
+// ── Sub-komponen: InputField & EyeToggle ────────────────────────────────────
 interface InputFieldProps {
     id: string;
     label: string;
@@ -107,15 +85,11 @@ interface InputFieldProps {
     rightSlot?: React.ReactNode;
 }
 
-const InputField: React.FC<InputFieldProps> = ({
-    id, label, type, value, onChange, placeholder, autoComplete, required, rightSlot,
-}) => {
+const InputField: React.FC<InputFieldProps> = ({ id, label, type, value, onChange, placeholder, autoComplete, required, rightSlot }) => {
     const [focused, setFocused] = useState(false);
     return (
         <div style={{ marginBottom:14 }}>
-            <label htmlFor={id} style={{ display:"block", fontSize:12, fontWeight:500, color:C.textLabel, marginBottom:5 }}>
-                {label}
-            </label>
+            <label htmlFor={id} style={{ display:"block", fontSize:12, fontWeight:500, color:C.textLabel, marginBottom:5 }}>{label}</label>
             <div style={{
                 display:"flex", alignItems:"center", height:40, background:"#fff",
                 border:`1px solid ${focused ? C.primary : C.border}`,
@@ -123,8 +97,7 @@ const InputField: React.FC<InputFieldProps> = ({
                 boxShadow: focused ? `0 0 0 3px rgba(166,123,123,0.18)` : "none",
                 transition:"border-color 0.15s, box-shadow 0.15s",
             }}>
-                <input
-                    id={id} name={id} type={type} value={value} onChange={onChange}
+                <input id={id} name={id} type={type} value={value} onChange={onChange}
                     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
                     placeholder={placeholder} autoComplete={autoComplete} required={required}
                     style={{ flex:1, border:"none", outline:"none", background:"transparent", fontSize:13, color:C.textDark }}
@@ -135,13 +108,8 @@ const InputField: React.FC<InputFieldProps> = ({
     );
 };
 
-// ── Eye toggle button (reusable) ───────────────────────────────────────────
 const EyeToggle: React.FC<{ show: boolean; onToggle: () => void }> = ({ show, onToggle }) => (
-    <button
-        type="button" onClick={onToggle}
-        style={{ background:"none", border:"none", cursor:"pointer", padding:0, color:"#a08888", display:"flex", alignItems:"center" }}
-        aria-label={show ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-    >
+    <button type="button" onClick={onToggle} style={{ background:"none", border:"none", cursor:"pointer", padding:0, color:"#a08888", display:"flex", alignItems:"center" }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             {show ? (
                 <>
@@ -159,205 +127,131 @@ const EyeToggle: React.FC<{ show: boolean; onToggle: () => void }> = ({ show, on
     </button>
 );
 
-// ── Sub-komponen: RightPanel ───────────────────────────────────────────────
-interface RightPanelProps {
-    name: string;
-    setName: (v: string) => void;
-    email: string;
-    setEmail: (v: string) => void;
-    password: string;
-    setPassword: (v: string) => void;
-    confirmPassword: string;
-    setConfirmPassword: (v: string) => void;
-    error: string | null;
-    success: string | null;
-    isLoading: boolean;
-    onSubmit: (e: React.FormEvent) => void;
-}
-
-const RightPanel: React.FC<RightPanelProps> = ({
-    name, setName, email, setEmail,
-    password, setPassword, confirmPassword, setConfirmPassword,
-    error, success, isLoading, onSubmit,
-}) => {
-    const [showPassword, setShowPassword]               = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-    return (
-        <div style={{
-            flex:1, background:C.secondary, display:"flex",
-            flexDirection:"column", justifyContent:"center", padding:"36px 40px",
-        }}>
-            {/* Header */}
-            <div style={{ marginBottom:20 }}>
-                <h2 style={{ fontSize:20, fontWeight:500, color:C.textDark, margin:"0 0 4px" }}>
-                    Buat akun baru
-                </h2>
-                <p style={{ fontSize:13, color:C.textMuted, margin:0 }}>
-                    Isi data di bawah untuk mulai berbelanja
-                </p>
-            </div>
-
-            {/* Error */}
-            {error && (
-                <div style={{
-                    background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8,
-                    padding:"10px 14px", fontSize:13, color:"#b91c1c", marginBottom:14,
-                }}>
-                    {error}
-                </div>
-            )}
-
-            {/* Success */}
-            {success && (
-                <div style={{
-                    background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8,
-                    padding:"10px 14px", fontSize:13, color:"#15803d", marginBottom:14,
-                }}>
-                    {success}
-                </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={onSubmit}>
-                <InputField
-                    id="name" label="Nama lengkap" type="text" value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Nama lengkap Anda" autoComplete="name" required
-                />
-
-                <InputField
-                    id="email" label="Alamat email" type="email" value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@contoh.com" autoComplete="email" required
-                />
-
-                <InputField
-                    id="password" label="Kata sandi"
-                    type={showPassword ? "text" : "password"} value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••" autoComplete="new-password" required
-                    rightSlot={<EyeToggle show={showPassword} onToggle={() => setShowPassword(p => !p)} />}
-                />
-
-                <InputField
-                    id="confirm-password" label="Konfirmasi kata sandi"
-                    type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••" autoComplete="new-password" required
-                    rightSlot={<EyeToggle show={showConfirmPassword} onToggle={() => setShowConfirmPassword(p => !p)} />}
-                />
-
-                {/* Tombol daftar */}
-                <button
-                    type="submit" disabled={isLoading}
-                    style={{
-                        width:"100%", height:42, marginTop:4,
-                        background: isLoading ? C.primaryLight : C.primary,
-                        border:"none", borderRadius:8,
-                        display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                        cursor: isLoading ? "not-allowed" : "pointer",
-                        transition:"background 0.15s",
-                    }}
-                >
-                    <span style={{ fontSize:14, fontWeight:500, color:C.secondary }}>
-                        {isLoading ? "Sedang mendaftar..." : "Daftar sekarang"}
-                    </span>
-                    {!isLoading && (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.pillText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                        </svg>
-                    )}
-                </button>
-            </form>
-
-            {/* Link masuk */}
-            <p style={{ textAlign:"center", marginTop:18, fontSize:12, color:C.textMuted }}>
-                Sudah punya akun?{" "}
-                <Link to="/login" style={{ color:C.accent, fontWeight:500, textDecoration:"none" }}>
-                    Masuk di sini
-                </Link>
-            </p>
-        </div>
-    );
-};
-
 // ── Komponen utama: Register ───────────────────────────────────────────────
 const Register: React.FC = () => {
-    const [name, setName]                     = useState("");
-    const [email, setEmail]                   = useState("");
-    const [password, setPassword]             = useState("");
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [error, setError]                   = useState<string | null>(null);
-    const [success, setSuccess]               = useState<string | null>(null);
-    const [isLoading, setIsLoading]           = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     const navigate = useNavigate();
+    const { login } = useAuth();
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setSuccess(null);
-
-        if (password !== confirmPassword) {
-            setError("Kata sandi dan konfirmasi kata sandi tidak cocok.");
-            return;
-        }
-
+        if (password !== confirmPassword) return setError("Password tidak cocok.");
         setIsLoading(true);
-
         try {
             await api.post("/v1/auth/register", { name, email, password });
-
-            setSuccess("Pendaftaran berhasil! Mengalihkan ke halaman masuk...");
-            setName(""); setEmail(""); setPassword(""); setConfirmPassword("");
-
-            setTimeout(() => navigate("/login"), 2500);
+            const res = await api.post("/v1/auth/login", { email, password });
+            login(res.data?.data?.access_token, res.data?.data?.user);
+            setSuccess("Sukses! Mengalihkan ke dashboard...");
+            setTimeout(() => navigate("/dashboard"), 1500);
         } catch (err: any) {
-            console.error(err);
-            if (err.response?.data?.message) {
-                setError(err.response.data.message);
-            } else {
-                setError("Pendaftaran gagal. Silakan periksa kembali data Anda atau coba lagi nanti.");
-            }
-        } finally {
-            setIsLoading(false);
-        }
+            setError(err.response?.data?.message || "Gagal mendaftar.");
+        } finally { setIsLoading(false); }
     };
 
     return (
-        <div style={{
-            display:"flex", minHeight:"100vh", alignItems:"center", justifyContent:"center",
-            background:"#ddd0c8", padding:"24px 16px",
-        }}>
-            {/* Tag style untuk mendaftarkan animasi keyframes secara runtime */}
+        <div style={{ display:"flex", minHeight:"100vh", alignItems:"center", justifyContent:"center", background:"#ddd0c8", padding: isMobile ? 0 : 24 }}>
             <style>{`
                 @keyframes registerFadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(12px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(12px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
 
             <div style={{
-                display:"flex", width:"100%", maxWidth:900, minHeight:580,
-                borderRadius:16, overflow:"hidden", border:`0.5px solid ${C.border}`,
-                animation: "registerFadeIn 1s ease-out forwards",
+                display:"flex", width:"100%", maxWidth:900, minHeight: isMobile ? "100vh" : 580, 
+                borderRadius: isMobile ? 0 : 16, overflow:"hidden", background:"#fff",
+                animation: "registerFadeIn 1s ease-out forwards"
             }}>
-                <LeftPanel />
-                <RightPanel
-                    name={name} setName={setName}
-                    email={email} setEmail={setEmail}
-                    password={password} setPassword={setPassword}
-                    confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword}
-                    error={error} success={success}
-                    isLoading={isLoading} onSubmit={handleSubmit}
-                />
+                {!isMobile && <LeftPanel />}
+
+                <div style={{ flex:1, background:C.secondary, display:"flex", flexDirection:"column", justifyContent:"center", padding:"36px 40px" }}>
+                    <h2 style={{ fontSize:20, fontWeight:500, color:C.textDark, marginBottom:4 }}>Buat akun baru</h2>
+                    <p style={{ fontSize:13, color:C.textMuted, margin:"0 0 20px" }}>Daftar sekarang untuk mulai berbelanja.</p>
+
+                    {/* Tampilan Error */}
+                    {error && (
+                        <div style={{
+                            background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8,
+                            padding:"10px 14px", fontSize:13, color:"#b91c1c", marginBottom:16,
+                        }}>
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Tampilan Sukses */}
+                    {success && (
+                        <div style={{
+                            background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8,
+                            padding:"10px 14px", fontSize:13, color:"#16a34a", marginBottom:16,
+                        }}>
+                            {success}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit}>
+                        <InputField 
+                            id="name" label="Nama" type="text" value={name} 
+                            onChange={(e) => setName(e.target.value)} placeholder="Nama Anda" required 
+                        />
+
+                        <InputField 
+                            id="email" label="Email" type="email" value={email} 
+                            onChange={(e) => setEmail(e.target.value)} placeholder="Email" required 
+                        />
+
+                        <InputField 
+                            id="password" label="Password" 
+                            type={showPassword ? "text" : "password"} value={password} 
+                            onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required 
+                            rightSlot={
+                                <EyeToggle show={showPassword} onToggle={() => setShowPassword((prev) => !prev)} />
+                            }
+                        />
+
+                        <InputField 
+                            id="confirm" label="Konfirmasi Password" 
+                            type={showConfirmPassword ? "text" : "password"} value={confirmPassword} 
+                            onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required 
+                            rightSlot={
+                                <EyeToggle show={showConfirmPassword} onToggle={() => setShowConfirmPassword((prev) => !prev)} />
+                            }
+                        />
+
+                        <button 
+                            type="submit" disabled={isLoading} 
+                            style={{ 
+                                width:"100%", height:42, 
+                                background: isLoading ? C.primaryLight : C.primary, 
+                                color:"#fff", border:"none", borderRadius:8, 
+                                cursor: isLoading ? "not-allowed" : "pointer" 
+                            }}
+                        >
+                            {isLoading ? "Memproses..." : "Daftar sekarang"}
+                        </button>
+                    </form>
+
+                    <p style={{ textAlign:"center", marginTop:18, fontSize:12, color:C.textMuted }}>
+                        Sudah punya akun? <Link to="/login" style={{ color:C.accent, fontWeight:500, textDecoration:"none" }}>Masuk di sini</Link>
+                    </p>
+                </div>
             </div>
         </div>
     );

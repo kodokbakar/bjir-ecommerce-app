@@ -1,28 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from '../hooks/useAuth';
 import api from "../services/api";
+import { C } from "../styles/tokens";
 
-// ── Colour tokens dari PM ──────────────────────────────────────────────────
-const C = {
-    primary:       "#A67B7B",
-    primaryDark:   "#8f6464",
-    primaryLight: "#b98e8e",
-    secondary:     "#E7D7C9",
-    accent:        "#36454F",
-    textDark:      "#22303a",
-    textMuted:     "#7a6e6e",
-    textLabel:     "#4a3535",
-    border:        "#d4bfb0",
-    pillText:      "rgba(231,215,201,0.88)",
-    pillBg:        "rgba(255,255,255,0.10)",
-    pillBorder:    "rgba(255,255,255,0.18)",
-    heroDeco1:     "#b98e8e",
-    heroDeco2:     "#8f6464",
-    heroDeco3:     "#c9a0a0",
-} as const;
-
-// ── Sub-komponen: LeftPanel ────────────────────────────────────────────────
 const LeftPanel: React.FC = () => (
     <div
         style={{
@@ -50,7 +31,7 @@ const LeftPanel: React.FC = () => (
                 </svg>
             </div>
             <span style={{ fontSize:16, fontWeight:500, color:C.secondary, letterSpacing:"0.3px" }}>
-                Bjir E-commerce
+                Bjir E-Commerce
             </span>
         </div>
 
@@ -99,7 +80,7 @@ const LeftPanel: React.FC = () => (
     </div>
 );
 
-// ── Sub-komponen: InputField ───────────────────────────────────────────────
+// ── Sub-komponen: InputField ──────────────────────────────────────────────
 interface InputFieldProps {
     id: string;
     label: string;
@@ -140,19 +121,20 @@ const InputField: React.FC<InputFieldProps> = ({
     );
 };
 
-// ── Sub-komponen: RightPanel ───────────────────────────────────────────────
+// ── Sub-komponen: RightPanel ──────────────────────────────────────────────
 interface RightPanelProps {
     email: string;
     setEmail: (v: string) => void;
     password: string;
     setPassword: (v: string) => void;
     error: string | null;
+    success: string | null;
     isLoading: boolean;
     onSubmit: (e: React.FormEvent) => void;
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
-    email, setEmail, password, setPassword, error, isLoading, onSubmit,
+    email, setEmail, password, setPassword, error, success, isLoading, onSubmit,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
 
@@ -178,6 +160,16 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     padding:"10px 14px", fontSize:13, color:"#b91c1c", marginBottom:16,
                 }}>
                     {error}
+                </div>
+            )}
+
+            {/* Teks Sukses */}
+            {success && (
+                <div style={{
+                    background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8,
+                    padding:"10px 14px", fontSize:13, color:"#16a34a", marginBottom:16,
+                }}>
+                    {success}
                 </div>
             )}
 
@@ -218,13 +210,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     }
                 />
 
-                {/* Lupa kata sandi */}
-                <div style={{ textAlign:"right", marginTop:-6, marginBottom:20 }}>
-                    <Link to="/forgot-password" style={{ fontSize:12, fontWeight:500, color:C.accent, textDecoration:"none" }}>
-                        Lupa kata sandi?
-                    </Link>
-                </div>
-
                 {/* Tombol masuk */}
                 <button
                     type="submit" disabled={isLoading}
@@ -259,19 +244,31 @@ const RightPanel: React.FC<RightPanelProps> = ({
     );
 };
 
-// ── Komponen utama: Login ──────────────────────────────────────────────────
+// ── Komponen utama: Login ────────────────────────────────────────────────
 const Login: React.FC = () => {
     const [email, setEmail]         = useState("");
     const [password, setPassword]   = useState("");
     const [error, setError]         = useState<string | null>(null);
+    const [success, setSuccess]     = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const { login } = useAuth();
     const navigate  = useNavigate();
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setSuccess(null);
         setIsLoading(true);
 
         try {
@@ -281,18 +278,27 @@ const Login: React.FC = () => {
 
             if (token && user) {
                 login(token, user);
-                navigate("/dashboard", { replace: true });
+                setSuccess("Login sukses! Mengalihkan ke dashboard...");
+                
+                // Menunda pemindahan halaman selama 2 detik (2000 ms)
+                setTimeout(() => {
+                    navigate("/dashboard", { replace: true });
+                }, 2000);
             } else {
                 setError("Format respon dari server tidak sesuai.");
+                setIsLoading(false);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            if (err.response?.data?.message) {
-                setError(err.response.data.message);
-            } else {
-                setError("Gagal masuk. Silakan periksa koneksi atau kredensial Anda.");
+            if (err && typeof err === "object" && "response" in err) {
+                const apiError = err as { response?: { data?: { message?: string } } };
+                if (apiError.response?.data?.message) {
+                    setError(apiError.response.data.message);
+                    setIsLoading(false);
+                    return;
+                }
             }
-        } finally {
+            setError("Terjadi kesalahan pada sistem. Silakan coba beberapa saat lagi.");
             setIsLoading(false);
         }
     };
@@ -300,33 +306,32 @@ const Login: React.FC = () => {
     return (
         <div style={{
             display:"flex", minHeight:"100vh", alignItems:"center", justifyContent:"center",
-            background:"#ddd0c8", padding:"24px 16px",
+            background:"#ddd0c8", padding: isMobile ? "12px" : "24px 16px",
         }}>
-            {/* Tag style di bawah ini disuntikkan agar kita bisa memakai keyframes di inline style */}
             <style>{`
                 @keyframes loginFadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(12px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(12px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
             
             <div style={{
-                display:"flex", width:"100%", maxWidth:900, minHeight:520,
-                borderRadius:16, overflow:"hidden", border:`0.5px solid ${C.border}`,
-                // Penambahan efek animasi fade-in di bawah ini:
+                display:"flex", 
+                flexDirection: isMobile ? "column" : "row",
+                width:"100%", 
+                maxWidth: 900, 
+                minHeight: isMobile ? "auto" : 520,
+                borderRadius:16, 
+                overflow:"hidden", 
+                border:`0.5px solid ${C.border}`,
                 animation: "loginFadeIn 1s ease-out forwards",
             }}>
-                <LeftPanel />
+                {!isMobile && <LeftPanel />}
+                
                 <RightPanel
                     email={email} setEmail={setEmail}
                     password={password} setPassword={setPassword}
-                    error={error} isLoading={isLoading} onSubmit={handleSubmit}
+                    error={error} success={success} isLoading={isLoading} onSubmit={handleSubmit}
                 />
             </div>
         </div>
