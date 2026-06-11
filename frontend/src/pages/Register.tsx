@@ -16,33 +16,33 @@ const LeftPanel: React.FC = () => (
         position: "relative",
         overflow: "hidden",
     }}>
-        <span style={{ position:"absolute", top:-50, right:-50, width:180, height:180, borderRadius:"50%", background:C.heroDeco1, opacity:0.4 }} />
-        <span style={{ position:"absolute", bottom:-40, left:-40, width:140, height:140, borderRadius:"50%", background:C.heroDeco2, opacity:0.35 }} />
-        <span style={{ position:"absolute", bottom:100, right:24, width:80, height:80, borderRadius:"50%", background:C.heroDeco3, opacity:0.3 }} />
+        <span style={{ position: "absolute", top: -50, right: -50, width: 180, height: 180, borderRadius: "50%", background: C.heroDeco1, opacity: 0.4 }} />
+        <span style={{ position: "absolute", bottom: -40, left: -40, width: 140, height: 140, borderRadius: "50%", background: C.heroDeco2, opacity: 0.35 }} />
+        <span style={{ position: "absolute", bottom: 100, right: 24, width: 80, height: 80, borderRadius: "50%", background: C.heroDeco3, opacity: 0.3 }} />
 
-        <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative", zIndex:1 }}>
-            <div style={{ width:38, height:38, background:C.secondary, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+            <div style={{ width: 38, height: 38, background: C.secondary, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10" />
                     <path d="M12 2c0 5.5-4 10-10 10" />
                 </svg>
             </div>
-            <span style={{ fontSize:16, fontWeight:500, color:C.secondary, letterSpacing:"0.3px" }}>Bjir E-Commerce</span>
+            <span style={{ fontSize: 16, fontWeight: 500, color: C.secondary, letterSpacing: "0.3px" }}>Bjir E-Commerce</span>
         </div>
 
-        <div style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"center", padding:"28px 0", position:"relative", zIndex:1 }}>
-            <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "28px 0", position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
                 {[
                     { stroke: C.secondary, d: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" },
                     { stroke: C.secondary, d: "M12 3C8.13 3 5 6.13 5 10s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7z" },
-                    { stroke: C.accent,    d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
+                    { stroke: C.accent, d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
                 ].map((icon, i) => (
                     <div key={i} style={{
-                        width:52, height:52,
+                        width: 52, height: 52,
                         background: i === 2 ? "rgba(54,69,79,0.18)" : "rgba(255,255,255,0.12)",
-                        borderRadius:12,
+                        borderRadius: 12,
                         border: `0.5px solid ${i === 2 ? "rgba(54,69,79,0.4)" : "rgba(255,255,255,0.18)"}`,
-                        display:"flex", alignItems:"center", justifyContent:"center",
+                        display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={icon.stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                             <path d={icon.d} />
@@ -50,20 +50,20 @@ const LeftPanel: React.FC = () => (
                     </div>
                 ))}
             </div>
-            <h1 style={{ fontSize:22, fontWeight:500, color:C.secondary, lineHeight:1.35, margin:"0 0 10px" }}>
+            <h1 style={{ fontSize: 22, fontWeight: 500, color: C.secondary, lineHeight: 1.35, margin: "0 0 10px" }}>
                 Bergabung<br />Bersama Kami
             </h1>
-            <p style={{ fontSize:13, color:"rgba(231,215,201,0.75)", lineHeight:1.65, margin:0 }}>
+            <p style={{ fontSize: 13, color: "rgba(231,215,201,0.75)", lineHeight: 1.65, margin: 0 }}>
                 Buat akun gratis dan mulai nikmati ribuan produk berkualitas.
                 <br />Dapatkan penawaran eksklusif khusus member baru!
             </p>
         </div>
 
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap", position:"relative", zIndex:1 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
             {["Gratis daftar", "Promo member", "Belanja aman"].map((label) => (
                 <span key={label} style={{
-                    fontSize:11, color:C.pillText, background:C.pillBg,
-                    border:`0.5px solid ${C.pillBorder}`, borderRadius:99, padding:"4px 12px",
+                    fontSize: 11, color: C.pillText, background: C.pillBg,
+                    border: `0.5px solid ${C.pillBorder}`, borderRadius: 99, padding: "4px 12px",
                 }}>
                     {label}
                 </span>
@@ -88,19 +88,19 @@ interface InputFieldProps {
 const InputField: React.FC<InputFieldProps> = ({ id, label, type, value, onChange, placeholder, autoComplete, required, rightSlot }) => {
     const [focused, setFocused] = useState(false);
     return (
-        <div style={{ marginBottom:14 }}>
-            <label htmlFor={id} style={{ display:"block", fontSize:12, fontWeight:500, color:C.textLabel, marginBottom:5 }}>{label}</label>
+        <div style={{ marginBottom: 14 }}>
+            <label htmlFor={id} style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.textLabel, marginBottom: 5 }}>{label}</label>
             <div style={{
-                display:"flex", alignItems:"center", height:40, background:"#fff",
-                border:`1px solid ${focused ? C.primary : C.border}`,
-                borderRadius:8, padding:"0 12px", gap:8,
+                display: "flex", alignItems: "center", height: 40, background: "#fff",
+                border: `1px solid ${focused ? C.primary : C.border}`,
+                borderRadius: 8, padding: "0 12px", gap: 8,
                 boxShadow: focused ? `0 0 0 3px rgba(166,123,123,0.18)` : "none",
-                transition:"border-color 0.15s, box-shadow 0.15s",
+                transition: "border-color 0.15s, box-shadow 0.15s",
             }}>
                 <input id={id} name={id} type={type} value={value} onChange={onChange}
                     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
                     placeholder={placeholder} autoComplete={autoComplete} required={required}
-                    style={{ flex:1, border:"none", outline:"none", background:"transparent", fontSize:13, color:C.textDark }}
+                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 13, color: C.textDark }}
                 />
                 {rightSlot}
             </div>
@@ -109,7 +109,7 @@ const InputField: React.FC<InputFieldProps> = ({ id, label, type, value, onChang
 };
 
 const EyeToggle: React.FC<{ show: boolean; onToggle: () => void }> = ({ show, onToggle }) => (
-    <button type="button" onClick={onToggle} style={{ background:"none", border:"none", cursor:"pointer", padding:0, color:"#a08888", display:"flex", alignItems:"center" }}>
+    <button type="button" onClick={onToggle} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#a08888", display: "flex", alignItems: "center" }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             {show ? (
                 <>
@@ -161,13 +161,26 @@ const Register: React.FC = () => {
             login(res.data?.data?.access_token, res.data?.data?.user);
             setSuccess("Sukses! Mengalihkan ke dashboard...");
             setTimeout(() => navigate("/dashboard"), 1500);
-        } catch (err: any) {
-            setError(err.response?.data?.message || "Gagal mendaftar.");
-        } finally { setIsLoading(false); }
+        } catch (err: unknown) {
+            console.error(err);
+
+            if (err && typeof err === "object" && "response" in err) {
+                const apiError = err as { response?: { data?: { message?: string } } };
+
+                if (apiError.response?.data?.message) {
+                    setError(apiError.response.data.message);
+                    return;
+                }
+            }
+
+            setError("Gagal mendaftar.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <div style={{ display:"flex", minHeight:"100vh", alignItems:"center", justifyContent:"center", background:"#ddd0c8", padding: isMobile ? 0 : 24 }}>
+        <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#ddd0c8", padding: isMobile ? 0 : 24 }}>
             <style>{`
                 @keyframes registerFadeIn {
                     from { opacity: 0; transform: translateY(12px); }
@@ -176,21 +189,21 @@ const Register: React.FC = () => {
             `}</style>
 
             <div style={{
-                display:"flex", width:"100%", maxWidth:900, minHeight: isMobile ? "100vh" : 580, 
-                borderRadius: isMobile ? 0 : 16, overflow:"hidden", background:"#fff",
+                display: "flex", width: "100%", maxWidth: 900, minHeight: isMobile ? "100vh" : 580,
+                borderRadius: isMobile ? 0 : 16, overflow: "hidden", background: "#fff",
                 animation: "registerFadeIn 1s ease-out forwards"
             }}>
                 {!isMobile && <LeftPanel />}
 
-                <div style={{ flex:1, background:C.secondary, display:"flex", flexDirection:"column", justifyContent:"center", padding:"36px 40px" }}>
-                    <h2 style={{ fontSize:20, fontWeight:500, color:C.textDark, marginBottom:4 }}>Buat akun baru</h2>
-                    <p style={{ fontSize:13, color:C.textMuted, margin:"0 0 20px" }}>Daftar sekarang untuk mulai berbelanja.</p>
+                <div style={{ flex: 1, background: C.secondary, display: "flex", flexDirection: "column", justifyContent: "center", padding: "36px 40px" }}>
+                    <h2 style={{ fontSize: 20, fontWeight: 500, color: C.textDark, marginBottom: 4 }}>Buat akun baru</h2>
+                    <p style={{ fontSize: 13, color: C.textMuted, margin: "0 0 20px" }}>Daftar sekarang untuk mulai berbelanja.</p>
 
                     {/* Tampilan Error */}
                     {error && (
                         <div style={{
-                            background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8,
-                            padding:"10px 14px", fontSize:13, color:"#b91c1c", marginBottom:16,
+                            background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,
+                            padding: "10px 14px", fontSize: 13, color: "#b91c1c", marginBottom: 16,
                         }}>
                             {error}
                         </div>
@@ -199,57 +212,57 @@ const Register: React.FC = () => {
                     {/* Tampilan Sukses */}
                     {success && (
                         <div style={{
-                            background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8,
-                            padding:"10px 14px", fontSize:13, color:"#16a34a", marginBottom:16,
+                            background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8,
+                            padding: "10px 14px", fontSize: 13, color: "#16a34a", marginBottom: 16,
                         }}>
                             {success}
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit}>
-                        <InputField 
-                            id="name" label="Nama" type="text" value={name} 
-                            onChange={(e) => setName(e.target.value)} placeholder="Nama Anda" required 
+                        <InputField
+                            id="name" label="Nama" type="text" value={name}
+                            onChange={(e) => setName(e.target.value)} placeholder="Nama Anda" required
                         />
 
-                        <InputField 
-                            id="email" label="Email" type="email" value={email} 
-                            onChange={(e) => setEmail(e.target.value)} placeholder="Email" required 
+                        <InputField
+                            id="email" label="Email" type="email" value={email}
+                            onChange={(e) => setEmail(e.target.value)} placeholder="Email" required
                         />
 
-                        <InputField 
-                            id="password" label="Password" 
-                            type={showPassword ? "text" : "password"} value={password} 
-                            onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required 
+                        <InputField
+                            id="password" label="Password"
+                            type={showPassword ? "text" : "password"} value={password}
+                            onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required
                             rightSlot={
                                 <EyeToggle show={showPassword} onToggle={() => setShowPassword((prev) => !prev)} />
                             }
                         />
 
-                        <InputField 
-                            id="confirm" label="Konfirmasi Password" 
-                            type={showConfirmPassword ? "text" : "password"} value={confirmPassword} 
-                            onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required 
+                        <InputField
+                            id="confirm" label="Konfirmasi Password"
+                            type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required
                             rightSlot={
                                 <EyeToggle show={showConfirmPassword} onToggle={() => setShowConfirmPassword((prev) => !prev)} />
                             }
                         />
 
-                        <button 
-                            type="submit" disabled={isLoading} 
-                            style={{ 
-                                width:"100%", height:42, 
-                                background: isLoading ? C.primaryLight : C.primary, 
-                                color:"#fff", border:"none", borderRadius:8, 
-                                cursor: isLoading ? "not-allowed" : "pointer" 
+                        <button
+                            type="submit" disabled={isLoading}
+                            style={{
+                                width: "100%", height: 42,
+                                background: isLoading ? C.primaryLight : C.primary,
+                                color: "#fff", border: "none", borderRadius: 8,
+                                cursor: isLoading ? "not-allowed" : "pointer"
                             }}
                         >
                             {isLoading ? "Memproses..." : "Daftar sekarang"}
                         </button>
                     </form>
 
-                    <p style={{ textAlign:"center", marginTop:18, fontSize:12, color:C.textMuted }}>
-                        Sudah punya akun? <Link to="/login" style={{ color:C.accent, fontWeight:500, textDecoration:"none" }}>Masuk di sini</Link>
+                    <p style={{ textAlign: "center", marginTop: 18, fontSize: 12, color: C.textMuted }}>
+                        Sudah punya akun? <Link to="/login" style={{ color: C.accent, fontWeight: 500, textDecoration: "none" }}>Masuk di sini</Link>
                     </p>
                 </div>
             </div>

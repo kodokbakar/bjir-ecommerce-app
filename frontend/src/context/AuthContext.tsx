@@ -15,9 +15,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (storedToken) {
                 try {
                     api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
-                    const response = await api.get("/v1/auth/login");
+                    const response = await api.get("/v1/auth/me");
+
                     setToken(storedToken);
-                    const userData = response.data?.user || (storedUser ? JSON.parse(storedUser) : null);
+
+                    const userData =
+                        response.data?.data?.user ||
+                        response.data?.data ||
+                        response.data?.user ||
+                        (storedUser ? JSON.parse(storedUser) : null);
+
+                    if (!userData) {
+                        throw new Error("Data user tidak ditemukan pada response /me");
+                    }
+
+                    localStorage.setItem("user", JSON.stringify(userData));
                     setUser(userData);
                 } catch (error) {
                     console.error("Sesi kedaluwarsa atau token tidak valid:", error);

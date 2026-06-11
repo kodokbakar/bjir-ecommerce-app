@@ -3,31 +3,28 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import { AuthProvider } from './context/AuthContext';
-import Layout from './components/Layout'; 
+import Layout from './components/Layout';
 
 function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        {/* Rute Publik */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <Routes>
+      {/* Rute Publik */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-        {/* Rute Privat*/}
-        <Route element={<ProtectedRoute />}>
-            <Route 
-              path="/dashboard" 
-              element={
-                <Layout>
-                  <Dashboard />
-                </Layout>
-              } 
-            />
-        </Route>
-      </Routes>
-    </AuthProvider>
+      {/* Rute Privat */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          path="/dashboard"
+          element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          }
+        />
+      </Route>
+    </Routes>
   );
 }
 

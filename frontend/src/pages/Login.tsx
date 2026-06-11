@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useAuth } from '../hooks/useAuth';
 import api from "../services/api";
 import { C } from "../styles/tokens";
@@ -18,37 +18,37 @@ const LeftPanel: React.FC = () => (
         }}
     >
         {/* Dekorasi lingkaran */}
-        <span style={{ position:"absolute", top:-50, right:-50, width:180, height:180, borderRadius:"50%", background:C.heroDeco1, opacity:0.4 }} />
-        <span style={{ position:"absolute", bottom:-40, left:-40, width:140, height:140, borderRadius:"50%", background:C.heroDeco2, opacity:0.35 }} />
-        <span style={{ position:"absolute", bottom:100, right:24, width:80, height:80, borderRadius:"50%", background:C.heroDeco3, opacity:0.3 }} />
+        <span style={{ position: "absolute", top: -50, right: -50, width: 180, height: 180, borderRadius: "50%", background: C.heroDeco1, opacity: 0.4 }} />
+        <span style={{ position: "absolute", bottom: -40, left: -40, width: 140, height: 140, borderRadius: "50%", background: C.heroDeco2, opacity: 0.35 }} />
+        <span style={{ position: "absolute", bottom: 100, right: 24, width: 80, height: 80, borderRadius: "50%", background: C.heroDeco3, opacity: 0.3 }} />
 
         {/* Logo */}
-        <div style={{ display:"flex", alignItems:"center", gap:10, position:"relative", zIndex:1 }}>
-            <div style={{ width:38, height:38, background:C.secondary, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+            <div style={{ width: 38, height: 38, background: C.secondary, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10" />
                     <path d="M12 2c0 5.5-4 10-10 10" />
                 </svg>
             </div>
-            <span style={{ fontSize:16, fontWeight:500, color:C.secondary, letterSpacing:"0.3px" }}>
+            <span style={{ fontSize: 16, fontWeight: 500, color: C.secondary, letterSpacing: "0.3px" }}>
                 Bjir E-Commerce
             </span>
         </div>
 
         {/* Hero */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"center", padding:"28px 0", position:"relative", zIndex:1 }}>
-            <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "28px 0", position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
                 {[
                     { stroke: C.secondary, d: "M12 22V12M12 12C12 7 7 3 3 5M12 12C12 7 17 3 21 5" },
                     { stroke: C.secondary, d: "M6 2L3 6l9 14 9-14-3-4zM3 6h18" },
-                    { stroke: C.accent,    d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
+                    { stroke: C.accent, d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
                 ].map((icon, i) => (
                     <div key={i} style={{
-                        width:52, height:52,
+                        width: 52, height: 52,
                         background: i === 2 ? "rgba(54,69,79,0.18)" : "rgba(255,255,255,0.12)",
-                        borderRadius:12,
+                        borderRadius: 12,
                         border: `0.5px solid ${i === 2 ? "rgba(54,69,79,0.4)" : "rgba(255,255,255,0.18)"}`,
-                        display:"flex", alignItems:"center", justifyContent:"center",
+                        display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={icon.stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                             <path d={icon.d} />
@@ -56,10 +56,10 @@ const LeftPanel: React.FC = () => (
                     </div>
                 ))}
             </div>
-            <h1 style={{ fontSize:22, fontWeight:500, color:C.secondary, lineHeight:1.35, margin:"0 0 10px" }}>
+            <h1 style={{ fontSize: 22, fontWeight: 500, color: C.secondary, lineHeight: 1.35, margin: "0 0 10px" }}>
                 Tempat Belanja<br />Terbaik
             </h1>
-            <p style={{ fontSize:13, color:"rgba(231,215,201,0.75)", lineHeight:1.65, margin:0 }}>
+            <p style={{ fontSize: 13, color: "rgba(231,215,201,0.75)", lineHeight: 1.65, margin: 0 }}>
                 Ribuan produk berkualitas dengan harga bersaing, siap memenuhi kebutuhan sehari-hari kamu.
                 <br /> Nikmati pengalaman belanja online yang mudah, cepat, dan aman.
                 <br /> Temukan penawaran menarik setiap harinya!
@@ -67,11 +67,11 @@ const LeftPanel: React.FC = () => (
         </div>
 
         {/* Trust pills */}
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap", position:"relative", zIndex:1 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
             {["Terpercaya", "Gratis ongkir", "Mudah retur"].map((label) => (
                 <span key={label} style={{
-                    fontSize:11, color:C.pillText, background:C.pillBg,
-                    border:`0.5px solid ${C.pillBorder}`, borderRadius:99, padding:"4px 12px",
+                    fontSize: 11, color: C.pillText, background: C.pillBg,
+                    border: `0.5px solid ${C.pillBorder}`, borderRadius: 99, padding: "4px 12px",
                 }}>
                     {label}
                 </span>
@@ -98,22 +98,22 @@ const InputField: React.FC<InputFieldProps> = ({
 }) => {
     const [focused, setFocused] = useState(false);
     return (
-        <div style={{ marginBottom:14 }}>
-            <label htmlFor={id} style={{ display:"block", fontSize:12, fontWeight:500, color:C.textLabel, marginBottom:5 }}>
+        <div style={{ marginBottom: 14 }}>
+            <label htmlFor={id} style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.textLabel, marginBottom: 5 }}>
                 {label}
             </label>
             <div style={{
-                display:"flex", alignItems:"center", height:40, background:"#fff",
-                border:`1px solid ${focused ? C.primary : C.border}`,
-                borderRadius:8, padding:"0 12px", gap:8,
+                display: "flex", alignItems: "center", height: 40, background: "#fff",
+                border: `1px solid ${focused ? C.primary : C.border}`,
+                borderRadius: 8, padding: "0 12px", gap: 8,
                 boxShadow: focused ? `0 0 0 3px rgba(166,123,123,0.18)` : "none",
-                transition:"border-color 0.15s, box-shadow 0.15s",
+                transition: "border-color 0.15s, box-shadow 0.15s",
             }}>
                 <input
                     id={id} name={id} type={type} value={value} onChange={onChange}
                     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
                     placeholder={placeholder} autoComplete={autoComplete} required={required}
-                    style={{ flex:1, border:"none", outline:"none", background:"transparent", fontSize:13, color:C.textDark }}
+                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 13, color: C.textDark }}
                 />
                 {rightSlot}
             </div>
@@ -140,15 +140,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
     return (
         <div style={{
-            flex:1, background:C.secondary, display:"flex",
-            flexDirection:"column", justifyContent:"center", padding:"40px 40px",
+            flex: 1, background: C.secondary, display: "flex",
+            flexDirection: "column", justifyContent: "center", padding: "40px 40px",
         }}>
             {/* Header */}
-            <div style={{ marginBottom:24 }}>
-                <h2 style={{ fontSize:20, fontWeight:500, color:C.textDark, margin:"0 0 4px" }}>
+            <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 500, color: C.textDark, margin: "0 0 4px" }}>
                     Selamat Datang
                 </h2>
-                <p style={{ fontSize:13, color:C.textMuted, margin:0 }}>
+                <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
                     Masuk untuk memulai belanja!
                 </p>
             </div>
@@ -156,8 +156,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
             {/* Error */}
             {error && (
                 <div style={{
-                    background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8,
-                    padding:"10px 14px", fontSize:13, color:"#b91c1c", marginBottom:16,
+                    background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,
+                    padding: "10px 14px", fontSize: 13, color: "#b91c1c", marginBottom: 16,
                 }}>
                     {error}
                 </div>
@@ -166,8 +166,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
             {/* Teks Sukses */}
             {success && (
                 <div style={{
-                    background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8,
-                    padding:"10px 14px", fontSize:13, color:"#16a34a", marginBottom:16,
+                    background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8,
+                    padding: "10px 14px", fontSize: 13, color: "#16a34a", marginBottom: 16,
                 }}>
                     {success}
                 </div>
@@ -189,7 +189,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     rightSlot={
                         <button
                             type="button" onClick={() => setShowPassword((p) => !p)}
-                            style={{ background:"none", border:"none", cursor:"pointer", padding:0, color:"#a08888", display:"flex", alignItems:"center" }}
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#a08888", display: "flex", alignItems: "center" }}
                             aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -214,15 +214,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 <button
                     type="submit" disabled={isLoading}
                     style={{
-                        width:"100%", height:42,
+                        width: "100%", height: 42,
                         background: isLoading ? C.primaryLight : C.primary,
-                        border:"none", borderRadius:8,
-                        display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                        border: "none", borderRadius: 8,
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                         cursor: isLoading ? "not-allowed" : "pointer",
-                        transition:"background 0.15s",
+                        transition: "background 0.15s",
                     }}
                 >
-                    <span style={{ fontSize:14, fontWeight:500, color:C.secondary }}>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: C.secondary }}>
                         {isLoading ? "Sedang masuk..." : "Masuk"}
                     </span>
                     {!isLoading && (
@@ -234,9 +234,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
             </form>
 
             {/* Link daftar */}
-            <p style={{ textAlign:"center", marginTop:20, fontSize:12, color:C.textMuted }}>
+            <p style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: C.textMuted }}>
                 Belum punya akun?{" "}
-                <Link to="/register" style={{ color:C.accent, fontWeight:500, textDecoration:"none" }}>
+                <Link to="/register" style={{ color: C.accent, fontWeight: 500, textDecoration: "none" }}>
                     Daftar sekarang
                 </Link>
             </p>
@@ -246,14 +246,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
 // ── Komponen utama: Login ────────────────────────────────────────────────
 const Login: React.FC = () => {
-    const [email, setEmail]         = useState("");
-    const [password, setPassword]   = useState("");
-    const [error, setError]         = useState<string | null>(null);
-    const [success, setSuccess]     = useState<string | null>(null);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const { login } = useAuth();
-    const navigate  = useNavigate();
+    const { login, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    const navigate = useNavigate();
 
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -274,12 +274,12 @@ const Login: React.FC = () => {
         try {
             const response = await api.post("/v1/auth/login", { email, password });
             const token = response.data.data.access_token;
-            const user  = response.data.data.user || response.data.data;
+            const user = response.data.data.user || response.data.data;
 
             if (token && user) {
                 login(token, user);
                 setSuccess("Login sukses! Mengalihkan ke dashboard...");
-                
+
                 // Menunda pemindahan halaman selama 2 detik (2000 ms)
                 setTimeout(() => {
                     navigate("/dashboard", { replace: true });
@@ -303,10 +303,14 @@ const Login: React.FC = () => {
         }
     };
 
+    if (!isAuthLoading && isAuthenticated) {
+        return <Navigate to="/dashboard" replace />;
+    }
+
     return (
         <div style={{
-            display:"flex", minHeight:"100vh", alignItems:"center", justifyContent:"center",
-            background:"#ddd0c8", padding: isMobile ? "12px" : "24px 16px",
+            display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center",
+            background: "#ddd0c8", padding: isMobile ? "12px" : "24px 16px",
         }}>
             <style>{`
                 @keyframes loginFadeIn {
@@ -314,20 +318,20 @@ const Login: React.FC = () => {
                     to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
-            
+
             <div style={{
-                display:"flex", 
+                display: "flex",
                 flexDirection: isMobile ? "column" : "row",
-                width:"100%", 
-                maxWidth: 900, 
+                width: "100%",
+                maxWidth: 900,
                 minHeight: isMobile ? "auto" : 520,
-                borderRadius:16, 
-                overflow:"hidden", 
-                border:`0.5px solid ${C.border}`,
+                borderRadius: 16,
+                overflow: "hidden",
+                border: `0.5px solid ${C.border}`,
                 animation: "loginFadeIn 1s ease-out forwards",
             }}>
                 {!isMobile && <LeftPanel />}
-                
+
                 <RightPanel
                     email={email} setEmail={setEmail}
                     password={password} setPassword={setPassword}
