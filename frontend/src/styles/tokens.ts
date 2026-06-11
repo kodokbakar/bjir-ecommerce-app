@@ -1,0 +1,17 @@
+export const C = {
+    primary:       "#A67B7B",
+    primaryDark:   "#8f6464",
+    primaryLight:  "#b98e8e",
+    secondary:     "#E7D7C9",
+    accent:        "#36454F",
+    textDark:      "#22303a",
+    textMuted:     "#7a6e6e",
+    textLabel:     "#4a3535",
+    border:        "#d4bfb0",
+    pillText:      "rgba(231,215,201,0.88)",
+    pillBg:        "rgba(255,255,255,0.10)",
+    pillBorder:    "rgba(255,255,255,0.18)",
+    heroDeco1:     "#b98e8e",
+    heroDeco2:     "#8f6464",
+    heroDeco3:     "#c9a0a0",
+} as const;
