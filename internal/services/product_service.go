@@ -43,6 +43,16 @@ type UploadProductImageInput struct {
 	File        io.Reader
 }
 
+type ReorderProductImageInput struct {
+	ID        string `json:"id"`
+	SortOrder int    `json:"sort_order"`
+}
+
+type ReorderProductImagesInput struct {
+	ProductID string
+	Images    []ReorderProductImageInput
+}
+
 type ProductService interface {
 	Create(ctx context.Context, input CreateProductInput) (*models.Product, error)
 	GetAll(ctx context.Context, input ProductListInput) (*ProductListResult, error)
@@ -51,6 +61,12 @@ type ProductService interface {
 	Update(ctx context.Context, id string, input UpdateProductInput) (*models.Product, error)
 	UploadImage(ctx context.Context, input UploadProductImageInput) (*models.Product, error)
 	Delete(ctx context.Context, id string) error
+
+	GetImages(ctx context.Context, productID string) ([]models.ProductImage, error)
+	UploadGalleryImage(ctx context.Context, input UploadProductImageInput) (*models.ProductImage, error)
+	DeleteImage(ctx context.Context, productID string, imageID string) error
+	ReorderImages(ctx context.Context, input ReorderProductImagesInput) ([]models.ProductImage, error)
+	SetPrimaryImage(ctx context.Context, productID string, imageID string) (*models.ProductImage, error)
 }
 
 type productService struct {
@@ -83,6 +99,7 @@ type ProductListResult struct {
 }
 
 const MaxProductImageSize int64 = 5 << 20 // 5MB file size limit
+const MaxProductImagesPerProduct = 10
 
 const (
 	DefaultProductPage  = 1
@@ -268,7 +285,16 @@ func (s *productService) GetByID(ctx context.Context, id string) (*models.Produc
 		return nil, fmt.Errorf("%w: product id is required", models.ErrInvalidProductInput)
 	}
 
-	return s.productRepo.FindByID(ctx, id)
+	product, err := s.productRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.attachProductImages(ctx, product); err != nil {
+		return nil, err
+	}
+
+	return product, nil
 }
 
 func (s *productService) GetBySlug(ctx context.Context, slug string) (*models.Product, error) {
@@ -277,7 +303,16 @@ func (s *productService) GetBySlug(ctx context.Context, slug string) (*models.Pr
 		return nil, fmt.Errorf("%w: product slug is required", models.ErrInvalidProductInput)
 	}
 
-	return s.productRepo.FindBySlug(ctx, slug)
+	product, err := s.productRepo.FindBySlug(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.attachProductImages(ctx, product); err != nil {
+		return nil, err
+	}
+
+	return product, nil
 }
 
 func (s *productService) Update(ctx context.Context, id string, input UpdateProductInput) (*models.Product, error) {
@@ -346,6 +381,47 @@ func (s *productService) Update(ctx context.Context, id string, input UpdateProd
 }
 
 func (s *productService) UploadImage(ctx context.Context, input UploadProductImageInput) (*models.Product, error) {
+	image, err := s.UploadGalleryImage(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	if image.IsPrimary {
+		if _, err := s.productRepo.SetPrimaryProductImage(ctx, image.ProductID, image.ID); err != nil {
+			s.cleanupCreatedProductImage(ctx, image)
+			return nil, err
+		}
+	} else {
+		if err := s.productRepo.SyncProductPrimaryImageURL(ctx, image.ProductID); err != nil {
+			s.cleanupCreatedProductImage(ctx, image)
+			return nil, err
+		}
+	}
+
+	product, err := s.GetByID(ctx, image.ProductID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.invalidateProductListCache(ctx)
+
+	return product, nil
+}
+
+func (s *productService) GetImages(ctx context.Context, productID string) ([]models.ProductImage, error) {
+	productID = strings.TrimSpace(productID)
+	if productID == "" {
+		return nil, fmt.Errorf("%w: product id is required", models.ErrInvalidProductInput)
+	}
+
+	if _, err := s.productRepo.FindByID(ctx, productID); err != nil {
+		return nil, err
+	}
+
+	return s.productRepo.FindImagesByProductID(ctx, productID)
+}
+
+func (s *productService) UploadGalleryImage(ctx context.Context, input UploadProductImageInput) (*models.ProductImage, error) {
 	productID := strings.TrimSpace(input.ProductID)
 	if productID == "" {
 		return nil, fmt.Errorf("%w: product id is required", models.ErrInvalidProductInput)
@@ -365,6 +441,15 @@ func (s *productService) UploadImage(ctx context.Context, input UploadProductIma
 
 	if _, err := s.productRepo.FindByID(ctx, productID); err != nil {
 		return nil, err
+	}
+
+	imageCount, err := s.productRepo.CountImagesByProductID(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	if imageCount >= MaxProductImagesPerProduct {
+		return nil, fmt.Errorf("%w: product images must be at most %d", models.ErrInvalidProductInput, MaxProductImagesPerProduct)
 	}
 
 	data, err := io.ReadAll(io.LimitReader(input.File, MaxProductImageSize+1))
@@ -398,15 +483,155 @@ func (s *productService) UploadImage(ctx context.Context, input UploadProductIma
 
 	imageURL := productImagePublicPath + "/" + fileName
 
-	product, err := s.productRepo.UpdateImageURL(ctx, productID, imageURL)
-	if err != nil {
+	image := &models.ProductImage{
+		ProductID: productID,
+		ImageURL:  imageURL,
+		SortOrder: imageCount,
+		IsPrimary: imageCount == 0,
+	}
+
+	if err := s.productRepo.CreateProductImage(ctx, image); err != nil {
 		_ = os.Remove(filePath)
+		return nil, err
+	}
+
+	if image.IsPrimary {
+		if _, err := s.productRepo.SetPrimaryProductImage(ctx, productID, image.ID); err != nil {
+			_ = os.Remove(filePath)
+			return nil, err
+		}
+	}
+
+	s.invalidateProductListCache(ctx)
+
+	return image, nil
+}
+
+func (s *productService) DeleteImage(ctx context.Context, productID string, imageID string) error {
+	productID = strings.TrimSpace(productID)
+	imageID = strings.TrimSpace(imageID)
+
+	if productID == "" {
+		return fmt.Errorf("%w: product id is required", models.ErrInvalidProductInput)
+	}
+
+	if imageID == "" {
+		return fmt.Errorf("%w: image id is required", models.ErrInvalidProductInput)
+	}
+
+	if _, err := s.productRepo.FindByID(ctx, productID); err != nil {
+		return err
+	}
+
+	images, err := s.productRepo.FindImagesByProductID(ctx, productID)
+	if err != nil {
+		return err
+	}
+
+	var imageURL string
+	for _, image := range images {
+		if image.ID == imageID {
+			imageURL = image.ImageURL
+			break
+		}
+	}
+
+	if imageURL == "" {
+		return models.ErrProductImageNotFound
+	}
+
+	if err := s.productRepo.DeleteProductImage(ctx, productID, imageID); err != nil {
+		return err
+	}
+
+	if err := s.productRepo.SyncProductPrimaryImageURL(ctx, productID); err != nil {
+		return err
+	}
+
+	removeProductImageFile(imageURL)
+
+	s.invalidateProductListCache(ctx)
+
+	return nil
+}
+
+func (s *productService) ReorderImages(ctx context.Context, input ReorderProductImagesInput) ([]models.ProductImage, error) {
+	productID := strings.TrimSpace(input.ProductID)
+	if productID == "" {
+		return nil, fmt.Errorf("%w: product id is required", models.ErrInvalidProductInput)
+	}
+
+	if len(input.Images) == 0 {
+		return nil, fmt.Errorf("%w: images is required", models.ErrInvalidProductInput)
+	}
+
+	if _, err := s.productRepo.FindByID(ctx, productID); err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]bool, len(input.Images))
+	sortOrders := make([]repository.ProductImageSortOrder, 0, len(input.Images))
+
+	for _, image := range input.Images {
+		imageID := strings.TrimSpace(image.ID)
+		if imageID == "" {
+			return nil, fmt.Errorf("%w: image id is required", models.ErrInvalidProductInput)
+		}
+
+		if seen[imageID] {
+			return nil, fmt.Errorf("%w: duplicate image id", models.ErrInvalidProductInput)
+		}
+
+		if image.SortOrder < 0 {
+			return nil, fmt.Errorf("%w: sort_order must be greater than or equal to 0", models.ErrInvalidProductInput)
+		}
+
+		seen[imageID] = true
+
+		sortOrders = append(sortOrders, repository.ProductImageSortOrder{
+			ID:        imageID,
+			SortOrder: image.SortOrder,
+		})
+	}
+
+	if err := s.productRepo.BulkUpdateProductImageSortOrders(ctx, productID, sortOrders); err != nil {
+		return nil, err
+	}
+
+	images, err := s.productRepo.FindImagesByProductID(ctx, productID)
+	if err != nil {
 		return nil, err
 	}
 
 	s.invalidateProductListCache(ctx)
 
-	return product, nil
+	return images, nil
+}
+
+func (s *productService) SetPrimaryImage(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+	productID = strings.TrimSpace(productID)
+	imageID = strings.TrimSpace(imageID)
+
+	if productID == "" {
+		return nil, fmt.Errorf("%w: product id is required", models.ErrInvalidProductInput)
+	}
+
+	if imageID == "" {
+		return nil, fmt.Errorf("%w: image id is required", models.ErrInvalidProductInput)
+	}
+
+	if _, err := s.productRepo.FindByID(ctx, productID); err != nil {
+		return nil, err
+	}
+
+	image, err := s.productRepo.SetPrimaryProductImage(ctx, productID, imageID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.invalidateProductListCache(ctx)
+
+	return image, nil
 }
 
 func (s *productService) Delete(ctx context.Context, id string) error {
@@ -426,6 +651,88 @@ func (s *productService) invalidateProductListCache(ctx context.Context) {
 	}
 
 	_ = s.productCache.InvalidateProductList(ctx)
+}
+
+func (s *productService) attachProductImages(ctx context.Context, product *models.Product) error {
+	if product == nil {
+		return nil
+	}
+
+	images, err := s.productRepo.FindImagesByProductID(ctx, product.ID)
+	if err != nil {
+		return err
+	}
+
+	product.Images = images
+
+	for _, image := range images {
+		if image.IsPrimary {
+			product.ImageURL = image.ImageURL
+			return nil
+		}
+	}
+
+	if len(images) > 0 {
+		product.ImageURL = images[0].ImageURL
+	}
+
+	return nil
+}
+
+func (s *productService) cleanupCreatedProductImage(ctx context.Context, image *models.ProductImage) {
+	if image == nil {
+		return
+	}
+
+	if image.ProductID != "" && image.ID != "" {
+		_ = s.productRepo.DeleteProductImage(ctx, image.ProductID, image.ID)
+		_ = s.productRepo.SyncProductPrimaryImageURL(ctx, image.ProductID)
+	}
+
+	removeProductImageFile(image.ImageURL)
+}
+
+func removeProductImageFile(imageURL string) {
+	filePath, ok := productImageURLToFilePath(imageURL)
+	if !ok {
+		return
+	}
+
+	_ = os.Remove(filePath)
+}
+
+func productImageURLToFilePath(imageURL string) (string, bool) {
+	imageURL = strings.TrimSpace(imageURL)
+	if imageURL == "" {
+		return "", false
+	}
+
+	publicPath := strings.TrimRight(productImagePublicPath, "/")
+	prefix := publicPath + "/"
+
+	if !strings.HasPrefix(imageURL, prefix) {
+		return "", false
+	}
+
+	fileName := strings.TrimPrefix(imageURL, prefix)
+	if fileName == "" {
+		return "", false
+	}
+
+	cleanFileName := filepath.Clean(fileName)
+	if cleanFileName != fileName {
+		return "", false
+	}
+
+	if strings.Contains(cleanFileName, "/") || strings.Contains(cleanFileName, "\\") {
+		return "", false
+	}
+
+	if strings.HasPrefix(cleanFileName, "..") || filepath.IsAbs(cleanFileName) {
+		return "", false
+	}
+
+	return filepath.Join(productImageUploadDir, cleanFileName), true
 }
 
 func normalizeProductInput(

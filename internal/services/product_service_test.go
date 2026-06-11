@@ -16,14 +16,22 @@ import (
 )
 
 type fakeProductRepository struct {
-	createFunc         func(ctx context.Context, product *models.Product) error
-	findAllFunc        func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error)
-	findByIDFunc       func(ctx context.Context, id string) (*models.Product, error)
-	findBySlugFunc     func(ctx context.Context, slug string) (*models.Product, error)
-	existsBySlugFunc   func(ctx context.Context, slug string, excludeID string) (bool, error)
-	updateFunc         func(ctx context.Context, product *models.Product) error
-	deleteFunc         func(ctx context.Context, id string) error
-	updateImageURLFunc func(ctx context.Context, id string, imageURL string) (*models.Product, error)
+	createFunc                           func(ctx context.Context, product *models.Product) error
+	findAllFunc                          func(ctx context.Context, filter repository.ProductListFilter) ([]models.Product, int, error)
+	findByIDFunc                         func(ctx context.Context, id string) (*models.Product, error)
+	findBySlugFunc                       func(ctx context.Context, slug string) (*models.Product, error)
+	existsBySlugFunc                     func(ctx context.Context, slug string, excludeID string) (bool, error)
+	updateFunc                           func(ctx context.Context, product *models.Product) error
+	deleteFunc                           func(ctx context.Context, id string) error
+	updateImageURLFunc                   func(ctx context.Context, id string, imageURL string) (*models.Product, error)
+	findImagesByProductIDFunc            func(ctx context.Context, productID string) ([]models.ProductImage, error)
+	countImagesByProductIDFunc           func(ctx context.Context, productID string) (int, error)
+	createProductImageFunc               func(ctx context.Context, image *models.ProductImage) error
+	deleteProductImageFunc               func(ctx context.Context, productID string, imageID string) error
+	updateProductImageSortOrderFunc      func(ctx context.Context, productID string, imageID string, sortOrder int) error
+	bulkUpdateProductImageSortOrdersFunc func(ctx context.Context, productID string, images []repository.ProductImageSortOrder) error
+	setPrimaryProductImageFunc           func(ctx context.Context, productID string, imageID string) (*models.ProductImage, error)
+	syncProductPrimaryImageURLFunc       func(ctx context.Context, productID string) error
 }
 
 func newFakeProductRepository() *fakeProductRepository {
@@ -100,6 +108,41 @@ func newFakeProductRepository() *fakeProductRepository {
 			}, nil
 		},
 		deleteFunc: func(ctx context.Context, id string) error {
+			return nil
+		},
+		findImagesByProductIDFunc: func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+			return []models.ProductImage{}, nil
+		},
+		countImagesByProductIDFunc: func(ctx context.Context, productID string) (int, error) {
+			return 0, nil
+		},
+		createProductImageFunc: func(ctx context.Context, image *models.ProductImage) error {
+			image.ID = "image-id"
+			image.CreatedAt = now
+			image.UpdatedAt = now
+			return nil
+		},
+		deleteProductImageFunc: func(ctx context.Context, productID string, imageID string) error {
+			return nil
+		},
+		updateProductImageSortOrderFunc: func(ctx context.Context, productID string, imageID string, sortOrder int) error {
+			return nil
+		},
+		bulkUpdateProductImageSortOrdersFunc: func(ctx context.Context, productID string, images []repository.ProductImageSortOrder) error {
+			return nil
+		},
+		setPrimaryProductImageFunc: func(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+			return &models.ProductImage{
+				ID:        imageID,
+				ProductID: productID,
+				ImageURL:  "/uploads/products/test.png",
+				SortOrder: 0,
+				IsPrimary: true,
+				CreatedAt: now,
+				UpdatedAt: now,
+			}, nil
+		},
+		syncProductPrimaryImageURLFunc: func(ctx context.Context, productID string) error {
 			return nil
 		},
 	}
@@ -189,6 +232,38 @@ func (f *fakeProductRepository) UpdateImageURL(ctx context.Context, id string, i
 
 func (f *fakeProductRepository) Delete(ctx context.Context, id string) error {
 	return f.deleteFunc(ctx, id)
+}
+
+func (f *fakeProductRepository) FindImagesByProductID(ctx context.Context, productID string) ([]models.ProductImage, error) {
+	return f.findImagesByProductIDFunc(ctx, productID)
+}
+
+func (f *fakeProductRepository) CountImagesByProductID(ctx context.Context, productID string) (int, error) {
+	return f.countImagesByProductIDFunc(ctx, productID)
+}
+
+func (f *fakeProductRepository) CreateProductImage(ctx context.Context, image *models.ProductImage) error {
+	return f.createProductImageFunc(ctx, image)
+}
+
+func (f *fakeProductRepository) DeleteProductImage(ctx context.Context, productID string, imageID string) error {
+	return f.deleteProductImageFunc(ctx, productID, imageID)
+}
+
+func (f *fakeProductRepository) UpdateProductImageSortOrder(ctx context.Context, productID string, imageID string, sortOrder int) error {
+	return f.updateProductImageSortOrderFunc(ctx, productID, imageID, sortOrder)
+}
+
+func (f *fakeProductRepository) BulkUpdateProductImageSortOrders(ctx context.Context, productID string, images []repository.ProductImageSortOrder) error {
+	return f.bulkUpdateProductImageSortOrdersFunc(ctx, productID, images)
+}
+
+func (f *fakeProductRepository) SetPrimaryProductImage(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+	return f.setPrimaryProductImageFunc(ctx, productID, imageID)
+}
+
+func (f *fakeProductRepository) SyncProductPrimaryImageURL(ctx context.Context, productID string) error {
+	return f.syncProductPrimaryImageURLFunc(ctx, productID)
 }
 
 func TestProductService_Delete_InvalidatesProductListCache(t *testing.T) {
@@ -681,21 +756,22 @@ func TestProductService_UploadImage_Success(t *testing.T) {
 	}()
 
 	var savedImageURL string
+	var createdImage models.ProductImage
 
 	productRepo := newFakeProductRepository()
-	productRepo.updateImageURLFunc = func(ctx context.Context, id string, imageURL string) (*models.Product, error) {
-		savedImageURL = imageURL
-
-		return &models.Product{
-			ID:         id,
-			CategoryID: "category-id",
-			Name:       "iPhone 15",
-			Slug:       "iphone-15",
-			Price:      15000000,
-			Stock:      10,
-			ImageURL:   imageURL,
-			IsActive:   true,
-		}, nil
+	productRepo.createProductImageFunc = func(ctx context.Context, image *models.ProductImage) error {
+		image.ID = "image-id"
+		savedImageURL = image.ImageURL
+		createdImage = *image
+		return nil
+	}
+	productRepo.setPrimaryProductImageFunc = func(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+		createdImage.IsPrimary = true
+		return &createdImage, nil
+	}
+	productRepo.findImagesByProductIDFunc = func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+		createdImage.IsPrimary = true
+		return []models.ProductImage{createdImage}, nil
 	}
 
 	service := NewProductService(productRepo, newFakeCategoryRepository())
@@ -719,11 +795,419 @@ func TestProductService_UploadImage_Success(t *testing.T) {
 		t.Fatalf("expected image_url to start with /uploads/products/, got %s", product.ImageURL)
 	}
 
+	if len(product.Images) != 1 {
+		t.Fatalf("expected 1 image, got %d", len(product.Images))
+	}
+
 	fileName := strings.TrimPrefix(savedImageURL, "/uploads/products/")
 	filePath := filepath.Join(productImageUploadDir, fileName)
 
 	if _, err := os.Stat(filePath); err != nil {
 		t.Fatalf("expected uploaded file to exist, got %v", err)
+	}
+}
+
+func TestProductService_GetByID_IncludesImagesAndPrimaryImageURL(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	productRepo.findImagesByProductIDFunc = func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+		return []models.ProductImage{
+			{
+				ID:        "image-1",
+				ProductID: productID,
+				ImageURL:  "/uploads/products/secondary.png",
+				SortOrder: 1,
+				IsPrimary: false,
+			},
+			{
+				ID:        "image-2",
+				ProductID: productID,
+				ImageURL:  "/uploads/products/primary.png",
+				SortOrder: 2,
+				IsPrimary: true,
+			},
+		}, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	product, err := service.GetByID(context.Background(), "product-id")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if product.ImageURL != "/uploads/products/primary.png" {
+		t.Fatalf("expected primary image_url, got %s", product.ImageURL)
+	}
+
+	if len(product.Images) != 2 {
+		t.Fatalf("expected 2 images, got %d", len(product.Images))
+	}
+}
+
+func TestProductService_GetImages_ProductNotFound(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	productRepo.findByIDFunc = func(ctx context.Context, id string) (*models.Product, error) {
+		return nil, models.ErrProductNotFound
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	_, err := service.GetImages(context.Background(), "missing-id")
+	if !errors.Is(err, models.ErrProductNotFound) {
+		t.Fatalf("expected ErrProductNotFound, got %v", err)
+	}
+}
+
+func TestProductService_UploadGalleryImage_Success(t *testing.T) {
+	oldUploadDir := productImageUploadDir
+	productImageUploadDir = t.TempDir()
+	defer func() {
+		productImageUploadDir = oldUploadDir
+	}()
+
+	var savedImageURL string
+	var createdImage models.ProductImage
+
+	productRepo := newFakeProductRepository()
+	productRepo.countImagesByProductIDFunc = func(ctx context.Context, productID string) (int, error) {
+		return 0, nil
+	}
+	productRepo.createProductImageFunc = func(ctx context.Context, image *models.ProductImage) error {
+		image.ID = "image-id"
+		savedImageURL = image.ImageURL
+		createdImage = *image
+		return nil
+	}
+	productRepo.setPrimaryProductImageFunc = func(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+		createdImage.IsPrimary = true
+		return &createdImage, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	image, err := service.UploadGalleryImage(context.Background(), UploadProductImageInput{
+		ProductID:   "product-id",
+		FileName:    "test.png",
+		Size:        int64(len(validPNGBytes())),
+		ContentType: "image/png",
+		File:        bytes.NewReader(validPNGBytes()),
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if image.ID != "image-id" {
+		t.Fatalf("expected image-id, got %s", image.ID)
+	}
+
+	if !image.IsPrimary {
+		t.Fatal("expected first image to be primary")
+	}
+
+	if image.SortOrder != 0 {
+		t.Fatalf("expected sort_order 0, got %d", image.SortOrder)
+	}
+
+	fileName := strings.TrimPrefix(savedImageURL, "/uploads/products/")
+	filePath := filepath.Join(productImageUploadDir, fileName)
+
+	if _, err := os.Stat(filePath); err != nil {
+		t.Fatalf("expected uploaded file to exist, got %v", err)
+	}
+}
+
+func TestProductService_UploadGalleryImage_MaxImagesExceeded(t *testing.T) {
+	productRepo := newFakeProductRepository()
+	productRepo.countImagesByProductIDFunc = func(ctx context.Context, productID string) (int, error) {
+		return MaxProductImagesPerProduct, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	_, err := service.UploadGalleryImage(context.Background(), UploadProductImageInput{
+		ProductID:   "product-id",
+		FileName:    "test.png",
+		Size:        int64(len(validPNGBytes())),
+		ContentType: "image/png",
+		File:        bytes.NewReader(validPNGBytes()),
+	})
+
+	if !errors.Is(err, models.ErrInvalidProductInput) {
+		t.Fatalf("expected ErrInvalidProductInput, got %v", err)
+	}
+}
+
+func TestProductService_DeleteImage_Success(t *testing.T) {
+	oldUploadDir := productImageUploadDir
+	productImageUploadDir = t.TempDir()
+	defer func() {
+		productImageUploadDir = oldUploadDir
+	}()
+
+	filePath := filepath.Join(productImageUploadDir, "test.png")
+	if err := os.WriteFile(filePath, []byte("fake image"), 0644); err != nil {
+		t.Fatalf("failed to create test image: %v", err)
+	}
+
+	productRepo := newFakeProductRepository()
+
+	var deleted bool
+	var synced bool
+
+	productRepo.findImagesByProductIDFunc = func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+		if productID != "product-id" {
+			t.Fatalf("expected product-id, got %s", productID)
+		}
+
+		return []models.ProductImage{
+			{
+				ID:        "image-id",
+				ProductID: productID,
+				ImageURL:  "/uploads/products/test.png",
+				SortOrder: 0,
+				IsPrimary: true,
+			},
+		}, nil
+	}
+
+	productRepo.deleteProductImageFunc = func(ctx context.Context, productID string, imageID string) error {
+		if productID != "product-id" {
+			t.Fatalf("expected product-id, got %s", productID)
+		}
+
+		if imageID != "image-id" {
+			t.Fatalf("expected image-id, got %s", imageID)
+		}
+
+		deleted = true
+		return nil
+	}
+
+	productRepo.syncProductPrimaryImageURLFunc = func(ctx context.Context, productID string) error {
+		if productID != "product-id" {
+			t.Fatalf("expected product-id, got %s", productID)
+		}
+
+		synced = true
+		return nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	err := service.DeleteImage(context.Background(), "product-id", "image-id")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !deleted {
+		t.Fatal("expected image to be deleted")
+	}
+
+	if !synced {
+		t.Fatal("expected product primary image_url to be synced")
+	}
+
+	if _, err := os.Stat(filePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected physical image file to be removed, got err: %v", err)
+	}
+}
+
+func TestProductService_DeleteImage_DoesNotRemoveExternalImageURL(t *testing.T) {
+	oldUploadDir := productImageUploadDir
+	productImageUploadDir = t.TempDir()
+	defer func() {
+		productImageUploadDir = oldUploadDir
+	}()
+
+	filePath := filepath.Join(productImageUploadDir, "test.png")
+	if err := os.WriteFile(filePath, []byte("fake image"), 0644); err != nil {
+		t.Fatalf("failed to create test image: %v", err)
+	}
+
+	productRepo := newFakeProductRepository()
+
+	productRepo.findImagesByProductIDFunc = func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+		return []models.ProductImage{
+			{
+				ID:        "image-id",
+				ProductID: productID,
+				ImageURL:  "https://example.com/uploads/products/test.png",
+				SortOrder: 0,
+				IsPrimary: true,
+			},
+		}, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	err := service.DeleteImage(context.Background(), "product-id", "image-id")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if _, err := os.Stat(filePath); err != nil {
+		t.Fatalf("expected local file to remain for external image URL, got %v", err)
+	}
+}
+
+func TestProductService_DeleteImage_ImageNotFound(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	var deleteCalled bool
+
+	productRepo.findImagesByProductIDFunc = func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+		return []models.ProductImage{
+			{
+				ID:        "other-image-id",
+				ProductID: productID,
+				ImageURL:  "/uploads/products/other.png",
+			},
+		}, nil
+	}
+
+	productRepo.deleteProductImageFunc = func(ctx context.Context, productID string, imageID string) error {
+		deleteCalled = true
+		return nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	err := service.DeleteImage(context.Background(), "product-id", "missing-image-id")
+	if !errors.Is(err, models.ErrProductImageNotFound) {
+		t.Fatalf("expected ErrProductImageNotFound, got %v", err)
+	}
+
+	if deleteCalled {
+		t.Fatal("expected delete repository not to be called when image is missing")
+	}
+}
+
+func TestProductService_ReorderImages_Success(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	var bulkCalled bool
+	var receivedSortOrders []repository.ProductImageSortOrder
+
+	productRepo.bulkUpdateProductImageSortOrdersFunc = func(ctx context.Context, productID string, images []repository.ProductImageSortOrder) error {
+		if productID != "product-id" {
+			t.Fatalf("expected product-id, got %s", productID)
+		}
+
+		bulkCalled = true
+		receivedSortOrders = images
+		return nil
+	}
+
+	productRepo.updateProductImageSortOrderFunc = func(ctx context.Context, productID string, imageID string, sortOrder int) error {
+		t.Fatal("expected bulk reorder to be used, but UpdateProductImageSortOrder was called")
+		return nil
+	}
+
+	productRepo.findImagesByProductIDFunc = func(ctx context.Context, productID string) ([]models.ProductImage, error) {
+		return []models.ProductImage{
+			{
+				ID:        "image-2",
+				ProductID: productID,
+				ImageURL:  "/uploads/products/2.png",
+				SortOrder: 0,
+			},
+			{
+				ID:        "image-1",
+				ProductID: productID,
+				ImageURL:  "/uploads/products/1.png",
+				SortOrder: 1,
+			},
+		}, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	images, err := service.ReorderImages(context.Background(), ReorderProductImagesInput{
+		ProductID: "product-id",
+		Images: []ReorderProductImageInput{
+			{ID: "image-1", SortOrder: 1},
+			{ID: "image-2", SortOrder: 0},
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !bulkCalled {
+		t.Fatal("expected bulk reorder to be called")
+	}
+
+	if len(receivedSortOrders) != 2 {
+		t.Fatalf("expected 2 sort orders, got %d", len(receivedSortOrders))
+	}
+
+	if receivedSortOrders[0].ID != "image-1" || receivedSortOrders[0].SortOrder != 1 {
+		t.Fatalf("unexpected first sort order: %#v", receivedSortOrders[0])
+	}
+
+	if receivedSortOrders[1].ID != "image-2" || receivedSortOrders[1].SortOrder != 0 {
+		t.Fatalf("unexpected second sort order: %#v", receivedSortOrders[1])
+	}
+
+	if len(images) != 2 {
+		t.Fatalf("expected 2 images, got %d", len(images))
+	}
+}
+
+func TestProductService_ReorderImages_DuplicateID(t *testing.T) {
+	service := NewProductService(newFakeProductRepository(), newFakeCategoryRepository())
+
+	_, err := service.ReorderImages(context.Background(), ReorderProductImagesInput{
+		ProductID: "product-id",
+		Images: []ReorderProductImageInput{
+			{ID: "image-1", SortOrder: 0},
+			{ID: "image-1", SortOrder: 1},
+		},
+	})
+
+	if !errors.Is(err, models.ErrInvalidProductInput) {
+		t.Fatalf("expected ErrInvalidProductInput, got %v", err)
+	}
+}
+
+func TestProductService_SetPrimaryImage_Success(t *testing.T) {
+	productRepo := newFakeProductRepository()
+
+	var called bool
+
+	productRepo.setPrimaryProductImageFunc = func(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+		if productID != "product-id" {
+			t.Fatalf("expected product-id, got %s", productID)
+		}
+
+		if imageID != "image-id" {
+			t.Fatalf("expected image-id, got %s", imageID)
+		}
+
+		called = true
+
+		return &models.ProductImage{
+			ID:        imageID,
+			ProductID: productID,
+			ImageURL:  "/uploads/products/primary.png",
+			SortOrder: 1,
+			IsPrimary: true,
+		}, nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	image, err := service.SetPrimaryImage(context.Background(), "product-id", "image-id")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if !called {
+		t.Fatal("expected SetPrimaryProductImage to be called")
+	}
+
+	if !image.IsPrimary {
+		t.Fatal("expected image to be primary")
 	}
 }
 
@@ -811,6 +1295,70 @@ func TestProductService_UploadImage_ProductNotFound(t *testing.T) {
 
 	if !errors.Is(err, models.ErrProductNotFound) {
 		t.Fatalf("expected ErrProductNotFound, got %v", err)
+	}
+}
+
+func TestProductService_UploadImage_SyncFailureCleansUpCreatedImage(t *testing.T) {
+	oldUploadDir := productImageUploadDir
+	productImageUploadDir = t.TempDir()
+	defer func() {
+		productImageUploadDir = oldUploadDir
+	}()
+
+	productRepo := newFakeProductRepository()
+
+	var savedImageURL string
+	var deleted bool
+
+	productRepo.countImagesByProductIDFunc = func(ctx context.Context, productID string) (int, error) {
+		return 1, nil
+	}
+
+	productRepo.createProductImageFunc = func(ctx context.Context, image *models.ProductImage) error {
+		image.ID = "image-id"
+		savedImageURL = image.ImageURL
+		return nil
+	}
+
+	productRepo.syncProductPrimaryImageURLFunc = func(ctx context.Context, productID string) error {
+		return errors.New("sync failed")
+	}
+
+	productRepo.deleteProductImageFunc = func(ctx context.Context, productID string, imageID string) error {
+		if productID != "product-id" {
+			t.Fatalf("expected product-id, got %s", productID)
+		}
+
+		if imageID != "image-id" {
+			t.Fatalf("expected image-id, got %s", imageID)
+		}
+
+		deleted = true
+		return nil
+	}
+
+	service := NewProductService(productRepo, newFakeCategoryRepository())
+
+	_, err := service.UploadImage(context.Background(), UploadProductImageInput{
+		ProductID:   "product-id",
+		FileName:    "test.png",
+		Size:        int64(len(validPNGBytes())),
+		ContentType: "image/png",
+		File:        bytes.NewReader(validPNGBytes()),
+	})
+	if err == nil {
+		t.Fatal("expected sync error")
+	}
+
+	if !deleted {
+		t.Fatal("expected created image record to be deleted during cleanup")
+	}
+
+	fileName := strings.TrimPrefix(savedImageURL, "/uploads/products/")
+	filePath := filepath.Join(productImageUploadDir, fileName)
+
+	if _, err := os.Stat(filePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected created image file to be removed, got err: %v", err)
 	}
 }
 

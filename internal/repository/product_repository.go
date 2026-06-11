@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -20,6 +21,11 @@ type ProductListFilter struct {
 	SortOrder    string
 }
 
+type ProductImageSortOrder struct {
+	ID        string
+	SortOrder int
+}
+
 type ProductRepository interface {
 	Create(ctx context.Context, product *models.Product) error
 	FindAll(ctx context.Context, filter ProductListFilter) ([]models.Product, int, error)
@@ -29,6 +35,15 @@ type ProductRepository interface {
 	Update(ctx context.Context, product *models.Product) error
 	UpdateImageURL(ctx context.Context, id string, imageURL string) (*models.Product, error)
 	Delete(ctx context.Context, id string) error
+
+	FindImagesByProductID(ctx context.Context, productID string) ([]models.ProductImage, error)
+	CountImagesByProductID(ctx context.Context, productID string) (int, error)
+	CreateProductImage(ctx context.Context, image *models.ProductImage) error
+	DeleteProductImage(ctx context.Context, productID string, imageID string) error
+	UpdateProductImageSortOrder(ctx context.Context, productID string, imageID string, sortOrder int) error
+	BulkUpdateProductImageSortOrders(ctx context.Context, productID string, images []ProductImageSortOrder) error
+	SetPrimaryProductImage(ctx context.Context, productID string, imageID string) (*models.ProductImage, error)
+	SyncProductPrimaryImageURL(ctx context.Context, productID string) error
 }
 
 type productRepository struct {
@@ -422,6 +437,285 @@ func (r *productRepository) UpdateImageURL(ctx context.Context, id string, image
 	return product, nil
 }
 
+func (r *productRepository) FindImagesByProductID(ctx context.Context, productID string) ([]models.ProductImage, error) {
+	query := `
+		SELECT
+			id::text,
+			product_id::text,
+			image_url,
+			sort_order,
+			is_primary,
+			created_at,
+			updated_at
+		FROM product_images
+		WHERE product_id = $1
+		ORDER BY sort_order ASC, created_at ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanProductImageRows(rows)
+}
+
+func (r *productRepository) CountImagesByProductID(ctx context.Context, productID string) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM product_images
+		WHERE product_id = $1
+	`
+
+	var count int
+	if err := r.db.QueryRow(ctx, query, productID).Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (r *productRepository) CreateProductImage(ctx context.Context, image *models.ProductImage) error {
+	query := `
+		INSERT INTO product_images (
+			product_id,
+			image_url,
+			sort_order,
+			is_primary
+		)
+		VALUES ($1, $2, $3, $4)
+		RETURNING
+			id::text,
+			product_id::text,
+			image_url,
+			sort_order,
+			is_primary,
+			created_at,
+			updated_at
+	`
+
+	err := scanProductImage(
+		r.db.QueryRow(
+			ctx,
+			query,
+			image.ProductID,
+			image.ImageURL,
+			image.SortOrder,
+			image.IsPrimary,
+		),
+		image,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *productRepository) DeleteProductImage(ctx context.Context, productID string, imageID string) error {
+	query := `
+		DELETE FROM product_images
+		WHERE product_id = $1
+		AND id = $2
+		RETURNING id
+	`
+
+	var deletedID string
+	if err := r.db.QueryRow(ctx, query, productID, imageID).Scan(&deletedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.ErrProductImageNotFound
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *productRepository) UpdateProductImageSortOrder(ctx context.Context, productID string, imageID string, sortOrder int) error {
+	query := `
+		UPDATE product_images
+		SET sort_order = $3,
+			updated_at = NOW()
+		WHERE product_id = $1
+		AND id = $2
+		RETURNING id
+	`
+
+	var updatedID string
+	if err := r.db.QueryRow(ctx, query, productID, imageID, sortOrder).Scan(&updatedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.ErrProductImageNotFound
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *productRepository) BulkUpdateProductImageSortOrders(ctx context.Context, productID string, images []ProductImageSortOrder) error {
+	if len(images) == 0 {
+		return nil
+	}
+
+	args := make([]any, 0, 1+(len(images)*2))
+	args = append(args, productID)
+
+	values := make([]string, 0, len(images))
+	for _, image := range images {
+		idPlaceholder := len(args) + 1
+		sortOrderPlaceholder := len(args) + 2
+
+		values = append(values, fmt.Sprintf("($%d::uuid, $%d::int)", idPlaceholder, sortOrderPlaceholder))
+		args = append(args, image.ID, image.SortOrder)
+	}
+
+	query := `
+		WITH input(id, sort_order) AS (
+			VALUES ` + strings.Join(values, ", ") + `
+		),
+		updated AS (
+			UPDATE product_images pi
+			SET sort_order = input.sort_order,
+				updated_at = NOW()
+			FROM input
+			WHERE pi.product_id = $1
+			AND pi.id = input.id
+			RETURNING pi.id
+		)
+		SELECT COUNT(*)
+		FROM updated
+	`
+
+	var updatedCount int
+	if err := r.db.QueryRow(ctx, query, args...).Scan(&updatedCount); err != nil {
+		return err
+	}
+
+	if updatedCount != len(images) {
+		return models.ErrProductImageNotFound
+	}
+
+	return nil
+}
+
+func (r *productRepository) SetPrimaryProductImage(ctx context.Context, productID string, imageID string) (*models.ProductImage, error) {
+	query := `
+		WITH target AS (
+			SELECT
+				id,
+				product_id,
+				image_url,
+				sort_order,
+				created_at,
+				updated_at
+			FROM product_images
+			WHERE product_id = $1
+			AND id = $2
+		),
+		unset_old AS (
+			UPDATE product_images
+			SET is_primary = FALSE,
+				updated_at = NOW()
+			WHERE product_id = $1
+			AND EXISTS (SELECT 1 FROM target)
+		),
+		set_new AS (
+			UPDATE product_images
+			SET is_primary = TRUE,
+				updated_at = NOW()
+			WHERE product_id = $1
+			AND id = $2
+			RETURNING
+				id::text,
+				product_id::text,
+				image_url,
+				sort_order,
+				is_primary,
+				created_at,
+				updated_at
+		),
+		sync_product AS (
+			UPDATE products
+			SET image_url = (SELECT image_url FROM set_new),
+				updated_at = NOW()
+			WHERE id = $1
+		)
+		SELECT
+			id,
+			product_id,
+			image_url,
+			sort_order,
+			is_primary,
+			created_at,
+			updated_at
+		FROM set_new
+	`
+
+	image := &models.ProductImage{}
+	if err := scanProductImage(r.db.QueryRow(ctx, query, productID, imageID), image); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrProductImageNotFound
+		}
+
+		return nil, err
+	}
+
+	return image, nil
+}
+
+func (r *productRepository) SyncProductPrimaryImageURL(ctx context.Context, productID string) error {
+	query := `
+		WITH current_primary AS (
+			SELECT id, image_url
+			FROM product_images
+			WHERE product_id = $1
+			AND is_primary = TRUE
+			ORDER BY sort_order ASC, created_at ASC
+			LIMIT 1
+		),
+		first_image AS (
+			SELECT id, image_url
+			FROM product_images
+			WHERE product_id = $1
+			ORDER BY sort_order ASC, created_at ASC
+			LIMIT 1
+		),
+		chosen AS (
+			SELECT id, image_url FROM current_primary
+			UNION ALL
+			SELECT id, image_url FROM first_image
+			WHERE NOT EXISTS (SELECT 1 FROM current_primary)
+			LIMIT 1
+		),
+		ensure_primary AS (
+			UPDATE product_images
+			SET is_primary = TRUE,
+				updated_at = NOW()
+			WHERE id = (SELECT id FROM chosen)
+			AND NOT EXISTS (SELECT 1 FROM current_primary)
+		)
+		UPDATE products
+		SET image_url = COALESCE((SELECT image_url FROM chosen), ''),
+			updated_at = NOW()
+		WHERE id = $1
+		RETURNING id
+	`
+
+	var updatedID string
+	if err := r.db.QueryRow(ctx, query, productID).Scan(&updatedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.ErrProductNotFound
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func (r *productRepository) Delete(ctx context.Context, id string) error {
 	query := `
 		UPDATE products
@@ -499,4 +793,43 @@ func scanProduct(product *models.Product, row productRowScanner) error {
 	}
 
 	return nil
+}
+
+func scanProductImage(row pgx.Row, image *models.ProductImage) error {
+	return row.Scan(
+		&image.ID,
+		&image.ProductID,
+		&image.ImageURL,
+		&image.SortOrder,
+		&image.IsPrimary,
+		&image.CreatedAt,
+		&image.UpdatedAt,
+	)
+}
+
+func scanProductImageRows(rows pgx.Rows) ([]models.ProductImage, error) {
+	images := make([]models.ProductImage, 0)
+
+	for rows.Next() {
+		image := models.ProductImage{}
+		if err := rows.Scan(
+			&image.ID,
+			&image.ProductID,
+			&image.ImageURL,
+			&image.SortOrder,
+			&image.IsPrimary,
+			&image.CreatedAt,
+			&image.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		images = append(images, image)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return images, nil
 }

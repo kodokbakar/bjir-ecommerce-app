@@ -99,6 +99,7 @@ func SetupRouter(
 	productRoutes := api.Group("/products")
 	productRoutes.GET("", productHandler.GetAllProducts)
 	productRoutes.GET("/slug/:slug", productHandler.GetProductBySlug)
+	productRoutes.GET("/:id/images", productHandler.GetProductImages)
 	productRoutes.GET("/:id", productHandler.GetProductByID)
 
 	adminProductRoutes := productRoutes.Group("")
@@ -107,6 +108,10 @@ func SetupRouter(
 
 	adminProductRoutes.POST("", middleware.BodySizeLimit(bodyLimitConfig.API), productHandler.CreateProduct)
 	adminProductRoutes.POST("/:id/image", middleware.BodySizeLimit(bodyLimitConfig.Upload), productHandler.UploadProductImage)
+	adminProductRoutes.POST("/:id/images", middleware.BodySizeLimit(bodyLimitConfig.Upload), productHandler.UploadProductGalleryImage)
+	adminProductRoutes.DELETE("/:id/images/:image_id", productHandler.DeleteProductImage)
+	adminProductRoutes.PATCH("/:id/images/reorder", middleware.BodySizeLimit(bodyLimitConfig.API), productHandler.ReorderProductImages)
+	adminProductRoutes.PATCH("/:id/images/:image_id/primary", productHandler.SetPrimaryProductImage)
 	adminProductRoutes.PUT("/:id", middleware.BodySizeLimit(bodyLimitConfig.API), productHandler.UpdateProduct)
 	adminProductRoutes.DELETE("/:id", productHandler.DeleteProduct)
 

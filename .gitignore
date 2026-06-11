@@ -1,0 +1,70 @@
+# ── Environment ──────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Go ───────────────────────────────────────────────────────────────────────
+# Binary
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bjir-ecommerce-app
+/cmd/server/server
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+*.prof
+
+# Dependency directory
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Node.js / Frontend ──────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.nuxt/
+.cache/
+
+# Frontend env
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Uploads (user-generated content) ─────────────────────────────────────────
+uploads/*
+!uploads/.gitkeep
+
+# ── Miscellaneous ────────────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.orig
+.cache/
+tmp/
+temp/
+PROJECT_BRIEF.md
+structure.MD
+.hermes/plans/2026-06-03_190000-backend-roadmap.md
