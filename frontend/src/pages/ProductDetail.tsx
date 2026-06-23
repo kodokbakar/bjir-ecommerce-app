@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import ProductImage from "../components/ProductImage";
+import { addCartItem, getCartErrorMessage } from "../services/cartService";
 import { getProductBySlug } from "../services/productService";
-import { C } from "../styles/tokens";
 import type { Product } from "../types/product";
 import { formatRupiah, getProductImage, getStockState } from "../utils/product";
 
 type DetailState = "loading" | "ready" | "error" | "not-found";
+type CartActionState = "idle" | "loading" | "success" | "error";
 
 function formatDate(value?: string): string {
   if (!value) {
@@ -70,6 +71,8 @@ function ProductDetail() {
   const [state, setState] = useState<DetailState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [cartState, setCartState] = useState<CartActionState>("idle");
+  const [cartMessage, setCartMessage] = useState("");
 
   const descriptionBlocks = useMemo(() => {
     const description = product?.description?.trim();
@@ -93,6 +96,8 @@ function ProductDetail() {
 
       setState("loading");
       setError(null);
+      setCartState("idle");
+      setCartMessage("");
 
       try {
         const result = await getProductBySlug(slug);
@@ -127,6 +132,26 @@ function ProductDetail() {
 
   function handleRetry() {
     setReloadKey((current) => current + 1);
+  }
+
+  async function handleAddToCart() {
+    if (!product || product.stock <= 0 || cartState === "loading") {
+      return;
+    }
+
+    setCartState("loading");
+    setCartMessage("");
+
+    try {
+      await addCartItem(product.id, 1);
+      setCartState("success");
+      setCartMessage("Product added to cart.");
+    } catch (cartError) {
+      setCartState("error");
+      setCartMessage(
+        getCartErrorMessage(cartError, "Failed to add product to cart."),
+      );
+    }
   }
 
   if (state === "loading") {
@@ -171,6 +196,8 @@ function ProductDetail() {
   const imagePath = getProductImage(product);
   const categoryName = product.category?.name || "Uncategorized";
   const categorySlug = product.category?.slug || "";
+  const cartFeedbackID = `product-detail-cart-feedback-${product.id}`;
+  const isCartDisabled = product.stock <= 0 || cartState === "loading";
 
   return (
     <section className="product-detail-page" aria-labelledby="product-detail-title">
@@ -222,9 +249,7 @@ function ProductDetail() {
             {product.name}
           </h1>
 
-          <p className="product-detail-price" style={{ color: C.primaryDark }}>
-            {formatRupiah(product.price)}
-          </p>
+          <p className="product-detail-price">{formatRupiah(product.price)}</p>
 
           <div className="product-detail-stock-row">
             <span className={`product-detail-stock-pill ${stockState.className}`}>
@@ -245,15 +270,34 @@ function ProductDetail() {
           </div>
 
           <button
-            className="product-detail-cart-button"
+            className={[
+              "product-detail-cart-button",
+              product.stock <= 0 ? "is-disabled" : "",
+              cartState === "success" ? "is-success" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             type="button"
-            disabled={product.stock <= 0}
-            style={{
-              background: product.stock <= 0 ? C.textMuted : C.primary,
-            }}
+            onClick={handleAddToCart}
+            disabled={isCartDisabled}
+            aria-describedby={cartMessage ? cartFeedbackID : undefined}
           >
-            {product.stock <= 0 ? "Out of Stock" : "Add to Cart"}
+            {product.stock <= 0
+              ? "Out of Stock"
+              : cartState === "loading"
+                ? "Adding..."
+                : "Add to Cart"}
           </button>
+
+          {cartMessage && (
+            <p
+              className={`product-detail-cart-feedback is-${cartState}`}
+              id={cartFeedbackID}
+              role={cartState === "error" ? "alert" : "status"}
+            >
+              {cartMessage}
+            </p>
+          )}
 
           <dl className="product-detail-meta">
             <div>

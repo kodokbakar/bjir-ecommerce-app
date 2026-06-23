@@ -4,6 +4,7 @@ import {
   Package,
   Settings,
   ShoppingBag,
+  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,11 @@ export const MAIN_NAV_ITEMS: NavigationItem[] = [
     Icon: Package,
   },
   {
+    label: "Keranjang",
+    path: "/cart",
+    Icon: ShoppingCart,
+  },
+  {
     label: "Pesanan",
     path: "/orders",
     Icon: ShoppingBag,
@@ -52,7 +58,13 @@ export function getPageTitle(pathname: string): string {
     return "Product Detail";
   }
 
-  const activeItem = MAIN_NAV_ITEMS.find((item) => pathname.startsWith(item.path));
+  if (pathname.startsWith("/checkout")) {
+    return "Checkout";
+  }
+
+  const activeItem = MAIN_NAV_ITEMS.find((item) =>
+    pathname.startsWith(item.path),
+  );
 
   return activeItem?.label ?? "Halaman";
 }
@@ -95,6 +107,28 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
       },
       {
         label: "Category",
+      },
+    );
+
+    return breadcrumbs;
+  }
+
+  if (pathname.startsWith("/cart")) {
+    breadcrumbs.push({
+      label: "Cart",
+    });
+
+    return breadcrumbs;
+  }
+
+  if (pathname.startsWith("/checkout")) {
+    breadcrumbs.push(
+      {
+        label: "Cart",
+        path: "/cart",
+      },
+      {
+        label: "Checkout",
       },
     );
 
