@@ -54,7 +54,7 @@ function OrderSummary({ cart }: OrderSummaryProps) {
                 aria-label={`View ${productName}`}
               >
                 <ProductImage
-                  key={imagePath || item.product_id}
+                  key={`${item.id}-${imagePath || ""}`}
                   className="order-summary-image"
                   src={imagePath}
                   alt={productName}

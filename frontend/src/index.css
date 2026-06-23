@@ -2164,16 +2164,6 @@ a.product-detail-category:hover {
   opacity: 0.64;
 }
 
-.checkout-backend-note {
-  border: 2px dashed var(--color-brutal-ink);
-  background: #fff8d8;
-  color: var(--color-text-muted);
-  padding: 12px;
-  font-size: 12px;
-  font-weight: 850;
-  line-height: 1.5;
-}
-
 .order-summary {
   position: sticky;
   top: 94px;

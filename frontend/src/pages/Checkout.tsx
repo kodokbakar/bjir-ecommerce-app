@@ -182,10 +182,7 @@ function Checkout() {
             <div className="checkout-form-header">
               <span className="cart-summary-label">Shipping Details</span>
               <h2>Where should this go?</h2>
-              <p>
-                Ponytail: backend currently ignores these fields until the
-                checkout handler accepts request body.
-              </p>
+              <p>Add delivery details and notes before placing your order.</p>
             </div>
 
             <label className="checkout-field">
@@ -211,12 +208,6 @@ function Checkout() {
                 disabled={isCheckingOut}
               />
             </label>
-
-            <div className="checkout-backend-note">
-              These fields are wired in the request payload, but the current
-              backend checkout endpoint still creates the order from JWT user
-              only.
-            </div>
 
             <button
               className="cart-checkout-button"
