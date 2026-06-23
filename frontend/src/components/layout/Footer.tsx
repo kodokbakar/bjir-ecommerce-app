@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom";
-
 import { APP_VERSION } from "./navigation";
 
 function Footer() {
@@ -13,15 +11,24 @@ function Footer() {
         className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
         aria-label="Footer navigation"
       >
-        <Link className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-primary-dark)]" to="/products">
+        <a
+          className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-primary-dark)]"
+          href="#about"
+        >
           Tentang Kami
-        </Link>
-        <Link className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-primary-dark)]" to="/products">
+        </a>
+        <a
+          className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-primary-dark)]"
+          href="#privacy"
+        >
           Kebijakan Privasi
-        </Link>
-        <Link className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-primary-dark)]" to="/products">
+        </a>
+        <a
+          className="text-[var(--color-text-muted)] no-underline hover:text-[var(--color-primary-dark)]"
+          href="#contact"
+        >
           Hubungi Kami
-        </Link>
+        </a>
         <span>Versi {APP_VERSION}</span>
       </nav>
     </footer>
