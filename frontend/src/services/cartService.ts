@@ -7,7 +7,7 @@ import type {
   CartItem,
   UpdateCartItemInput,
 } from "../types/cart";
-import type { Order } from "../types/order";
+import type { CheckoutInput, Order } from "../types/order";
 
 type ApiDataResponse<T> = {
   success?: boolean;
@@ -178,9 +178,18 @@ export async function removeCartItem(itemID: string): Promise<void> {
   notifyCartChanged();
 }
 
-export async function checkoutCart(): Promise<Order> {
+export async function checkoutCart(input: CheckoutInput = {}): Promise<Order> {
+  const shippingAddress = input.shipping_address?.trim();
+  const notes = input.notes?.trim();
+
+  const payload: CheckoutInput = {
+    ...(shippingAddress ? { shipping_address: shippingAddress } : {}),
+    ...(notes ? { notes } : {}),
+  };
+
   const response = await api.post<Order | ApiDataResponse<Order>>(
     "/v1/orders/checkout",
+    payload,
   );
 
   const order = unwrapData(response.data);
@@ -188,7 +197,6 @@ export async function checkoutCart(): Promise<Order> {
 
   return order;
 }
-
 export const cartService = {
   getCart,
   getCartCount,

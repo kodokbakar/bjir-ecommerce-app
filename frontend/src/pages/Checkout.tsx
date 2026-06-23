@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
+import { Link, useNavigate } from "react-router-dom";
 
+import OrderSummary from "../components/OrderSummary";
 import {
   checkoutCart,
   getCart,
@@ -8,113 +16,136 @@ import {
   normalizeCart,
 } from "../services/cartService";
 import type { Cart } from "../types/cart";
-import type { Order } from "../types/order";
-import { formatRupiah } from "../utils/product";
+import type { CheckoutInput } from "../types/order";
 
-type CheckoutState = "review" | "success";
+const EMPTY_CHECKOUT_FORM: Required<CheckoutInput> = {
+  shipping_address: "",
+  notes: "",
+};
 
 function Checkout() {
+  const navigate = useNavigate();
+  const isMountedRef = useRef(false);
+
   const [cart, setCart] = useState<Cart | null>(null);
-  const [order, setOrder] = useState<Order | null>(null);
-  const [state, setState] = useState<CheckoutState>("review");
+  const [form, setForm] = useState(EMPTY_CHECKOUT_FORM);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const itemCount = useMemo(() => {
-    return cart?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
-  }, [cart?.items]);
+  const hasItems = Boolean(cart?.items.length);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadCheckoutCart = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-    async function loadCart() {
-      setIsLoading(true);
-      setError(null);
+    try {
+      const result = await getCart();
 
-      try {
-        const result = await getCart();
-
-        if (isMounted) {
-          setCart(normalizeCart(result));
-        }
-      } catch (loadError) {
-        if (isMounted) {
-          setCart(null);
-          setError(
-            getCartErrorMessage(loadError, "Failed to load checkout summary."),
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+      if (isMountedRef.current) {
+        setCart(normalizeCart(result));
+      }
+    } catch (loadError) {
+      if (isMountedRef.current) {
+        setCart(null);
+        setError(
+          getCartErrorMessage(loadError, "Failed to load checkout summary."),
+        );
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoading(false);
       }
     }
-
-    loadCart();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
-  async function handleCheckout() {
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    const loadTimerID = window.setTimeout(() => {
+      void loadCheckoutCart();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(loadTimerID);
+      isMountedRef.current = false;
+    };
+  }, [loadCheckoutCart]);
+
+  function handleFieldChange(
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    const { name, value } = event.target;
+
+    setForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }));
+  }
+
+  async function handleCheckout(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!cart || cart.items.length === 0) {
+      setError("Keranjang kosong. Tambahkan produk sebelum checkout.");
+      return;
+    }
+
     setIsCheckingOut(true);
     setError(null);
 
     try {
-      const result = await checkoutCart();
-      setOrder(result);
-      setState("success");
+      const order = await checkoutCart({
+        shipping_address: form.shipping_address,
+        notes: form.notes,
+      });
+
+      navigate("/dashboard", {
+        replace: true,
+        state: {
+          checkoutSuccess: {
+            orderID: order.id,
+            orderNumber: order.order_number,
+          },
+        },
+      });
     } catch (checkoutError) {
       setError(
         getCartErrorMessage(
           checkoutError,
-          "Checkout failed. Please review stock and try again.",
+          "Checkout failed. Keranjang kosong, stok tidak mencukupi, atau produk tidak ditemukan.",
         ),
       );
     } finally {
-      setIsCheckingOut(false);
+      if (isMountedRef.current) {
+        setIsCheckingOut(false);
+      }
     }
   }
 
   if (isLoading) {
     return (
       <section className="cart-page" aria-label="Loading checkout">
-        <div className="cart-skeleton-row">
-          <div className="cart-skeleton-copy">
-            <div className="cart-skeleton-line short" />
-            <div className="cart-skeleton-line" />
-            <div className="cart-skeleton-line tiny" />
+        <div className="checkout-skeleton-shell">
+          <div className="cart-skeleton-row">
+            <div className="cart-skeleton-copy">
+              <div className="cart-skeleton-line short" />
+              <div className="cart-skeleton-line" />
+              <div className="cart-skeleton-line tiny" />
+            </div>
+          </div>
+
+          <div className="cart-skeleton-row">
+            <div className="cart-skeleton-copy">
+              <div className="cart-skeleton-line short" />
+              <div className="cart-skeleton-line" />
+              <div className="cart-skeleton-line tiny" />
+            </div>
           </div>
         </div>
       </section>
     );
   }
-
-  if (state === "success" && order) {
-    return (
-      <section className="cart-page" aria-labelledby="checkout-success-title">
-        <div className="cart-state checkout-success">
-          <div>
-            <span className="cart-summary-label">Order Locked</span>
-            <h1 id="checkout-success-title">Checkout successful.</h1>
-            <p>
-              Order <strong>{order.order_number}</strong> is now waiting with
-              status <strong>{order.status}</strong>.
-            </p>
-            <p className="checkout-total">{formatRupiah(order.total_amount)}</p>
-            <Link className="cart-primary-button" to="/orders">
-              View orders
-            </Link>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const hasItems = Boolean(cart?.items.length);
 
   return (
     <section className="cart-page" aria-labelledby="checkout-title">
@@ -124,7 +155,8 @@ function Checkout() {
           Final counter.
         </h1>
         <p className="cart-copy">
-          This checkout uses your current cart and creates a pending order.
+          Review the order, add delivery notes, then convert the cart into a
+          pending order.
         </p>
       </header>
 
@@ -134,10 +166,10 @@ function Checkout() {
         </div>
       )}
 
-      {!hasItems ? (
+      {!hasItems || !cart ? (
         <div className="cart-state">
           <div>
-            <h2>No items to checkout.</h2>
+            <h2>Keranjang kosong.</h2>
             <p>Add products to your cart before creating an order.</p>
             <Link className="cart-primary-button" to="/products">
               Belanja Sekarang
@@ -145,31 +177,61 @@ function Checkout() {
           </div>
         </div>
       ) : (
-        <div className="cart-summary checkout-panel">
-          <span className="cart-summary-label">Checkout Summary</span>
+        <div className="checkout-shell">
+          <form className="checkout-form" onSubmit={handleCheckout}>
+            <div className="checkout-form-header">
+              <span className="cart-summary-label">Shipping Details</span>
+              <h2>Where should this go?</h2>
+              <p>
+                Ponytail: backend currently ignores these fields until the
+                checkout handler accepts request body.
+              </p>
+            </div>
 
-          <div className="cart-summary-row">
-            <span>Items</span>
-            <strong>{itemCount}</strong>
-          </div>
+            <label className="checkout-field">
+              <span>Shipping address</span>
+              <input
+                name="shipping_address"
+                value={form.shipping_address}
+                onChange={handleFieldChange}
+                placeholder="Street, city, postal code"
+                autoComplete="shipping street-address"
+                disabled={isCheckingOut}
+              />
+            </label>
 
-          <div className="cart-summary-row">
-            <span>Total</span>
-            <strong>{formatRupiah(cart?.total_price ?? 0)}</strong>
-          </div>
+            <label className="checkout-field">
+              <span>Notes</span>
+              <textarea
+                name="notes"
+                value={form.notes}
+                onChange={handleFieldChange}
+                placeholder="Optional delivery note, size preference, or reminder"
+                rows={5}
+                disabled={isCheckingOut}
+              />
+            </label>
 
-          <button
-            className="cart-checkout-button"
-            type="button"
-            onClick={handleCheckout}
-            disabled={isCheckingOut}
-          >
-            {isCheckingOut ? "Creating order..." : "Place order"}
-          </button>
+            <div className="checkout-backend-note">
+              These fields are wired in the request payload, but the current
+              backend checkout endpoint still creates the order from JWT user
+              only.
+            </div>
 
-          <Link className="cart-secondary-link" to="/cart">
-            Back to cart
-          </Link>
+            <button
+              className="cart-checkout-button"
+              type="submit"
+              disabled={isCheckingOut}
+            >
+              {isCheckingOut ? "Creating order..." : "Place order"}
+            </button>
+
+            <Link className="cart-secondary-link" to="/cart">
+              Back to cart
+            </Link>
+          </form>
+
+          <OrderSummary cart={cart} />
         </div>
       )}
     </section>

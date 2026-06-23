@@ -1,5 +1,10 @@
 export type OrderStatus = "pending" | "paid" | "shipped" | "delivered" | "cancelled";
 
+export interface CheckoutInput {
+  shipping_address?: string;
+  notes?: string;
+}
+
 export interface OrderItem {
   id: string;
   order_id: string;
