@@ -4,21 +4,9 @@ import { Link, useParams } from "react-router-dom";
 import { getImageUrl, getProductBySlug } from "../services/productService";
 import { C } from "../styles/tokens";
 import type { Product } from "../types/product";
+import { formatRupiah, getProductImage, getStockState } from "../utils/product";
 
 type DetailState = "loading" | "ready" | "error" | "not-found";
-
-type StockState = {
-  label: string;
-  className: string;
-};
-
-function formatRupiah(value: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function formatDate(value?: string): string {
   if (!value) {
@@ -35,32 +23,6 @@ function formatDate(value?: string): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
-}
-
-function getStockState(stock: number): StockState {
-  if (stock <= 0) {
-    return {
-      label: "Out of Stock",
-      className: "is-out",
-    };
-  }
-
-  if (stock <= 5) {
-    return {
-      label: "Low Stock",
-      className: "is-low",
-    };
-  }
-
-  return {
-    label: "In Stock",
-    className: "is-in",
-  };
-}
-
-function getProductImage(product: Product): string {
-  const galleryImage = product.images?.[0]?.image_url;
-  return product.image_url || galleryImage || "";
 }
 
 function isNotFoundError(error: unknown): boolean {
@@ -120,12 +82,6 @@ function ProductDetail() {
   const [error, setError] = useState<string | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-
-  const stockState = product ? getStockState(product.stock) : null;
-  const imagePath = product ? getProductImage(product) : "";
-  const imageUrl = imagePath ? getImageUrl(imagePath) : "";
-  const categoryName = product?.category?.name || "Uncategorized";
-  const categorySlug = product?.category?.slug || "";
 
   const descriptionBlocks = useMemo(() => {
     const description = product?.description?.trim();
@@ -208,7 +164,7 @@ function ProductDetail() {
     );
   }
 
-  if (state === "error" || !product || !stockState) {
+  if (state === "error" || !product) {
     return (
       <section className="product-detail-page">
         <div className="products-panel-state" role="alert">
@@ -223,6 +179,12 @@ function ProductDetail() {
       </section>
     );
   }
+
+  const stockState = getStockState(product.stock);
+  const imagePath = getProductImage(product);
+  const imageUrl = imagePath ? getImageUrl(imagePath) : "";
+  const categoryName = product.category?.name || "Uncategorized";
+  const categorySlug = product.category?.slug || "";
 
   return (
     <section className="product-detail-page" aria-labelledby="product-detail-title">
@@ -292,8 +254,8 @@ function ProductDetail() {
 
           <div className="product-detail-description">
             <h2>Description</h2>
-            {descriptionBlocks.map((block) => (
-              <p key={block}>{block}</p>
+            {descriptionBlocks.map((block, index) => (
+              <p key={`description-${index}`}>{block}</p>
             ))}
           </div>
 
