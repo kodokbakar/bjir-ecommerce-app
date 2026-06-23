@@ -53,7 +53,7 @@ export interface ProductListMeta {
   total: number;
   total_pages: number;
   sort_by?: string;
-  sort_order?: SortOrder;
+  sort_order?: SortOrder | "";
   category_id?: string;
   category?: string;
   search?: string;

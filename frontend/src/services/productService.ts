@@ -1,4 +1,4 @@
-import { categoryApi, productApi } from "./api";
+import { categoryApi, getApiOrigin, productApi } from "./api";
 
 import type {
   Category,
@@ -7,21 +7,21 @@ import type {
   ProductListResponse,
 } from "../types/product";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "";
+export class ProductServiceValidationError extends Error {
+  readonly fieldName: string;
 
-function getApiOrigin(): string {
-  if (!API_BASE_URL || API_BASE_URL === "/api") {
-    return "";
+  constructor(fieldName: string) {
+    super(`${fieldName} is required`);
+    this.name = "ProductServiceValidationError";
+    this.fieldName = fieldName;
   }
-
-  return API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
 }
 
 function requireValue(value: string, fieldName: string): string {
   const trimmed = value.trim();
 
   if (!trimmed) {
-    throw new Error(`${fieldName} is required`);
+    throw new ProductServiceValidationError(fieldName);
   }
 
   return trimmed;

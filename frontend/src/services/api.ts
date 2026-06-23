@@ -3,11 +3,12 @@ import axios from "axios";
 import type {
   Category,
   Product,
+  ProductListMeta,
   ProductListParams,
   ProductListResponse,
 } from "../types/product";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -16,16 +17,22 @@ const api = axios.create({
   },
 });
 
-type DataEnvelope<T> = {
+type ApiDataResponse<T> = {
+  success?: boolean;
+  message?: string;
   data: T;
 };
 
-function isDataEnvelope<T>(value: unknown): value is DataEnvelope<T> {
+type ApiListResponse<TData, TMeta> = ApiDataResponse<TData> & {
+  meta: TMeta;
+};
+
+function isApiDataResponse<T>(value: unknown): value is ApiDataResponse<T> {
   return typeof value === "object" && value !== null && "data" in value;
 }
 
-function unwrapData<T>(value: T | DataEnvelope<T>): T {
-  return isDataEnvelope<T>(value) ? value.data : value;
+function unwrapData<T>(value: T | ApiDataResponse<T>): T {
+  return isApiDataResponse<T>(value) ? value.data : value;
 }
 
 function cleanParams<T extends object>(params?: T): Partial<T> {
@@ -34,6 +41,18 @@ function cleanParams<T extends object>(params?: T): Partial<T> {
       return value !== undefined && value !== null && value !== "";
     }),
   ) as Partial<T>;
+}
+
+export function getApiOrigin(): string {
+  if (!API_BASE_URL || API_BASE_URL.startsWith("/")) {
+    return "";
+  }
+
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch {
+    return "";
+  }
 }
 
 api.interceptors.request.use(
@@ -66,15 +85,20 @@ api.interceptors.response.use(
 
 export const productApi = {
   async list(params?: ProductListParams): Promise<ProductListResponse> {
-    const response = await api.get<ProductListResponse>("/v1/products", {
+    const response = await api.get<
+      ApiListResponse<Product[], ProductListMeta>
+    >("/v1/products", {
       params: cleanParams(params),
     });
 
-    return response.data;
+    return {
+      data: response.data.data,
+      meta: response.data.meta,
+    };
   },
 
   async getById(id: string): Promise<Product> {
-    const response = await api.get<Product | DataEnvelope<Product>>(
+    const response = await api.get<Product | ApiDataResponse<Product>>(
       `/v1/products/${encodeURIComponent(id)}`,
     );
 
@@ -82,7 +106,7 @@ export const productApi = {
   },
 
   async getBySlug(slug: string): Promise<Product> {
-    const response = await api.get<Product | DataEnvelope<Product>>(
+    const response = await api.get<Product | ApiDataResponse<Product>>(
       `/v1/products/slug/${encodeURIComponent(slug)}`,
     );
 
@@ -92,7 +116,7 @@ export const productApi = {
 
 export const categoryApi = {
   async list(): Promise<Category[]> {
-    const response = await api.get<Category[] | DataEnvelope<Category[]>>(
+    const response = await api.get<Category[] | ApiDataResponse<Category[]>>(
       "/v1/categories",
     );
 
@@ -100,7 +124,7 @@ export const categoryApi = {
   },
 
   async getById(id: string): Promise<Category> {
-    const response = await api.get<Category | DataEnvelope<Category>>(
+    const response = await api.get<Category | ApiDataResponse<Category>>(
       `/v1/categories/${encodeURIComponent(id)}`,
     );
 
@@ -108,7 +132,7 @@ export const categoryApi = {
   },
 
   async getBySlug(slug: string): Promise<Category> {
-    const response = await api.get<Category | DataEnvelope<Category>>(
+    const response = await api.get<Category | ApiDataResponse<Category>>(
       `/v1/categories/slug/${encodeURIComponent(slug)}`,
     );
 
