@@ -1,178 +1,364 @@
-import React from "react";
-import { useAuth } from '../hooks/useAuth';
-import { C } from "../styles/tokens";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  AlertTriangle,
+  Boxes,
+  Clock3,
+  PackageCheck,
+  ShoppingBag,
+  Sparkles,
+  Truck,
+} from "lucide-react";
 
-// ── Data Dummy untuk Pembeli ───────────────────────────────────────────────
-const BUYER_STATS = [
-    { label: "Koin Bjir-Ku", value: "12.500 Poin", icon: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z", sub: "Gunakan saat checkout" },
-    { label: "Pesanan Aktif", value: "2 Paket", icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z", sub: "Sedang dalam pengiriman" },
-    { label: "Voucher Tersedia", value: "5 Voucher", icon: "M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z", sub: "Ada diskon ongkir 100%" },
-    { label: "Keranjang Belanja", value: "3 Barang", icon: "M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm7 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6", sub: "Belum dibayar" },
-];
+import ProductImage from "../components/ProductImage";
+import { useAuth } from "../hooks/useAuth";
+import {
+  getActiveOrderCount,
+  getDashboardProducts,
+  getOrderTotal,
+  getRecentOrders,
+  type DashboardOrder,
+} from "../services/dashboardService";
+import type { Product } from "../types/product";
+import { formatRupiah, getProductImage } from "../utils/product";
 
-const RECOMMENDATIONS = [
-    { id: 1, name: "Kemeja Flanel Premium Earth-Tone", price: "Rp 185.000", rating: "4.8", img: "👔" },
-    { id: 2, name: "Sepatu Sneakers Klasik Minimalis", price: "Rp 320.000", rating: "4.9", img: "👟" },
-    { id: 3, name: "Tas Ransel Kanvas Unisex", price: "Rp 145.000", rating: "4.7", img: "🎒" },
-    { id: 4, name: "Topi Corduroy Vintage Brown", price: "Rp 65.000", rating: "4.6", img: "🧢" },
-];
+interface DashboardState {
+  products: Product[];
+  productTotal: number;
+  orders: DashboardOrder[];
+  orderTotal: number;
+}
 
-const Dashboard: React.FC = () => {
-    const { user } = useAuth();
+function DashboardSkeleton() {
+  return (
+    <section className="grid gap-6" aria-label="Loading dashboard">
+      <div className="h-48 border-4 border-[var(--color-brutal-ink)] bg-white shadow-[6px_6px_0_var(--color-brutal-ink)]">
+        <div className="h-full animate-pulse bg-[linear-gradient(90deg,rgba(23,20,18,0.08),rgba(23,20,18,0.2),rgba(23,20,18,0.08))] bg-[length:240%_100%]" />
+      </div>
 
-    return (
-        <div style={{ animation: "buyerDashboardFadeIn 0.5s ease-out forwards" }}>
-            <style>{`
-                @keyframes buyerDashboardFadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div
+            className="h-32 border-4 border-[var(--color-brutal-ink)] bg-white shadow-[4px_4px_0_var(--color-brutal-ink)]"
+            key={index}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
-            {/* Banner Selamat Datang Pembeli */}
-            <div style={{
-                background: `linear-gradient(135deg, ${C.primary} 0%, ${C.primaryDark} 100%)`,
-                borderRadius: 16,
-                padding: "32px 24px",
-                color: C.secondary,
-                marginBottom: 28,
-                position: "relative",
-                overflow: "hidden"
-            }}>
-                <div style={{ position: "relative", zIndex: 2 }}>
-                    <h1 style={{ fontSize: 24, fontWeight: 600, margin: "0 0 8px" }}>
-                        Selamat Datang, {user?.name || "Pelanggan Setia"}! 
-                    </h1>
-                    <p style={{ fontSize: 14, color: "rgba(231,215,201,0.85)", margin: 0, maxWidth: 500 }}>
-                        Mau belanja apa hari ini? Dapatkan promo gratis ongkir ekstra khusus untuk transaksi pertamamu bulan ini.
-                    </p>
-                </div>
-                <div style={{ fontSize: 80, position: "absolute", right: 30, bottom: -10, opacity: 0.15, userSelect: "none" }}>🛍️</div>
-            </div>
+function getOrderLabel(order: DashboardOrder): string {
+  return `#${order.id.slice(0, 8).toUpperCase()}`;
+}
 
-            {/* Grid Kartu Ringkasan Akun Pembeli */}
-            <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 20,
-                marginBottom: 32
-            }}>
-                {BUYER_STATS.map((stat, i) => (
-                    <div key={i} style={{
-                        background: "#fff",
-                        padding: 20,
-                        borderRadius: 12,
-                        border: `1px solid ${C.border}`,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 12,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.01)"
-                    }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 500 }}>{stat.label}</span>
-                            <span style={{ color: C.primaryDark }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d={stat.icon} />
-                                </svg>
-                            </span>
-                        </div>
-                        <div>
-                            <h3 style={{ fontSize: 20, fontWeight: 600, color: C.textDark, margin: "0 0 4px" }}>
-                                {stat.value}
-                            </h3>
-                            <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>
-                                {stat.sub}
-                            </p>
-                        </div>
-                    </div>
-                ))}
-            </div>
+function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    pending: "Menunggu",
+    paid: "Dibayar",
+    shipped: "Dikirim",
+    delivered: "Selesai",
+    canceled: "Batal",
+    cancelled: "Batal",
+  };
 
-            {/* Sesi Utama: Lacak Pesanan Terakhir & Rekomendasi */}
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-                
-                {/* Bagian Kiri: Status Pengiriman Terakhir */}
-                <div style={{ flex: "2 1 400px", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                    <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: C.textDark }}>
-                        Status Pengiriman Terakhir
-                    </h3>
-                    <div style={{ display: "flex", alignItems: "center", background: "#faf8f6", borderRadius: 8, padding: 16, border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 28, marginRight: 16 }}>🚚</div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: C.textDark }}>#BJIR-882910</span>
-                                <span style={{ fontSize: 11, background: C.secondary, color: C.textLabel, padding: "2px 8px", borderRadius: 4, fontWeight: 500 }}>DIKIRIM</span>
-                            </div>
-                            <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
-                                Kurir sedang menuju ke lokasi Anda (Estimasi tiba hari ini).
-                            </p>
-                        </div>
-                    </div>
-                </div>
+  return labels[status] ?? status;
+}
 
-                {/* Bagian Kanan: Voucher Cepat */}
-                <div style={{ flex: "1 1 250px", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                    <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600, color: C.textDark }}>
-                        Klaim Voucher Spesial
-                    </h3>
-                    <div style={{
-                        border: `1px dashed ${C.primary}`, background: "rgba(166, 123, 123, 0.05)",
-                        padding: 12, borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center"
-                    }}>
-                        <div>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: C.primaryDark, display: "block" }}>DISKON 20RB</span>
-                            <span style={{ fontSize: 10, color: C.textMuted }}>Min. Belanja Rp 150K</span>
-                        </div>
-                        <button style={{
-                            background: C.primary, color: "#fff", border: "none", borderRadius: 6,
-                            padding: "4px 10px", fontSize: 11, fontWeight: 500, cursor: "pointer"
-                        }}>
-                            Klaim
-                        </button>
-                    </div>
-                </div>
+function Dashboard() {
+  const { user } = useAuth();
 
-            </div>
+  const [dashboard, setDashboard] = useState<DashboardState>({
+    products: [],
+    productTotal: 0,
+    orders: [],
+    orderTotal: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorNote, setErrorNote] = useState<string | null>(null);
 
-            {/* Sesi Rekomendasi Produk */}
-            <div style={{ marginTop: 32 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.textDark }}>
-                        Rekomendasi Produk Untuk Kamu
-                    </h3>
-                    <span style={{ fontSize: 12, color: C.primaryDark, cursor: "pointer", fontWeight: 500 }}>Lihat Semua &rarr;</span>
-                </div>
-                
-                <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 16
-                }}>
-                    {RECOMMENDATIONS.map((prod) => (
-                        <div key={prod.id} style={{
-                            background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12,
-                            overflow: "hidden", cursor: "pointer", transition: "transform 0.2s"
-                        }}>
-                            <div style={{ height: 130, background: "#faf8f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>
-                                {prod.img}
-                            </div>
-                            <div style={{ padding: 12 }}>
-                                <h4 style={{ fontSize: 13, fontWeight: 500, color: C.textDark, margin: "0 0 6px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    {prod.name}
-                                </h4>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: C.primaryDark }}>{prod.price}</span>
-                                    <span style={{ fontSize: 11, color: "#eab308", display: "flex", alignItems: "center", gap: 2 }}>
-                                        ⭐ {prod.rating}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      setIsLoading(true);
+      setErrorNote(null);
+
+      const [productsResult, ordersResult] = await Promise.allSettled([
+        getDashboardProducts(),
+        getRecentOrders(3),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      const nextDashboard: DashboardState = {
+        products: [],
+        productTotal: 0,
+        orders: [],
+        orderTotal: 0,
+      };
+
+      if (productsResult.status === "fulfilled") {
+        nextDashboard.products = productsResult.value.data;
+        nextDashboard.productTotal = productsResult.value.meta.total;
+      } else {
+        console.error("Failed to load dashboard products:", productsResult.reason);
+        setErrorNote("Rekomendasi produk belum bisa dimuat.");
+      }
+
+      if (ordersResult.status === "fulfilled") {
+        nextDashboard.orders = ordersResult.value.data;
+        nextDashboard.orderTotal = ordersResult.value.total;
+      } else {
+        console.error("Failed to load dashboard orders:", ordersResult.reason);
+      }
+
+      setDashboard(nextDashboard);
+      setIsLoading(false);
+    }
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const activeOrders = getActiveOrderCount(dashboard.orders);
+    const lowStockCount = dashboard.products.filter((product) => {
+      return product.stock > 0 && product.stock <= 5;
+    }).length;
+
+    return [
+      {
+        label: "Produk Katalog",
+        value: `${dashboard.productTotal} item`,
+        sub: "Produk aktif untuk dibeli",
+        to: "/products",
+        Icon: Boxes,
+      },
+      {
+        label: "Pesanan Aktif",
+        value: `${activeOrders} order`,
+        sub: `${dashboard.orderTotal} total order kamu`,
+        to: "/orders",
+        Icon: Truck,
+      },
+      {
+        label: "Stok Menipis",
+        value: `${lowStockCount} item`,
+        sub: "Dari rekomendasi terbaru",
+        to: "/products?sort_by=created_at&sort_order=desc",
+        Icon: AlertTriangle,
+      },
+      {
+        label: "Rekomendasi",
+        value: `${dashboard.products.length} produk`,
+        sub: "Produk terbaru di katalog",
+        to: "/products",
+        Icon: Sparkles,
+      },
+    ];
+  }, [dashboard]);
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  const latestOrder = dashboard.orders[0];
+
+  return (
+    <section className="grid gap-7 animate-[products-page-enter_420ms_ease-out_both]">
+      <header className="relative overflow-hidden border-4 border-[var(--color-brutal-ink)] bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-dark))] p-6 text-[var(--color-brutal-paper)] shadow-[6px_6px_0_var(--color-brutal-ink)] sm:p-8">
+        <div className="relative z-10 max-w-2xl">
+          <span className="mb-4 inline-flex border-2 border-[var(--color-brutal-ink)] bg-[var(--color-brutal-accent)] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-brutal-ink)] shadow-[3px_3px_0_var(--color-brutal-ink)]">
+            Buyer Dashboard
+          </span>
+
+          <h1 className="m-0 text-4xl font-black uppercase leading-[0.9] tracking-[-0.07em] sm:text-5xl">
+            Selamat datang, {user?.name || "Pelanggan"}!
+          </h1>
+
+          <p className="mt-4 max-w-xl text-sm font-bold leading-7 text-[rgba(255,248,232,0.88)]">
+            Mau belanja apa hari ini? Cek rekomendasi produk terbaru dan lanjutkan
+            order yang sedang berjalan.
+          </p>
         </div>
-    );
-};
+
+        <ShoppingBag
+          className="absolute -bottom-5 right-6 h-28 w-28 text-black/15"
+          aria-hidden="true"
+        />
+      </header>
+
+      {errorNote && (
+        <div className="border-2 border-[var(--color-brutal-ink)] bg-[#ffe1d7] px-4 py-3 text-sm font-bold text-[var(--color-brutal-ink)] shadow-[3px_3px_0_var(--color-brutal-ink)]">
+          {errorNote}
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => (
+          <Link
+            className="group flex min-h-32 flex-col justify-between border-4 border-[var(--color-brutal-ink)] bg-white p-5 text-[var(--color-brutal-ink)] no-underline shadow-[4px_4px_0_var(--color-brutal-ink)] transition hover:-translate-x-1 hover:-translate-y-1 hover:bg-[var(--color-brutal-accent)] hover:shadow-[7px_7px_0_var(--color-brutal-ink)]"
+            key={stat.label}
+            to={stat.to}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)] group-hover:text-[var(--color-brutal-ink)]">
+                {stat.label}
+              </span>
+              <stat.Icon className="h-5 w-5" aria-hidden="true" />
+            </div>
+
+            <div>
+              <strong className="block text-2xl font-black tracking-[-0.05em]">
+                {stat.value}
+              </strong>
+              <span className="mt-1 block text-xs font-bold text-[var(--color-text-muted)] group-hover:text-[var(--color-brutal-ink)]">
+                {stat.sub}
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)]">
+        <article className="border-4 border-[var(--color-brutal-ink)] bg-white p-5 shadow-[5px_5px_0_var(--color-brutal-ink)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="m-0 text-xl font-black uppercase tracking-[-0.04em] text-[var(--color-brutal-ink)]">
+              Status Pesanan
+            </h2>
+            <Link
+              className="text-xs font-black uppercase tracking-[0.1em] text-[var(--color-primary-dark)] no-underline hover:underline"
+              to="/orders"
+            >
+              Lihat semua
+            </Link>
+          </div>
+
+          {latestOrder ? (
+            <div className="flex flex-col gap-4 border-2 border-[var(--color-brutal-ink)] bg-[var(--color-brutal-paper)] p-4 sm:flex-row sm:items-center">
+              <span className="grid h-14 w-14 shrink-0 place-items-center border-2 border-[var(--color-brutal-ink)] bg-[var(--color-brutal-blue)] shadow-[3px_3px_0_var(--color-brutal-ink)]">
+                <PackageCheck className="h-7 w-7" aria-hidden="true" />
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm font-black text-[var(--color-brutal-ink)]">
+                    {getOrderLabel(latestOrder)}
+                  </strong>
+                  <span className="border-2 border-[var(--color-brutal-ink)] bg-[var(--color-secondary)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-[var(--color-brutal-ink)]">
+                    {getStatusLabel(latestOrder.status)}
+                  </span>
+                </div>
+
+                <p className="mt-2 text-sm font-bold text-[var(--color-text-muted)]">
+                  {getOrderTotal(latestOrder) !== null
+                    ? `Total order ${formatRupiah(getOrderTotal(latestOrder) ?? 0)}`
+                    : "Order terbaru sedang diproses."}
+                </p>
+              </div>
+
+              <Link
+                className="inline-flex min-h-10 items-center justify-center border-2 border-[var(--color-brutal-ink)] bg-[var(--color-primary)] px-4 text-xs font-black uppercase tracking-[0.1em] text-white no-underline shadow-[3px_3px_0_var(--color-brutal-ink)]"
+                to="/orders"
+              >
+                Detail
+              </Link>
+            </div>
+          ) : (
+            <div className="grid min-h-32 place-items-center border-2 border-dashed border-[var(--color-brutal-ink)] bg-[var(--color-brutal-paper)] p-5 text-center">
+              <div>
+                <Clock3 className="mx-auto mb-2 h-8 w-8 text-[var(--color-text-muted)]" />
+                <p className="m-0 text-sm font-bold text-[var(--color-text-muted)]">
+                  Belum ada order aktif. Mulai dari katalog produk dulu.
+                </p>
+              </div>
+            </div>
+          )}
+        </article>
+
+        <aside className="border-4 border-[var(--color-brutal-ink)] bg-[var(--color-brutal-accent)] p-5 shadow-[5px_5px_0_var(--color-brutal-ink)]">
+          <h2 className="m-0 text-xl font-black uppercase tracking-[-0.05em] text-[var(--color-brutal-ink)]">
+            Deal Hunter Mode
+          </h2>
+          <p className="mt-3 text-sm font-bold leading-6 text-[var(--color-brutal-ink)]">
+            Lompat ke katalog dan urutkan produk untuk cari barang terbaik sebelum stok habis.
+          </p>
+          <Link
+            className="mt-5 inline-flex min-h-11 items-center border-2 border-[var(--color-brutal-ink)] bg-white px-4 text-xs font-black uppercase tracking-[0.1em] text-[var(--color-brutal-ink)] no-underline shadow-[3px_3px_0_var(--color-brutal-ink)]"
+            to="/products?sort_by=created_at&sort_order=desc"
+          >
+            Buka katalog
+          </Link>
+        </aside>
+      </div>
+
+      <section className="grid gap-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="m-0 text-2xl font-black uppercase tracking-[-0.05em] text-[var(--color-brutal-ink)]">
+              Rekomendasi Produk
+            </h2>
+            <p className="m-0 mt-1 text-sm font-bold text-[var(--color-text-muted)]">
+              Produk terbaru dari API katalog.
+            </p>
+          </div>
+
+          <Link
+            className="text-xs font-black uppercase tracking-[0.1em] text-[var(--color-primary-dark)] no-underline hover:underline"
+            to="/products"
+          >
+            Lihat semua →
+          </Link>
+        </div>
+
+        {dashboard.products.length === 0 ? (
+          <div className="grid min-h-40 place-items-center border-4 border-[var(--color-brutal-ink)] bg-white p-5 text-center shadow-[5px_5px_0_var(--color-brutal-ink)]">
+            <p className="m-0 text-sm font-bold text-[var(--color-text-muted)]">
+              Belum ada produk untuk direkomendasikan.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {dashboard.products.map((product) => (
+              <Link
+                className="overflow-hidden border-4 border-[var(--color-brutal-ink)] bg-white text-[var(--color-brutal-ink)] no-underline shadow-[4px_4px_0_var(--color-brutal-ink)] transition hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[7px_7px_0_var(--color-brutal-ink)]"
+                key={product.id}
+                to={`/products/${product.slug}`}
+              >
+                <ProductImage
+                  className="h-40 w-full border-b-4 border-[var(--color-brutal-ink)] [&_.product-image-element]:object-cover"
+                  src={getProductImage(product)}
+                  alt={product.name}
+                  width={320}
+                  height={180}
+                />
+
+                <div className="grid gap-2 p-4">
+                  <h3 className="m-0 truncate text-sm font-black text-[var(--color-brutal-ink)]">
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-black text-[var(--color-primary-dark)]">
+                      {formatRupiah(product.price)}
+                    </span>
+                    <span className="text-xs font-bold text-[var(--color-text-muted)]">
+                      {product.stock > 0 ? `${product.stock} left` : "Sold out"}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </section>
+  );
+}
 
 export default Dashboard;

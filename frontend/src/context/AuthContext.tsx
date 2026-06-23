@@ -1,72 +1,115 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
 import { AuthContext, type User } from "../hooks/useAuth";
-import api from "../services/api";
+import api, { clearAuthStorage, readStoredToken } from "../services/api";
+
+function readStoredUser(): User | null {
+  const rawUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+
+  if (!rawUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawUser) as User;
+  } catch {
+    return null;
+  }
+}
+
+function persistAuth(token: string, user: User, remember: boolean): void {
+  const targetStorage = remember ? localStorage : sessionStorage;
+  const staleStorage = remember ? sessionStorage : localStorage;
+
+  staleStorage.removeItem("token");
+  staleStorage.removeItem("user");
+
+  targetStorage.setItem("token", token);
+  targetStorage.setItem("user", JSON.stringify(user));
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    useEffect(() => {
-        const initializeAuth = async () => {
-            const storedToken = localStorage.getItem("token");
-            const storedUser = localStorage.getItem("user");
+  useEffect(() => {
+    let isMounted = true;
 
-            if (storedToken) {
-                try {
-                    api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
-                    const response = await api.get("/v1/auth/me");
+    async function initializeAuth() {
+      const storedToken = readStoredToken();
+      const storedUser = readStoredUser();
 
-                    setToken(storedToken);
+      if (!storedToken) {
+        if (isMounted) {
+          setIsLoading(false);
+        }
 
-                    const userData =
-                        response.data?.data?.user ||
-                        response.data?.data ||
-                        response.data?.user ||
-                        (storedUser ? JSON.parse(storedUser) : null);
+        return;
+      }
 
-                    if (!userData) {
-                        throw new Error("Data user tidak ditemukan pada response /me");
-                    }
+      try {
+        api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
 
-                    localStorage.setItem("user", JSON.stringify(userData));
-                    setUser(userData);
-                } catch (error) {
-                    console.error("Sesi kedaluwarsa atau token tidak valid:", error);
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                    delete api.defaults.headers.common["Authorization"];
-                    setToken(null);
-                    setUser(null);
-                }
-            }
-            setIsLoading(false);
-        };
+        const response = await api.get("/v1/auth/me");
 
-        initializeAuth();
-    }, []);
+        const userData =
+          response.data?.data?.user ||
+          response.data?.data ||
+          response.data?.user ||
+          storedUser;
 
-    const login = (newToken: string, userData: User) => {
-        localStorage.setItem("token", newToken);
-        localStorage.setItem("user", JSON.stringify(userData));
-        api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-        setToken(newToken);
-        setUser(userData);
+        if (!userData) {
+          throw new Error("Data user tidak ditemukan pada response /me");
+        }
+
+        if (isMounted) {
+          setToken(storedToken);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error("Sesi kedaluwarsa atau token tidak valid:", error);
+
+        clearAuthStorage();
+        delete api.defaults.headers.common.Authorization;
+
+        if (isMounted) {
+          setToken(null);
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
     };
+  }, []);
 
-    const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        delete api.defaults.headers.common["Authorization"];
-        setToken(null);
-        setUser(null);
-    };
+  const login = (newToken: string, userData: User, remember = true) => {
+    persistAuth(newToken, userData, remember);
+    api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+    setToken(newToken);
+    setUser(userData);
+  };
 
-    const isAuthenticated = !!token;
+  const logout = () => {
+    clearAuthStorage();
+    delete api.defaults.headers.common.Authorization;
+    setToken(null);
+    setUser(null);
+  };
 
-    return (
-        <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const isAuthenticated = Boolean(token);
+
+  return (
+    <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

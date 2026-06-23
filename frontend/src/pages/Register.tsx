@@ -1,273 +1,243 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import api from "../services/api";
+import { useMemo, useState, type FormEvent } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+
+import AuthForm from "../components/auth/AuthForm";
+import AuthLayout from "../components/auth/AuthLayout";
+import FormField from "../components/auth/FormField";
+import PasswordToggle from "../components/auth/PasswordToggle";
 import { useAuth } from "../hooks/useAuth";
-import { C } from "../styles/tokens";
+import { getApiErrorMessage, registerUser } from "../services/authService";
 
-// ── Sub-komponen: LeftPanel ────────────────────────────────────────────────
-const LeftPanel: React.FC = () => (
-    <div style={{
-        flex: 1,
-        background: C.primary,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: "40px 36px",
-        position: "relative",
-        overflow: "hidden",
-    }}>
-        <span style={{ position: "absolute", top: -50, right: -50, width: 180, height: 180, borderRadius: "50%", background: C.heroDeco1, opacity: 0.4 }} />
-        <span style={{ position: "absolute", bottom: -40, left: -40, width: 140, height: 140, borderRadius: "50%", background: C.heroDeco2, opacity: 0.35 }} />
-        <span style={{ position: "absolute", bottom: 100, right: 24, width: 80, height: 80, borderRadius: "50%", background: C.heroDeco3, opacity: 0.3 }} />
+type RegisterFieldErrors = Partial<
+  Record<"name" | "email" | "password" | "confirmPassword", string>
+>;
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-            <div style={{ width: 38, height: 38, background: C.secondary, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10" />
-                    <path d="M12 2c0 5.5-4 10-10 10" />
-                </svg>
-            </div>
-            <span style={{ fontSize: 16, fontWeight: 500, color: C.secondary, letterSpacing: "0.3px" }}>Bjir E-Commerce</span>
-        </div>
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "28px 0", position: "relative", zIndex: 1 }}>
-            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-                {[
-                    { stroke: C.secondary, d: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" },
-                    { stroke: C.secondary, d: "M12 3C8.13 3 5 6.13 5 10s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7z" },
-                    { stroke: C.accent, d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
-                ].map((icon, i) => (
-                    <div key={i} style={{
-                        width: 52, height: 52,
-                        background: i === 2 ? "rgba(54,69,79,0.18)" : "rgba(255,255,255,0.12)",
-                        borderRadius: 12,
-                        border: `0.5px solid ${i === 2 ? "rgba(54,69,79,0.4)" : "rgba(255,255,255,0.18)"}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={icon.stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                            <path d={icon.d} />
-                        </svg>
-                    </div>
-                ))}
-            </div>
-            <h1 style={{ fontSize: 22, fontWeight: 500, color: C.secondary, lineHeight: 1.35, margin: "0 0 10px" }}>
-                Bergabung<br />Bersama Kami
-            </h1>
-            <p style={{ fontSize: 13, color: "rgba(231,215,201,0.75)", lineHeight: 1.65, margin: 0 }}>
-                Buat akun gratis dan mulai nikmati ribuan produk berkualitas.
-                <br />Dapatkan penawaran eksklusif khusus member baru!
-            </p>
-        </div>
+function validateRegisterForm(
+  name: string,
+  email: string,
+  password: string,
+  confirmPassword: string,
+): RegisterFieldErrors {
+  const errors: RegisterFieldErrors = {};
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
-            {["Gratis daftar", "Promo member", "Belanja aman"].map((label) => (
-                <span key={label} style={{
-                    fontSize: 11, color: C.pillText, background: C.pillBg,
-                    border: `0.5px solid ${C.pillBorder}`, borderRadius: 99, padding: "4px 12px",
-                }}>
-                    {label}
-                </span>
-            ))}
-        </div>
-    </div>
-);
+  if (name.trim().length < 2) {
+    errors.name = "Nama minimal 2 karakter.";
+  }
 
-// ── Sub-komponen: InputField & EyeToggle ────────────────────────────────────
-interface InputFieldProps {
-    id: string;
-    label: string;
-    type: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    placeholder: string;
-    autoComplete?: string;
-    required?: boolean;
-    rightSlot?: React.ReactNode;
+  if (!email.trim()) {
+    errors.email = "Email wajib diisi.";
+  } else if (!EMAIL_PATTERN.test(email.trim())) {
+    errors.email = "Format email tidak valid.";
+  }
+
+  if (password.length < 8) {
+    errors.password = "Kata sandi minimal 8 karakter.";
+  } else if (password.length > 72) {
+    errors.password = "Kata sandi maksimal 72 karakter.";
+  }
+
+  if (!confirmPassword) {
+    errors.confirmPassword = "Konfirmasi kata sandi wajib diisi.";
+  } else if (password !== confirmPassword) {
+    errors.confirmPassword = "Konfirmasi kata sandi tidak cocok.";
+  }
+
+  return errors;
 }
 
-const InputField: React.FC<InputFieldProps> = ({ id, label, type, value, onChange, placeholder, autoComplete, required, rightSlot }) => {
-    const [focused, setFocused] = useState(false);
-    return (
-        <div style={{ marginBottom: 14 }}>
-            <label htmlFor={id} style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.textLabel, marginBottom: 5 }}>{label}</label>
-            <div style={{
-                display: "flex", alignItems: "center", height: 40, background: "#fff",
-                border: `1px solid ${focused ? C.primary : C.border}`,
-                borderRadius: 8, padding: "0 12px", gap: 8,
-                boxShadow: focused ? `0 0 0 3px rgba(166,123,123,0.18)` : "none",
-                transition: "border-color 0.15s, box-shadow 0.15s",
-            }}>
-                <input id={id} name={id} type={type} value={value} onChange={onChange}
-                    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-                    placeholder={placeholder} autoComplete={autoComplete} required={required}
-                    style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 13, color: C.textDark }}
-                />
-                {rightSlot}
-            </div>
-        </div>
-    );
-};
+function getPasswordScore(password: string): number {
+  let score = 0;
 
-const EyeToggle: React.FC<{ show: boolean; onToggle: () => void }> = ({ show, onToggle }) => (
-    <button type="button" onClick={onToggle} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#a08888", display: "flex", alignItems: "center" }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            {show ? (
-                <>
-                    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                </>
-            ) : (
-                <>
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                </>
-            )}
-        </svg>
-    </button>
-);
+  if (password.length >= 8) {
+    score += 1;
+  }
 
-// ── Komponen utama: Register ───────────────────────────────────────────────
-const Register: React.FC = () => {
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  if (/[A-Z]/.test(password)) {
+    score += 1;
+  }
 
-    const navigate = useNavigate();
-    const { login } = useAuth();
+  if (/[0-9]/.test(password)) {
+    score += 1;
+  }
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
+  if (/[^A-Za-z0-9]/.test(password)) {
+    score += 1;
+  }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        setSuccess(null);
-        if (password !== confirmPassword) return setError("Password tidak cocok.");
-        setIsLoading(true);
-        try {
-            await api.post("/v1/auth/register", { name, email, password });
-            const res = await api.post("/v1/auth/login", { email, password });
-            login(res.data?.data?.access_token, res.data?.data?.user);
-            setSuccess("Sukses! Mengalihkan ke dashboard...");
-            setTimeout(() => navigate("/dashboard"), 1500);
-        } catch (err: unknown) {
-            console.error(err);
+  return score;
+}
 
-            if (err && typeof err === "object" && "response" in err) {
-                const apiError = err as { response?: { data?: { message?: string } } };
+function getPasswordStrengthLabel(score: number): string {
+  if (score <= 1) {
+    return "Lemah";
+  }
 
-                if (apiError.response?.data?.message) {
-                    setError(apiError.response.data.message);
-                    return;
-                }
-            }
+  if (score === 2) {
+    return "Cukup";
+  }
 
-            setError("Gagal mendaftar.");
-        } finally {
-            setIsLoading(false);
+  if (score === 3) {
+    return "Bagus";
+  }
+
+  return "Kuat";
+}
+
+function Register() {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const passwordScore = useMemo(() => getPasswordScore(password), [password]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const nextErrors = validateRegisterForm(name, email, password, confirmPassword);
+    setFieldErrors(nextErrors);
+    setFormError(null);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await registerUser({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
+
+      navigate("/login", {
+        replace: true,
+        state: {
+          authNotice: "Registrasi berhasil. Silakan login dengan akun barumu.",
+        },
+      });
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, "Gagal mendaftar. Silakan coba lagi."));
+      setIsSubmitting(false);
+    }
+  }
+
+  if (!isAuthLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <AuthLayout variant="register">
+      <AuthForm
+        title="Buat akun baru"
+        subtitle="Daftar sekali, lalu mulai jelajahi katalog produk dan checkout lebih cepat."
+        error={formError}
+        isSubmitting={isSubmitting}
+        submitLabel="Daftar sekarang"
+        submittingLabel="Mendaftarkan..."
+        onSubmit={handleSubmit}
+        footer={
+          <>
+            Sudah punya akun?{" "}
+            <Link
+              className="font-black text-[var(--color-primary-dark)] no-underline hover:underline"
+              to="/login"
+            >
+              Masuk di sini
+            </Link>
+          </>
         }
-    };
+      >
+        <FormField
+          id="name"
+          label="Nama"
+          type="text"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Nama Anda"
+          autoComplete="name"
+          error={fieldErrors.name}
+        />
 
-    return (
-        <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#ddd0c8", padding: isMobile ? 0 : 24 }}>
-            <style>{`
-                @keyframes registerFadeIn {
-                    from { opacity: 0; transform: translateY(12px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
+        <FormField
+          id="email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="email@contoh.com"
+          autoComplete="email"
+          error={fieldErrors.email}
+        />
 
-            <div style={{
-                display: "flex", width: "100%", maxWidth: 900, minHeight: isMobile ? "100vh" : 580,
-                borderRadius: isMobile ? 0 : 16, overflow: "hidden", background: "#fff",
-                animation: "registerFadeIn 1s ease-out forwards"
-            }}>
-                {!isMobile && <LeftPanel />}
+        <div className="grid gap-2">
+          <FormField
+            id="password"
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="••••••••"
+            autoComplete="new-password"
+            error={fieldErrors.password}
+            rightSlot={
+              <PasswordToggle
+                show={showPassword}
+                onToggle={() => setShowPassword((current) => !current)}
+              />
+            }
+          />
 
-                <div style={{ flex: 1, background: C.secondary, display: "flex", flexDirection: "column", justifyContent: "center", padding: "36px 40px" }}>
-                    <h2 style={{ fontSize: 20, fontWeight: 500, color: C.textDark, marginBottom: 4 }}>Buat akun baru</h2>
-                    <p style={{ fontSize: 13, color: C.textMuted, margin: "0 0 20px" }}>Daftar sekarang untuk mulai berbelanja.</p>
-
-                    {/* Tampilan Error */}
-                    {error && (
-                        <div style={{
-                            background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,
-                            padding: "10px 14px", fontSize: 13, color: "#b91c1c", marginBottom: 16,
-                        }}>
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Tampilan Sukses */}
-                    {success && (
-                        <div style={{
-                            background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8,
-                            padding: "10px 14px", fontSize: 13, color: "#16a34a", marginBottom: 16,
-                        }}>
-                            {success}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit}>
-                        <InputField
-                            id="name" label="Nama" type="text" value={name}
-                            onChange={(e) => setName(e.target.value)} placeholder="Nama Anda" required
-                        />
-
-                        <InputField
-                            id="email" label="Email" type="email" value={email}
-                            onChange={(e) => setEmail(e.target.value)} placeholder="Email" required
-                        />
-
-                        <InputField
-                            id="password" label="Password"
-                            type={showPassword ? "text" : "password"} value={password}
-                            onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required
-                            rightSlot={
-                                <EyeToggle show={showPassword} onToggle={() => setShowPassword((prev) => !prev)} />
-                            }
-                        />
-
-                        <InputField
-                            id="confirm" label="Konfirmasi Password"
-                            type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required
-                            rightSlot={
-                                <EyeToggle show={showConfirmPassword} onToggle={() => setShowConfirmPassword((prev) => !prev)} />
-                            }
-                        />
-
-                        <button
-                            type="submit" disabled={isLoading}
-                            style={{
-                                width: "100%", height: 42,
-                                background: isLoading ? C.primaryLight : C.primary,
-                                color: "#fff", border: "none", borderRadius: 8,
-                                cursor: isLoading ? "not-allowed" : "pointer"
-                            }}
-                        >
-                            {isLoading ? "Memproses..." : "Daftar sekarang"}
-                        </button>
-                    </form>
-
-                    <p style={{ textAlign: "center", marginTop: 18, fontSize: 12, color: C.textMuted }}>
-                        Sudah punya akun? <Link to="/login" style={{ color: C.accent, fontWeight: 500, textDecoration: "none" }}>Masuk di sini</Link>
-                    </p>
-                </div>
+          <div className="grid gap-2">
+            <div className="grid grid-cols-4 gap-2" aria-hidden="true">
+              {Array.from({ length: 4 }, (_, index) => (
+                <span
+                  className={[
+                    "h-2 border border-[var(--color-brutal-ink)]",
+                    index < passwordScore
+                      ? "bg-[var(--color-primary)]"
+                      : "bg-[var(--color-secondary)]",
+                  ].join(" ")}
+                  key={index}
+                />
+              ))}
             </div>
+            <p className="m-0 text-xs font-bold text-[var(--color-text-muted)]">
+              Kekuatan password: {getPasswordStrengthLabel(passwordScore)}
+            </p>
+          </div>
         </div>
-    );
-};
+
+        <FormField
+          id="confirmPassword"
+          label="Konfirmasi Password"
+          type={showConfirmPassword ? "text" : "password"}
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          placeholder="••••••••"
+          autoComplete="new-password"
+          error={fieldErrors.confirmPassword}
+          rightSlot={
+            <PasswordToggle
+              show={showConfirmPassword}
+              onToggle={() => setShowConfirmPassword((current) => !current)}
+            />
+          }
+        />
+      </AuthForm>
+    </AuthLayout>
+  );
+}
 
 export default Register;

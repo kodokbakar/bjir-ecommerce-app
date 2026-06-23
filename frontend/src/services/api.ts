@@ -43,6 +43,17 @@ function cleanParams<T extends object>(params?: T): Partial<T> {
   ) as Partial<T>;
 }
 
+export function readStoredToken(): string | null {
+  return localStorage.getItem("token") || sessionStorage.getItem("token");
+}
+
+export function clearAuthStorage(): void {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+}
+
 export function getApiOrigin(): string {
   if (!API_BASE_URL || API_BASE_URL.startsWith("/")) {
     return "";
@@ -57,7 +68,7 @@ export function getApiOrigin(): string {
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = readStoredToken();
 
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -72,7 +83,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      localStorage.removeItem("token");
+      clearAuthStorage();
 
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
