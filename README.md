@@ -93,6 +93,11 @@ docker compose up -d
 curl http://localhost:8080/health
 ```
 
+### Seeder
+```bash
+go run cmd/seed/main.go
+```
+
 ### Manual Setup
 
 ```bash
