@@ -9,6 +9,7 @@ export interface Category {
   parent_id?: string | null;
   parent?: Category | null;
   children?: Category[];
+  product_count?: number;
   created_at?: string;
   updated_at?: string;
 }

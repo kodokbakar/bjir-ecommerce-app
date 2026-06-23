@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import CategoryBar from "../components/CategoryBar";
+import CategorySidebar from "../components/CategorySidebar";
 import Pagination from "../components/Pagination";
 import ProductCard from "../components/ProductCard";
 import { listCategories, listProducts } from "../services/productService";
@@ -133,6 +135,9 @@ function Products() {
   const [reloadKey, setReloadKey] = useState(0);
   const [categoryReloadKey, setCategoryReloadKey] = useState(0);
 
+  const activeCategoryName =
+    categories.find((item) => item.slug === category)?.name || category;
+
   const hasActiveFilters = Boolean(category || search || sort !== "relevance");
 
   const productQuery = useMemo<ProductListParams>(() => {
@@ -235,9 +240,9 @@ function Products() {
     });
   }
 
-  function handleCategoryChange(event: ChangeEvent<HTMLSelectElement>) {
+  function handleCategorySelect(slug: string) {
     updateQuery({
-      category: event.target.value,
+      category: slug,
       page: 1,
     });
   }
@@ -284,126 +289,119 @@ function Products() {
         </p>
       </header>
 
-      <div className="products-toolbar" aria-label="Product controls">
-        <label className="products-field">
-          <span className="products-label">Search</span>
-          <input
-            className="products-input"
-            type="search"
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Search products..."
-            aria-label="Search products"
+      <div className="products-catalog-layout">
+        <CategorySidebar
+          categories={categories}
+          activeCategory={category}
+          isLoading={isLoadingCategories}
+          error={categoryError}
+          onSelect={handleCategorySelect}
+          onRetry={handleCategoryRetry}
+        />
+
+        <div className="products-results-stack">
+          <CategoryBar
+            categories={categories}
+            activeCategory={category}
+            isLoading={isLoadingCategories}
+            error={categoryError}
+            onSelect={handleCategorySelect}
+            onRetry={handleCategoryRetry}
           />
-        </label>
 
-        <label className="products-field">
-          <span className="products-label">Category</span>
-          <select
-            className="products-select"
-            value={category}
-            onChange={handleCategoryChange}
-            disabled={isLoadingCategories}
-            aria-label="Filter by category"
-          >
-            <option value="">
-              {isLoadingCategories ? "Loading categories..." : "All Categories"}
-            </option>
-            {categories.map((item) => (
-              <option key={item.id} value={item.slug}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+          <div className="products-toolbar products-toolbar-compact" aria-label="Product controls">
+            <label className="products-field">
+              <span className="products-label">Search</span>
+              <input
+                className="products-input"
+                type="search"
+                value={search}
+                onChange={handleSearchChange}
+                placeholder="Search products..."
+                aria-label="Search products"
+              />
+            </label>
 
-          {categoryError && (
-            <div className="products-category-error" role="status">
-              <span>Category list failed to load.</span>
-              <button type="button" onClick={handleCategoryRetry}>
-                Retry
-              </button>
-            </div>
-          )}
-        </label>
-
-        <label className="products-field">
-          <span className="products-label">Sort</span>
-          <select
-            className="products-select"
-            value={sort}
-            onChange={handleSortChange}
-            aria-label="Sort products"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="products-status-line">
-        <span>
-          {isLoadingProducts
-            ? "Loading product rows..."
-            : `${meta.total} product${meta.total === 1 ? "" : "s"} found`}
-          {category ? ` in ${category}` : ""}
-          {search ? ` for "${search}"` : ""}
-        </span>
-
-        {hasActiveFilters && (
-          <button className="products-clear-button" type="button" onClick={handleClearFilters}>
-            Clear filters
-          </button>
-        )}
-      </div>
-
-      {isLoadingProducts ? (
-        <ProductsSkeleton />
-      ) : error ? (
-        <div className="products-panel-state" role="alert">
-          <div>
-            <h2>Catalog jammed.</h2>
-            <p>{error}</p>
-            <button className="products-retry-button" type="button" onClick={handleRetry}>
-              Retry
-            </button>
+            <label className="products-field">
+              <span className="products-label">Sort</span>
+              <select
+                className="products-select"
+                value={sort}
+                onChange={handleSortChange}
+                aria-label="Sort products"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-        </div>
-      ) : products.length === 0 ? (
-        <div className="products-panel-state">
-          <div>
-            <h2>No products found.</h2>
-            <p>
-              {hasActiveFilters
-                ? "Your current search, category, or sorting context returned no products. Reset the filters or try a wider query."
-                : "The catalog is empty. Add products from the admin side before exposing this shelf to buyers."}
-            </p>
+
+          <div className="products-status-line">
+            <span>
+              {isLoadingProducts
+                ? "Loading product rows..."
+                : `${meta.total} product${meta.total === 1 ? "" : "s"} found`}
+              {category ? ` in ${activeCategoryName}` : ""}
+              {search ? ` for "${search}"` : ""}
+            </span>
+
             {hasActiveFilters && (
-              <button className="products-retry-button" type="button" onClick={handleClearFilters}>
-                Reset catalog
+              <button className="products-clear-button" type="button" onClick={handleClearFilters}>
+                Clear filters
               </button>
             )}
           </div>
-        </div>
-      ) : (
-        <>
-          <div className="products-grid">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
 
-          <Pagination
-            page={meta.page}
-            limit={meta.limit}
-            total={meta.total}
-            totalPages={meta.total_pages}
-            onPageChange={handlePageChange}
-          />
-        </>
-      )}
+          {isLoadingProducts ? (
+            <ProductsSkeleton />
+          ) : error ? (
+            <div className="products-panel-state" role="alert">
+              <div>
+                <h2>Catalog jammed.</h2>
+                <p>{error}</p>
+                <button className="products-retry-button" type="button" onClick={handleRetry}>
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="products-panel-state">
+              <div>
+                <h2>No products found.</h2>
+                <p>
+                  {hasActiveFilters
+                    ? "Your current search, category, or sorting context returned no products. Reset the filters or try a wider query."
+                    : "The catalog is empty. Add products from the admin side before exposing this shelf to buyers."}
+                </p>
+                {hasActiveFilters && (
+                  <button className="products-retry-button" type="button" onClick={handleClearFilters}>
+                    Reset catalog
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="products-grid">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+
+              <Pagination
+                page={meta.page}
+                limit={meta.limit}
+                total={meta.total}
+                totalPages={meta.total_pages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          )}
+        </div>
+      </div>
     </section>
   );
 }

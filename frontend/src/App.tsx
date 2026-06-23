@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CategoryProducts from "./pages/CategoryProducts";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import ProductDetail from "./pages/ProductDetail";
@@ -39,6 +40,15 @@ function App() {
           element={
             <Layout>
               <ProductDetail />
+            </Layout>
+          }
+        />
+
+        <Route
+          path="/categories/:slug"
+          element={
+            <Layout>
+              <CategoryProducts />
             </Layout>
           }
         />
