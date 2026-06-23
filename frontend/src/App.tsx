@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import ProductDetail from "./pages/ProductDetail";
 import Products from "./pages/Products";
 import Register from "./pages/Register";
 
@@ -29,6 +30,15 @@ function App() {
           element={
             <Layout>
               <Products />
+            </Layout>
+          }
+        />
+
+        <Route
+          path="/products/:slug"
+          element={
+            <Layout>
+              <ProductDetail />
             </Layout>
           }
         />
