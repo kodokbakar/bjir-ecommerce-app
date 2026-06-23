@@ -70,6 +70,10 @@ export function getPageTitle(pathname: string): string {
     return "Profile";
   }
 
+  if (pathname.startsWith("/payment")) {
+    return "Payment";
+  }
+
   const activeItem = MAIN_NAV_ITEMS.find((item) =>
     pathname.startsWith(item.path),
   );
@@ -161,6 +165,20 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     breadcrumbs.push({
       label: "Orders",
     });
+
+    return breadcrumbs;
+  }
+
+  if (pathname.startsWith("/payment")) {
+    breadcrumbs.push(
+      {
+        label: "Orders",
+        path: "/orders",
+      },
+      {
+        label: "Payment",
+      },
+    );
 
     return breadcrumbs;
   }

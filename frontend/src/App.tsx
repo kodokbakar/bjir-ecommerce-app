@@ -13,6 +13,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Products from "./pages/Products";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import Payment from "./pages/Payment";
 
 function App() {
   return (
@@ -99,6 +100,15 @@ function App() {
           element={
             <Layout>
               <Profile />
+            </Layout>
+          }
+        />
+
+        <Route
+          path="/payment"
+          element={
+            <Layout>
+              <Payment />
             </Layout>
           }
         />
