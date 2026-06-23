@@ -12,6 +12,7 @@
 *.dylib
 /bjir-ecommerce-app
 /cmd/server/server
+/seed
 
 # Test binary
 *.test

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -14,7 +15,7 @@ import (
 	"github.com/kodokbakar/go-ecommerce-api/internal/database"
 )
 
-const seedPassword = "password123"
+const defaultSeedPassword = "password123"
 
 type seedUser struct {
 	Name  string
@@ -149,6 +150,8 @@ func seed(ctx context.Context, tx pgx.Tx) error {
 }
 
 func seedUsers(ctx context.Context, tx pgx.Tx) (map[string]string, error) {
+	seedPassword := getSeedPassword()
+
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(seedPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash seed password: %w", err)
@@ -250,16 +253,9 @@ func seedCategories(ctx context.Context, tx pgx.Tx) (map[string]string, error) {
 
 	categoryIDs := make(map[string]string, len(categories))
 
+	// Pass 1: upsert all categories without parent_id first.
+	// This makes seed data independent from category slice order.
 	for _, category := range categories {
-		var parentID *string
-		if category.ParentSlug != "" {
-			id, ok := categoryIDs[category.ParentSlug]
-			if !ok {
-				return nil, fmt.Errorf("parent category %s not found for %s", category.ParentSlug, category.Slug)
-			}
-			parentID = &id
-		}
-
 		var id string
 		err := tx.QueryRow(ctx, `
 			INSERT INTO categories (
@@ -270,21 +266,44 @@ func seedCategories(ctx context.Context, tx pgx.Tx) (map[string]string, error) {
 				parent_id,
 				is_active
 			)
-			VALUES ($1, $2, $3, $4, $5, TRUE)
+			VALUES ($1, $2, $3, $4, NULL, TRUE)
 			ON CONFLICT (slug) DO UPDATE
 			SET name = EXCLUDED.name,
 				description = EXCLUDED.description,
 				image_url = EXCLUDED.image_url,
-				parent_id = EXCLUDED.parent_id,
+				parent_id = NULL,
 				is_active = TRUE,
 				updated_at = NOW()
 			RETURNING id::text
-		`, category.Name, category.Slug, category.Description, category.ImageURL, parentID).Scan(&id)
+		`, category.Name, category.Slug, category.Description, category.ImageURL).Scan(&id)
 		if err != nil {
 			return nil, fmt.Errorf("seed category %s: %w", category.Slug, err)
 		}
 
 		categoryIDs[category.Slug] = id
+	}
+
+	// Pass 2: resolve parent_id after every category slug already has an ID.
+	for _, category := range categories {
+		var parentID *string
+
+		if category.ParentSlug != "" {
+			id, ok := categoryIDs[category.ParentSlug]
+			if !ok {
+				return nil, fmt.Errorf("parent category %s not found for %s", category.ParentSlug, category.Slug)
+			}
+
+			parentID = &id
+		}
+
+		if _, err := tx.Exec(ctx, `
+			UPDATE categories
+			SET parent_id = $2,
+				updated_at = NOW()
+			WHERE slug = $1
+		`, category.Slug, parentID); err != nil {
+			return nil, fmt.Errorf("set parent category %s: %w", category.Slug, err)
+		}
 	}
 
 	return categoryIDs, nil
@@ -856,4 +875,13 @@ func calculateOrderTotal(order seedOrder, products map[string]seededProduct) (in
 func daysAgo(days int) *time.Time {
 	value := time.Now().AddDate(0, 0, -days)
 	return &value
+}
+
+func getSeedPassword() string {
+	password := os.Getenv("SEED_PASSWORD")
+	if password == "" {
+		return defaultSeedPassword
+	}
+
+	return password
 }
