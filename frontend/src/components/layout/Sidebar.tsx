@@ -9,11 +9,13 @@ import { useLayoutCategories } from "./useLayoutCategories";
 interface SidebarProps {
   isCollapsed: boolean;
   isMobileOpen: boolean;
+  cartCount: number;
   onCloseMobile: () => void;
 }
 
 interface SidebarContentProps {
   isCollapsed: boolean;
+  cartCount: number;
   onNavigate?: () => void;
 }
 
@@ -39,7 +41,11 @@ function Brand({ isCollapsed }: { isCollapsed: boolean }) {
   );
 }
 
-function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps) {
+function SidebarContent({
+  isCollapsed,
+  cartCount,
+  onNavigate,
+}: SidebarContentProps) {
   const location = useLocation();
   const { categories, error, isLoading } = useLayoutCategories();
 
@@ -65,6 +71,7 @@ function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps) {
               Icon={item.Icon}
               isActive={isActive}
               isCollapsed={isCollapsed}
+              badgeCount={item.path === "/cart" ? cartCount : 0}
               onClick={onNavigate}
             />
           );
@@ -131,7 +138,12 @@ function SidebarContent({ isCollapsed, onNavigate }: SidebarContentProps) {
   );
 }
 
-function Sidebar({ isCollapsed, isMobileOpen, onCloseMobile }: SidebarProps) {
+function Sidebar({
+  isCollapsed,
+  isMobileOpen,
+  cartCount,
+  onCloseMobile,
+}: SidebarProps) {
   useEffect(() => {
     if (!isMobileOpen) {
       return;
@@ -159,11 +171,15 @@ function Sidebar({ isCollapsed, isMobileOpen, onCloseMobile }: SidebarProps) {
           isCollapsed ? "lg:w-[76px]" : "lg:w-[260px]",
         ].join(" ")}
       >
-        <SidebarContent isCollapsed={isCollapsed} />
+        <SidebarContent isCollapsed={isCollapsed} cartCount={cartCount} />
       </aside>
 
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          role="dialog"
+          aria-modal="true"
+        >
           <button
             className="absolute inset-0 bg-black/45"
             type="button"
@@ -172,7 +188,11 @@ function Sidebar({ isCollapsed, isMobileOpen, onCloseMobile }: SidebarProps) {
           />
 
           <aside className="relative flex h-full w-[82vw] max-w-[320px] animate-[products-page-enter_220ms_ease-out] flex-col overflow-hidden border-r-4 border-[var(--color-brutal-ink)] bg-white shadow-[8px_0_0_var(--color-brutal-ink)]">
-            <SidebarContent isCollapsed={false} onNavigate={onCloseMobile} />
+            <SidebarContent
+              isCollapsed={false}
+              cartCount={cartCount}
+              onNavigate={onCloseMobile}
+            />
           </aside>
         </div>
       )}

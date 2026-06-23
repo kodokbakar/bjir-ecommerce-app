@@ -17,6 +17,10 @@ type ApiDataResponse<T> = {
   data: T;
 };
 
+type CartChangeListener = () => void;
+
+const cartChangeListeners = new Set<CartChangeListener>();
+
 function isApiDataResponse<T>(value: unknown): value is ApiDataResponse<T> {
   return typeof value === "object" && value !== null && "data" in value;
 }
@@ -43,6 +47,22 @@ function requirePositiveQuantity(quantity: number): number {
   return quantity;
 }
 
+export function subscribeToCartChanges(
+  listener: CartChangeListener,
+): () => void {
+  cartChangeListeners.add(listener);
+
+  return () => {
+    cartChangeListeners.delete(listener);
+  };
+}
+
+export function notifyCartChanged(): void {
+  cartChangeListeners.forEach((listener) => {
+    listener();
+  });
+}
+
 export function getCartItemPrice(item: CartItem): number {
   if (typeof item.product?.price === "number") {
     return item.product.price;
@@ -53,6 +73,10 @@ export function getCartItemPrice(item: CartItem): number {
 
 export function getCartItemSubtotal(item: CartItem): number {
   return getCartItemPrice(item) * item.quantity;
+}
+
+export function getCartItemCount(cart: Cart): number {
+  return cart.items.length;
 }
 
 export function normalizeCart(cart: Cart): Cart {
@@ -101,6 +125,12 @@ export async function getCart(): Promise<Cart> {
   return unwrapData(response.data);
 }
 
+export async function getCartCount(): Promise<number> {
+  const cart = await getCart();
+
+  return getCartItemCount(normalizeCart(cart));
+}
+
 export async function addCartItem(
   productID: string,
   quantity = 1,
@@ -115,7 +145,10 @@ export async function addCartItem(
     payload,
   );
 
-  return unwrapData(response.data);
+  const item = unwrapData(response.data);
+  notifyCartChanged();
+
+  return item;
 }
 
 export async function updateCartItem(
@@ -131,13 +164,18 @@ export async function updateCartItem(
     payload,
   );
 
-  return unwrapData(response.data);
+  const item = unwrapData(response.data);
+  notifyCartChanged();
+
+  return item;
 }
 
 export async function removeCartItem(itemID: string): Promise<void> {
   await api.delete(
     `/v1/cart/items/${encodeURIComponent(requireValue(itemID, "Cart item ID"))}`,
   );
+
+  notifyCartChanged();
 }
 
 export async function checkoutCart(): Promise<Order> {
@@ -145,17 +183,24 @@ export async function checkoutCart(): Promise<Order> {
     "/v1/orders/checkout",
   );
 
-  return unwrapData(response.data);
+  const order = unwrapData(response.data);
+  notifyCartChanged();
+
+  return order;
 }
 
 export const cartService = {
   getCart,
+  getCartCount,
   addCartItem,
   updateCartItem,
   removeCartItem,
   checkoutCart,
   getCartItemPrice,
   getCartItemSubtotal,
+  getCartItemCount,
   normalizeCart,
+  subscribeToCartChanges,
+  notifyCartChanged,
   getCartErrorMessage,
 };

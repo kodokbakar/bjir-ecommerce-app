@@ -1,12 +1,15 @@
 import { Link } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
+import CartBadge from "../CartBadge";
+
 interface NavItemProps {
   to: string;
   label: string;
   Icon: LucideIcon;
   isActive: boolean;
   isCollapsed?: boolean;
+  badgeCount?: number;
   onClick?: () => void;
 }
 
@@ -16,6 +19,7 @@ function NavItem({
   Icon,
   isActive,
   isCollapsed = false,
+  badgeCount = 0,
   onClick,
 }: NavItemProps) {
   const linkClassName = [
@@ -37,7 +41,10 @@ function NavItem({
       aria-current={isActive ? "page" : undefined}
       onClick={onClick}
     >
-      <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+      <span className="relative grid h-5 w-5 shrink-0 place-items-center">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+        <CartBadge count={badgeCount} />
+      </span>
 
       {!isCollapsed && <span className="truncate">{label}</span>}
     </Link>

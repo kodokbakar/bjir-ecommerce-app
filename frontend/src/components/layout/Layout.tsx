@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from "react";
 
+import { useCartCount } from "../../hooks/useCartCount";
 import Footer from "./Footer";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -11,6 +12,7 @@ interface LayoutProps {
 function Layout({ children }: LayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const { count: cartCount } = useCartCount();
 
   const handleToggleCollapse = useCallback(() => {
     setIsSidebarCollapsed((current) => !current);
@@ -29,6 +31,7 @@ function Layout({ children }: LayoutProps) {
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         isMobileOpen={isMobileSidebarOpen}
+        cartCount={cartCount}
         onCloseMobile={handleCloseMobile}
       />
 
@@ -41,6 +44,7 @@ function Layout({ children }: LayoutProps) {
       >
         <Header
           isCollapsed={isSidebarCollapsed}
+          cartCount={cartCount}
           onToggleCollapse={handleToggleCollapse}
           onOpenMobile={handleOpenMobile}
         />
