@@ -17,6 +17,14 @@ interface ApiListResponse<TData> {
   meta?: Partial<OrderListMeta>;
 }
 
+interface ApiDataResponse<TData> {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  details?: string;
+  data: TData;
+}
+
 const DEFAULT_ORDER_META: OrderListMeta = {
   page: 1,
   limit: 8,
@@ -79,4 +87,12 @@ export async function listOrders(
     data: response.data.data,
     meta: normalizeMeta(response.data.meta),
   };
+}
+
+export async function getOrderById(orderID: string): Promise<Order> {
+  const response = await api.get<ApiDataResponse<Order>>(
+    `/v1/orders/${encodeURIComponent(orderID)}`,
+  );
+
+  return response.data.data;
 }

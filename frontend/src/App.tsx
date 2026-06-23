@@ -7,10 +7,11 @@ import CategoryProducts from "./pages/CategoryProducts";
 import Checkout from "./pages/Checkout";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import MyOrders from "./pages/MyOrders";
+import OrderDetail from "./pages/OrderDetail";
 import ProductDetail from "./pages/ProductDetail";
 import Products from "./pages/Products";
 import Register from "./pages/Register";
-import MyOrders from "./pages/MyOrders";
 
 function App() {
   return (
@@ -73,15 +74,25 @@ function App() {
             </Layout>
           }
         />
+
+        <Route
+          path="/orders"
+          element={
+            <Layout>
+              <MyOrders />
+            </Layout>
+          }
+        />
+
+        <Route
+          path="/orders/:id"
+          element={
+            <Layout>
+              <OrderDetail />
+            </Layout>
+          }
+        />
       </Route>
-      <Route
-        path="/orders"
-        element={
-          <Layout>
-            <MyOrders />
-          </Layout>
-        }
-      />
     </Routes>
   );
 }
