@@ -2,50 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getImageUrl } from "../services/productService";
-import { C } from "../styles/tokens";
+import { formatRupiah, getProductImage, getStockState } from "../utils/product";
 import type { Product } from "../types/product";
 
 interface ProductCardProps {
   product: Product;
-}
-
-type StockState = {
-  label: string;
-  className: string;
-};
-
-function formatRupiah(value: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function getStockState(stock: number): StockState {
-  if (stock <= 0) {
-    return {
-      label: "Out of Stock",
-      className: "is-out",
-    };
-  }
-
-  if (stock <= 5) {
-    return {
-      label: "Low Stock",
-      className: "is-low",
-    };
-  }
-
-  return {
-    label: "In Stock",
-    className: "is-in",
-  };
-}
-
-function getProductImage(product: Product): string {
-  const galleryImage = product.images?.[0]?.image_url;
-  return product.image_url || galleryImage || "";
 }
 
 function ProductPlaceholder() {
@@ -97,9 +58,7 @@ function ProductCard({ product }: ProductCardProps) {
         <h3 className="product-card-title">{product.name}</h3>
 
         <div className="product-card-footer">
-          <span className="product-card-price" style={{ color: C.primaryDark }}>
-            {formatRupiah(product.price)}
-          </span>
+          <span className="product-card-price">{formatRupiah(product.price)}</span>
 
           <span className="product-card-stock-count">
             {product.stock > 0 ? `${product.stock} left` : "Sold out"}
