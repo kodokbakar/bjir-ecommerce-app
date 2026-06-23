@@ -1,38 +1,143 @@
 import axios from "axios";
 
+import type {
+  Category,
+  Product,
+  ProductListMeta,
+  ProductListParams,
+  ProductListResponse,
+} from "../types/product";
 
-const API_BASE_URL = "/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "/api";
 
 const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
+  baseURL: API_BASE_URL,
+  headers: {
     "Content-Type": "application/json",
-    },
+  },
 });
 
+type ApiDataResponse<T> = {
+  success?: boolean;
+  message?: string;
+  data: T;
+};
+
+type ApiListResponse<TData, TMeta> = ApiDataResponse<TData> & {
+  meta: TMeta;
+};
+
+function isApiDataResponse<T>(value: unknown): value is ApiDataResponse<T> {
+  return typeof value === "object" && value !== null && "data" in value;
+}
+
+function unwrapData<T>(value: T | ApiDataResponse<T>): T {
+  return isApiDataResponse<T>(value) ? value.data : value;
+}
+
+function cleanParams<T extends object>(params?: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(params ?? {}).filter(([, value]) => {
+      return value !== undefined && value !== null && value !== "";
+    }),
+  ) as Partial<T>;
+}
+
+export function getApiOrigin(): string {
+  if (!API_BASE_URL || API_BASE_URL.startsWith("/")) {
+    return "";
+  }
+
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch {
+    return "";
+  }
+}
 
 api.interceptors.request.use(
-    (config) => {
+  (config) => {
     const token = localStorage.getItem("token");
+
     if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
-    },
-    (error) => {
-    return Promise.reject(error);
-},
+  },
+  (error) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-    if (error.response && error.response.status === 401) {
-        localStorage.removeItem("token");
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      localStorage.removeItem("token");
+
+      if (window.location.pathname !== "/login") {
         window.location.href = "/login";
+      }
     }
+
     return Promise.reject(error);
-    },
+  },
 );
+
+export const productApi = {
+  async list(params?: ProductListParams): Promise<ProductListResponse> {
+    const response = await api.get<
+      ApiListResponse<Product[], ProductListMeta>
+    >("/v1/products", {
+      params: cleanParams(params),
+    });
+
+    return {
+      data: response.data.data,
+      meta: response.data.meta,
+    };
+  },
+
+  async getById(id: string): Promise<Product> {
+    const response = await api.get<Product | ApiDataResponse<Product>>(
+      `/v1/products/${encodeURIComponent(id)}`,
+    );
+
+    return unwrapData(response.data);
+  },
+
+  async getBySlug(slug: string): Promise<Product> {
+    const response = await api.get<Product | ApiDataResponse<Product>>(
+      `/v1/products/slug/${encodeURIComponent(slug)}`,
+    );
+
+    return unwrapData(response.data);
+  },
+};
+
+export const categoryApi = {
+  async list(): Promise<Category[]> {
+    const response = await api.get<Category[] | ApiDataResponse<Category[]>>(
+      "/v1/categories",
+    );
+
+    return unwrapData(response.data);
+  },
+
+  async getById(id: string): Promise<Category> {
+    const response = await api.get<Category | ApiDataResponse<Category>>(
+      `/v1/categories/${encodeURIComponent(id)}`,
+    );
+
+    return unwrapData(response.data);
+  },
+
+  async getBySlug(slug: string): Promise<Category> {
+    const response = await api.get<Category | ApiDataResponse<Category>>(
+      `/v1/categories/slug/${encodeURIComponent(slug)}`,
+    );
+
+    return unwrapData(response.data);
+  },
+};
 
 export default api;

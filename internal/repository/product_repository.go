@@ -140,7 +140,11 @@ func (r *productRepository) FindAll(ctx context.Context, filter ProductListFilte
 		LEFT JOIN categories c ON c.id = p.category_id
 		WHERE p.is_active = true
 		AND ($1 = '' OR p.category_id::text = $1)
-		AND ($2 = '' OR p.name ILIKE '%' || $2 || '%')
+		AND (
+			$2 = ''
+			OR p.name ILIKE '%' || $2 || '%'
+			OR COALESCE(p.description, '') ILIKE '%' || $2 || '%'
+		)
 		AND ($3 = '' OR c.slug = $3)
 	`
 
@@ -183,7 +187,11 @@ func (r *productRepository) FindAll(ctx context.Context, filter ProductListFilte
 		LEFT JOIN categories c ON c.id = p.category_id
 		WHERE p.is_active = true
 		AND ($1 = '' OR p.category_id::text = $1)
-		AND ($2 = '' OR p.name ILIKE '%' || $2 || '%')
+		AND (
+			$2 = ''
+			OR p.name ILIKE '%' || $2 || '%'
+			OR COALESCE(p.description, '') ILIKE '%' || $2 || '%'
+		)
 		AND ($3 = '' OR c.slug = $3)
 		ORDER BY ` + orderBy + `
 		LIMIT $4 OFFSET $5
