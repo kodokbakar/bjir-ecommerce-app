@@ -2727,19 +2727,6 @@ a.product-detail-category:hover {
   width: 30%;
 }
 
-.orders-footnote {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: fit-content;
-  border: 2px dashed var(--color-brutal-ink);
-  background: var(--color-brutal-paper);
-  color: var(--color-text-muted);
-  padding: 10px 12px;
-  font-size: 12px;
-  font-weight: 850;
-}
-
 @media (max-width: 860px) {
   .orders-table-head {
     display: none;
@@ -2769,9 +2756,5 @@ a.product-detail-category:hover {
   .orders-status-line {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .orders-footnote {
-    width: 100%;
   }
 }

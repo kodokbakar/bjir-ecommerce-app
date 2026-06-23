@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Clock3, PackageCheck, ShoppingBag } from "lucide-react";
+import { AlertTriangle, Clock3, PackageCheck } from "lucide-react";
 
 import { getOrderErrorMessage, listOrders } from "../services/orderService";
 import type { Order, OrderListMeta, OrderStatus } from "../types/order";
@@ -201,24 +201,23 @@ function MyOrders() {
             </span>
           </div>
 
-          <div className="orders-table" role="table" aria-label="My orders">
-            <div className="orders-table-head" role="row">
-              <span role="columnheader">Order</span>
-              <span role="columnheader">Date</span>
-              <span role="columnheader">Total</span>
-              <span role="columnheader">Status</span>
+          <div className="orders-table" aria-label="My orders">
+            <div className="orders-table-head" aria-hidden="true">
+              <span>Order</span>
+              <span>Date</span>
+              <span>Total</span>
+              <span>Status</span>
             </div>
 
-            <div className="orders-list" role="rowgroup">
+            <div className="orders-list">
               {orders.map((order) => (
                 <Link
                   className="orders-row"
                   key={order.id}
                   to={`/orders/${order.id}`}
-                  role="row"
                   aria-label={`Open order ${order.order_number}`}
                 >
-                  <span className="orders-order-cell" role="cell">
+                  <span className="orders-order-cell">
                     <span className="orders-icon-box">
                       <PackageCheck className="h-5 w-5" aria-hidden="true" />
                     </span>
@@ -229,15 +228,15 @@ function MyOrders() {
                     </span>
                   </span>
 
-                  <span className="orders-date-cell" role="cell">
+                  <span className="orders-date-cell">
                     {formatOrderDate(order.created_at)}
                   </span>
 
-                  <strong className="orders-total-cell" role="cell">
+                  <strong className="orders-total-cell">
                     {formatRupiah(order.total_amount)}
                   </strong>
 
-                  <span role="cell">
+                  <span>
                     <span
                       className={`orders-status-badge ${getStatusClassName(
                         order.status,
@@ -276,13 +275,6 @@ function MyOrders() {
           </nav>
         </>
       )}
-
-      <aside className="orders-footnote">
-        <ShoppingBag className="h-5 w-5" aria-hidden="true" />
-        <span>
-          No filter yet. Add status filter later when buyers ask for it.
-        </span>
-      </aside>
     </section>
   );
 }
