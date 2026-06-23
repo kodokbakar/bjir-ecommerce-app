@@ -6,7 +6,6 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
   ShoppingCart,
   User,
 } from "lucide-react";
@@ -190,22 +189,12 @@ function Header({
 
               <Link
                 className="mt-2 flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-[var(--color-text-dark)] no-underline hover:bg-[var(--color-secondary)]"
-                to="/settings"
+                to="/profile"
                 role="menuitem"
                 onClick={() => setIsUserMenuOpen(false)}
               >
                 <User className="h-4 w-4" aria-hidden="true" />
                 Profile
-              </Link>
-
-              <Link
-                className="flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-[var(--color-text-dark)] no-underline hover:bg-[var(--color-secondary)]"
-                to="/settings"
-                role="menuitem"
-                onClick={() => setIsUserMenuOpen(false)}
-              >
-                <Settings className="h-4 w-4" aria-hidden="true" />
-                Settings
               </Link>
 
               <button

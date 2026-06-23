@@ -16,6 +16,12 @@ interface AuthPayload {
   user: User;
 }
 
+type MeResponse =
+  | ApiDataResponse<User | { user?: User }>
+  | {
+      user?: User;
+    };
+
 export interface LoginInput {
   email: string;
   password: string;
@@ -33,7 +39,10 @@ export interface AuthResult {
 }
 
 export async function loginUser(input: LoginInput): Promise<AuthResult> {
-  const response = await api.post<ApiDataResponse<AuthPayload>>("/v1/auth/login", input);
+  const response = await api.post<ApiDataResponse<AuthPayload>>(
+    "/v1/auth/login",
+    input,
+  );
   const payload = response.data.data;
 
   if (!payload?.access_token || !payload.user) {
@@ -48,6 +57,32 @@ export async function loginUser(input: LoginInput): Promise<AuthResult> {
 
 export async function registerUser(input: RegisterInput): Promise<void> {
   await api.post<ApiDataResponse<AuthPayload>>("/v1/auth/register", input);
+}
+
+function unwrapCurrentUser(payload: MeResponse): User {
+  if ("data" in payload) {
+    const data = payload.data;
+
+    if (data && typeof data === "object" && "user" in data && data.user) {
+      return data.user;
+    }
+
+    if (data && typeof data === "object" && "id" in data) {
+      return data as User;
+    }
+  }
+
+  if ("user" in payload && payload.user) {
+    return payload.user;
+  }
+
+  throw new Error("Format respon profil dari server tidak sesuai.");
+}
+
+export async function getCurrentUser(): Promise<User> {
+  const response = await api.get<MeResponse>("/v1/auth/me");
+
+  return unwrapCurrentUser(response.data);
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {

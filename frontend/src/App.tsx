@@ -12,6 +12,7 @@ import OrderDetail from "./pages/OrderDetail";
 import ProductDetail from "./pages/ProductDetail";
 import Products from "./pages/Products";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -92,6 +93,17 @@ function App() {
             </Layout>
           }
         />
+
+        <Route
+          path="/profile"
+          element={
+            <Layout>
+              <Profile />
+            </Layout>
+          }
+        />
+
+        <Route path="/settings" element={<Navigate to="/profile" replace />} />
       </Route>
     </Routes>
   );

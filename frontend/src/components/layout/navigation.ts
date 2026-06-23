@@ -43,8 +43,8 @@ export const MAIN_NAV_ITEMS: NavigationItem[] = [
     Icon: ShoppingBag,
   },
   {
-    label: "Pengaturan",
-    path: "/settings",
+    label: "Profil",
+    path: "/profile",
     Icon: Settings,
   },
 ];
@@ -64,6 +64,10 @@ export function getPageTitle(pathname: string): string {
 
   if (pathname.startsWith("/orders/")) {
     return "Order Detail";
+  }
+
+  if (pathname.startsWith("/profile")) {
+    return "Profile";
   }
 
   const activeItem = MAIN_NAV_ITEMS.find((item) =>
@@ -161,9 +165,9 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     return breadcrumbs;
   }
 
-  if (pathname.startsWith("/settings")) {
+  if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
     breadcrumbs.push({
-      label: "Settings",
+      label: "Profile",
     });
 
     return breadcrumbs;
