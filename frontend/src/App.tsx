@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import ProductDetail from "./pages/ProductDetail";
 import Products from "./pages/Products";
 import Register from "./pages/Register";
+import MyOrders from "./pages/MyOrders";
 
 function App() {
   return (
@@ -73,6 +74,14 @@ function App() {
           }
         />
       </Route>
+      <Route
+        path="/orders"
+        element={
+          <Layout>
+            <MyOrders />
+          </Layout>
+        }
+      />
     </Routes>
   );
 }

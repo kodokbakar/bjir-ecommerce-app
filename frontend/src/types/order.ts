@@ -28,3 +28,20 @@ export interface Order {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface OrderListParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface OrderListMeta {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface OrderListResponse {
+  data: Order[];
+  meta: OrderListMeta;
+}
