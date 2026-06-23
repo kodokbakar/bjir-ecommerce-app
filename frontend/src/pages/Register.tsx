@@ -104,7 +104,12 @@ function Register() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = validateRegisterForm(name, email, password, confirmPassword);
+    const nextErrors = validateRegisterForm(
+      name,
+      email,
+      password,
+      confirmPassword,
+    );
     setFieldErrors(nextErrors);
     setFormError(null);
 
@@ -128,7 +133,9 @@ function Register() {
         },
       });
     } catch (error) {
-      setFormError(getApiErrorMessage(error, "Gagal mendaftar. Silakan coba lagi."));
+      setFormError(
+        getApiErrorMessage(error, "Gagal mendaftar. Silakan coba lagi."),
+      );
       setIsSubmitting(false);
     }
   }
@@ -199,24 +206,26 @@ function Register() {
             }
           />
 
-          <div className="grid gap-2">
-            <div className="grid grid-cols-4 gap-2" aria-hidden="true">
-              {Array.from({ length: 4 }, (_, index) => (
-                <span
-                  className={[
-                    "h-2 border border-[var(--color-brutal-ink)]",
-                    index < passwordScore
-                      ? "bg-[var(--color-primary)]"
-                      : "bg-[var(--color-secondary)]",
-                  ].join(" ")}
-                  key={index}
-                />
-              ))}
+          {password.length > 0 && (
+            <div className="grid gap-2">
+              <div className="grid grid-cols-4 gap-2" aria-hidden="true">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <span
+                    className={[
+                      "h-2 border border-[var(--color-brutal-ink)]",
+                      index < passwordScore
+                        ? "bg-[var(--color-primary)]"
+                        : "bg-[var(--color-secondary)]",
+                    ].join(" ")}
+                    key={index}
+                  />
+                ))}
+              </div>
+              <p className="m-0 text-xs font-bold text-[var(--color-text-muted)]">
+                Kekuatan password: {getPasswordStrengthLabel(passwordScore)}
+              </p>
             </div>
-            <p className="m-0 text-xs font-bold text-[var(--color-text-muted)]">
-              Kekuatan password: {getPasswordStrengthLabel(passwordScore)}
-            </p>
-          </div>
+          )}
         </div>
 
         <FormField

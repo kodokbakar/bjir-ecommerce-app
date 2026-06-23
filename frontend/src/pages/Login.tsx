@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import AuthForm from "../components/auth/AuthForm";
+import AuthLoading from "../components/auth/AuthLoading";
 import AuthLayout from "../components/auth/AuthLayout";
 import FormField from "../components/auth/FormField";
 import PasswordToggle from "../components/auth/PasswordToggle";
@@ -36,19 +37,6 @@ function validateLoginForm(email: string, password: string): LoginFieldErrors {
   }
 
   return errors;
-}
-
-function AuthPageLoading() {
-  return (
-    <div className="grid min-h-screen place-items-center bg-[var(--color-brutal-paper)]">
-      <div className="grid place-items-center gap-3 border-4 border-[var(--color-brutal-ink)] bg-white px-8 py-7 shadow-[6px_6px_0_var(--color-brutal-ink)]">
-        <span className="h-7 w-7 animate-spin rounded-full border-4 border-[var(--color-brutal-ink)] border-t-[var(--color-brutal-hot)]" />
-        <p className="m-0 text-sm font-black uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-          Memeriksa sesi...
-        </p>
-      </div>
-    </div>
-  );
 }
 
 function Login() {
@@ -96,7 +84,7 @@ function Login() {
   }
 
   if (isAuthLoading) {
-    return <AuthPageLoading />;
+    return <AuthLoading />;
   }
 
   if (isAuthenticated) {

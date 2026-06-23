@@ -76,6 +76,7 @@ function Dashboard() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [errorNote, setErrorNote] = useState<string | null>(null);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -83,6 +84,7 @@ function Dashboard() {
     async function loadDashboard() {
       setIsLoading(true);
       setErrorNote(null);
+      setOrdersError(null);
 
       const [productsResult, ordersResult] = await Promise.allSettled([
         getDashboardProducts(),
@@ -104,7 +106,10 @@ function Dashboard() {
         nextDashboard.products = productsResult.value.data;
         nextDashboard.productTotal = productsResult.value.meta.total;
       } else {
-        console.error("Failed to load dashboard products:", productsResult.reason);
+        console.error(
+          "Failed to load dashboard products:",
+          productsResult.reason,
+        );
         setErrorNote("Rekomendasi produk belum bisa dimuat.");
       }
 
@@ -113,6 +118,9 @@ function Dashboard() {
         nextDashboard.orderTotal = ordersResult.value.total;
       } else {
         console.error("Failed to load dashboard orders:", ordersResult.reason);
+        setOrdersError(
+          "Data pesanan belum bisa dimuat. Coba refresh halaman atau buka menu Orders.",
+        );
       }
 
       setDashboard(nextDashboard);
@@ -183,8 +191,8 @@ function Dashboard() {
           </h1>
 
           <p className="mt-4 max-w-xl text-sm font-bold leading-7 text-[rgba(255,248,232,0.88)]">
-            Mau belanja apa hari ini? Cek rekomendasi produk terbaru dan lanjutkan
-            order yang sedang berjalan.
+            Mau belanja apa hari ini? Cek rekomendasi produk terbaru dan
+            lanjutkan order yang sedang berjalan.
           </p>
         </div>
 
@@ -240,7 +248,16 @@ function Dashboard() {
             </Link>
           </div>
 
-          {latestOrder ? (
+          {ordersError ? (
+            <div className="grid min-h-32 place-items-center border-2 border-[var(--color-stock-out)] bg-[#ffe1d7] p-5 text-center shadow-[3px_3px_0_var(--color-brutal-ink)]">
+              <div>
+                <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-[var(--color-stock-out)]" />
+                <p className="m-0 text-sm font-black text-[var(--color-brutal-ink)]">
+                  {ordersError}
+                </p>
+              </div>
+            </div>
+          ) : latestOrder ? (
             <div className="flex flex-col gap-4 border-2 border-[var(--color-brutal-ink)] bg-[var(--color-brutal-paper)] p-4 sm:flex-row sm:items-center">
               <span className="grid h-14 w-14 shrink-0 place-items-center border-2 border-[var(--color-brutal-ink)] bg-[var(--color-brutal-blue)] shadow-[3px_3px_0_var(--color-brutal-ink)]">
                 <PackageCheck className="h-7 w-7" aria-hidden="true" />
@@ -287,7 +304,8 @@ function Dashboard() {
             Deal Hunter Mode
           </h2>
           <p className="mt-3 text-sm font-bold leading-6 text-[var(--color-brutal-ink)]">
-            Lompat ke katalog dan urutkan produk untuk cari barang terbaik sebelum stok habis.
+            Lompat ke katalog dan urutkan produk untuk cari barang terbaik
+            sebelum stok habis.
           </p>
           <Link
             className="mt-5 inline-flex min-h-11 items-center border-2 border-[var(--color-brutal-ink)] bg-white px-4 text-xs font-black uppercase tracking-[0.1em] text-[var(--color-brutal-ink)] no-underline shadow-[3px_3px_0_var(--color-brutal-ink)]"
