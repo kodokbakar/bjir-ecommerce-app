@@ -1,19 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Minus, Plus, Trash2 } from "lucide-react";
 
-import ProductImage from "../components/ProductImage";
+import OrderSummary from "../components/OrderSummary";
 import {
   getCart,
   getCartErrorMessage,
-  getCartItemPrice,
-  getCartItemSubtotal,
   normalizeCart,
   removeCartItem,
   updateCartItem,
 } from "../services/cartService";
 import type { Cart as CartModel, CartItem } from "../types/cart";
-import { formatRupiah, getProductImage } from "../utils/product";
+import { formatRupiah } from "../utils/product";
 
 const CART_SKELETON_COUNT = 3;
 const NOTICE_TIMEOUT_MS = 4000;
@@ -25,10 +22,6 @@ type CartNotice = {
 
 function getItemName(item: CartItem): string {
   return item.product?.name || "Unavailable product";
-}
-
-function getItemSlug(item: CartItem): string {
-  return item.product?.slug || "";
 }
 
 function getItemStock(item: CartItem): number {
@@ -304,108 +297,15 @@ function Cart() {
         </div>
       ) : (
         <div className="cart-shell">
-          <div className="cart-items-list">
-            {cart?.items.map((item) => {
-              const productName = getItemName(item);
-              const productSlug = getItemSlug(item);
-              const productPath = productSlug
-                ? `/products/${productSlug}`
-                : "/products";
-              const stock = getItemStock(item);
-              const isUpdating = updatingItemID === item.id;
-              const isRemoving = removingItemID === item.id;
-              const canDecrease =
-                item.quantity > 1 && !isUpdating && !isRemoving;
-              const canIncrease =
-                item.quantity < stock && !isUpdating && !isRemoving;
-              const imagePath = item.product
-                ? getProductImage(item.product)
-                : "";
-
-              return (
-                <article className="cart-item" key={item.id}>
-                  <Link
-                    className="cart-item-image-link"
-                    to={productPath}
-                    aria-label={`View ${productName}`}
-                  >
-                    <ProductImage
-                      key={imagePath || item.product_id}
-                      className="cart-item-image"
-                      src={imagePath}
-                      alt={productName}
-                      width={220}
-                      height={180}
-                    />
-                  </Link>
-
-                  <div className="cart-item-main">
-                    <Link className="cart-item-title" to={productPath}>
-                      {productName}
-                    </Link>
-
-                    <div className="cart-item-meta">
-                      <span>{formatRupiah(getCartItemPrice(item))}</span>
-                      <span>
-                        {stock > 0 ? `${stock} in stock` : "Stock unavailable"}
-                      </span>
-                    </div>
-
-                    <div className="cart-quantity-row">
-                      <div
-                        className="cart-quantity-control"
-                        aria-label={`Quantity for ${productName}`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleQuantityChange(item, item.quantity - 1)
-                          }
-                          disabled={!canDecrease}
-                          aria-label={`Decrease ${productName} quantity`}
-                        >
-                          <Minus className="h-4 w-4" aria-hidden="true" />
-                        </button>
-
-                        <span aria-live="polite">{item.quantity}</span>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleQuantityChange(item, item.quantity + 1)
-                          }
-                          disabled={!canIncrease}
-                          aria-label={`Increase ${productName} quantity`}
-                        >
-                          <Plus className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                      </div>
-
-                      {isUpdating && (
-                        <span className="cart-row-status">Updating...</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="cart-item-side">
-                    <span className="cart-item-subtotal">
-                      {formatRupiah(getCartItemSubtotal(item))}
-                    </span>
-
-                    <button
-                      className="cart-remove-button"
-                      type="button"
-                      onClick={() => handleRemoveItem(item)}
-                      disabled={isUpdating || isRemoving}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      {isRemoving ? "Removing..." : "Remove"}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          <OrderSummary
+            items={cart?.items ?? []}
+            totalPrice={totalPrice}
+            editable
+            updatingItemID={updatingItemID}
+            removingItemID={removingItemID}
+            onQuantityChange={handleQuantityChange}
+            onRemove={handleRemoveItem}
+          />
 
           <aside className="cart-summary" aria-label="Cart summary">
             <span className="cart-summary-label">Receipt Check</span>
