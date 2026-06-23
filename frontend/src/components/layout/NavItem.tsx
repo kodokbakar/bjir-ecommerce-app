@@ -33,6 +33,8 @@ function NavItem({
     .filter(Boolean)
     .join(" ");
 
+  const hasBadge = badgeCount > 0;
+
   return (
     <Link
       className={linkClassName}
@@ -41,10 +43,14 @@ function NavItem({
       aria-current={isActive ? "page" : undefined}
       onClick={onClick}
     >
-      <span className="relative grid h-5 w-5 shrink-0 place-items-center">
-        <Icon className="h-5 w-5" aria-hidden="true" />
-        <CartBadge count={badgeCount} />
-      </span>
+      {hasBadge ? (
+        <span className="relative grid h-5 w-5 shrink-0 place-items-center">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+          <CartBadge count={badgeCount} />
+        </span>
+      ) : (
+        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+      )}
 
       {!isCollapsed && <span className="truncate">{label}</span>}
     </Link>

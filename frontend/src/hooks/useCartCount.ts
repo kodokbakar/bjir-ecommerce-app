@@ -30,7 +30,7 @@ export function useCartCount(): UseCartCountResult {
       if (isMountedRef.current) {
         setCount(0);
         setError(
-          getCartErrorMessage(refreshError, "Failed to refresh cart count."),
+          getCartErrorMessage(refreshError, "Failed to load cart count."),
         );
       }
     }
@@ -38,34 +38,17 @@ export function useCartCount(): UseCartCountResult {
 
   useEffect(() => {
     isMountedRef.current = true;
-    let isActive = true;
 
-    async function loadInitialCount() {
-      try {
-        const nextCount = await getCartCount();
-
-        if (isActive) {
-          setCount(nextCount);
-          setError(null);
-        }
-      } catch (loadError) {
-        if (isActive) {
-          setCount(0);
-          setError(
-            getCartErrorMessage(loadError, "Failed to load cart count."),
-          );
-        }
-      }
-    }
-
-    loadInitialCount();
+    const initialRefreshID = window.setTimeout(() => {
+      void refresh();
+    }, 0);
 
     const unsubscribe = subscribeToCartChanges(() => {
       void refresh();
     });
 
     return () => {
-      isActive = false;
+      window.clearTimeout(initialRefreshID);
       isMountedRef.current = false;
       unsubscribe();
     };
