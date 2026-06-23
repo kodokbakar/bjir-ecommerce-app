@@ -5,6 +5,7 @@ import OrderSummary from "../components/OrderSummary";
 import {
   getCart,
   getCartErrorMessage,
+  getCartItemStock,
   normalizeCart,
   removeCartItem,
   updateCartItem,
@@ -22,10 +23,6 @@ type CartNotice = {
 
 function getItemName(item: CartItem): string {
   return item.product?.name || "Unavailable product";
-}
-
-function getItemStock(item: CartItem): number {
-  return item.product?.stock ?? item.quantity;
 }
 
 function CartSkeleton() {
@@ -145,7 +142,7 @@ function Cart() {
   }
 
   async function handleQuantityChange(item: CartItem, nextQuantity: number) {
-    const stock = getItemStock(item);
+    const stock = getCartItemStock(item);
 
     if (nextQuantity < 1) {
       return;

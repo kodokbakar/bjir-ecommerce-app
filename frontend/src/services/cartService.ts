@@ -79,6 +79,10 @@ export function getCartItemCount(cart: Cart): number {
   return cart.items.length;
 }
 
+export function getCartItemStock(item: CartItem): number {
+  return item.product?.stock ?? item.quantity;
+}
+
 export function normalizeCart(cart: Cart): Cart {
   const items = cart.items.map((item) => ({
     ...item,
@@ -207,6 +211,7 @@ export const cartService = {
   getCartItemPrice,
   getCartItemSubtotal,
   getCartItemCount,
+  getCartItemStock,
   normalizeCart,
   subscribeToCartChanges,
   notifyCartChanged,

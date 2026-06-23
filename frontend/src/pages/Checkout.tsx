@@ -222,7 +222,10 @@ function Checkout() {
             </Link>
           </form>
 
-          <OrderSummary items={cart.items} totalPrice={cart.total_price} />
+          <OrderSummary
+            items={cart?.items ?? []}
+            totalPrice={cart?.total_price ?? 0}
+          />
         </div>
       )}
     </section>
