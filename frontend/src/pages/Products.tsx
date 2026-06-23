@@ -9,7 +9,6 @@ import type {
   Product,
   ProductListMeta,
   ProductListParams,
-  SortOrder,
 } from "../types/product";
 
 const PRODUCT_LIMIT = 12;
@@ -129,8 +128,10 @@ function Products() {
   const [meta, setMeta] = useState<ProductListMeta>(() => buildMetaFallback(page));
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [categoryReloadKey, setCategoryReloadKey] = useState(0);
 
   const hasActiveFilters = Boolean(category || search || sort !== "relevance");
 
@@ -149,6 +150,7 @@ function Products() {
 
     async function loadCategories() {
       setIsLoadingCategories(true);
+      setCategoryError(null);
 
       try {
         const result = await listCategories();
@@ -158,6 +160,11 @@ function Products() {
         }
       } catch (loadError) {
         console.error("Failed to load categories:", loadError);
+
+        if (isMounted) {
+          setCategories([]);
+          setCategoryError(getErrorMessage(loadError));
+        }
       } finally {
         if (isMounted) {
           setIsLoadingCategories(false);
@@ -170,7 +177,7 @@ function Products() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [categoryReloadKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -260,6 +267,10 @@ function Products() {
     setReloadKey((current) => current + 1);
   }
 
+  function handleCategoryRetry() {
+    setCategoryReloadKey((current) => current + 1);
+  }
+
   return (
     <section className="products-page" aria-labelledby="products-title">
       <header className="products-hero">
@@ -295,13 +306,24 @@ function Products() {
             disabled={isLoadingCategories}
             aria-label="Filter by category"
           >
-            <option value="">All Categories</option>
+            <option value="">
+              {isLoadingCategories ? "Loading categories..." : "All Categories"}
+            </option>
             {categories.map((item) => (
               <option key={item.id} value={item.slug}>
                 {item.name}
               </option>
             ))}
           </select>
+
+          {categoryError && (
+            <div className="products-category-error" role="status">
+              <span>Category list failed to load.</span>
+              <button type="button" onClick={handleCategoryRetry}>
+                Retry
+              </button>
+            </div>
+          )}
         </label>
 
         <label className="products-field">
