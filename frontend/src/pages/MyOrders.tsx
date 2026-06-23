@@ -5,6 +5,7 @@ import { AlertTriangle, Clock3, PackageCheck } from "lucide-react";
 import { getOrderErrorMessage, listOrders } from "../services/orderService";
 import type { Order, OrderListMeta, OrderStatus } from "../types/order";
 import { formatRupiah } from "../utils/product";
+import { formatDisplayDate } from "../utils/date";
 
 const ORDER_LIMIT = 8;
 
@@ -39,24 +40,6 @@ function getPositivePage(value: string | null): number {
   }
 
   return parsed;
-}
-
-function formatOrderDate(value?: string): string {
-  if (!value) {
-    return "Tanggal belum tersedia";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Tanggal belum tersedia";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
 }
 
 function getStatusLabel(status: OrderStatus): string {
@@ -229,7 +212,7 @@ function MyOrders() {
                   </span>
 
                   <span className="orders-date-cell">
-                    {formatOrderDate(order.created_at)}
+                    {formatDisplayDate(order.created_at, "short-date")}
                   </span>
 
                   <strong className="orders-total-cell">

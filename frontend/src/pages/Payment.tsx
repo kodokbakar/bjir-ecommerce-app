@@ -13,13 +13,11 @@ import {
 } from "lucide-react";
 
 import { getOrderById, getOrderErrorMessage } from "../services/orderService";
-import {
-  getPaymentErrorMessage,
-  payOrder,
-} from "../services/paymentService";
+import { getPaymentErrorMessage, payOrder } from "../services/paymentService";
 import type { Order } from "../types/order";
 import type { PaymentMethod, PaymentResult } from "../types/payment";
 import { formatRupiah } from "../utils/product";
+import { formatDisplayDate } from "../utils/date";
 
 interface PaymentMethodOption {
   value: PaymentMethod;
@@ -32,42 +30,22 @@ const PAYMENT_METHODS: PaymentMethodOption[] = [
   {
     value: "bank_transfer",
     label: "Bank Transfer",
-    description: "Mock transfer confirmation from the backend.",
+    description: "Pay via bank transfer.",
     Icon: Banknote,
   },
   {
     value: "credit_card",
     label: "Credit Card",
-    description: "No card fields here. The backend mocks the payment.",
+    description: "Pay with credit card.",
     Icon: CreditCard,
   },
   {
     value: "ewallet",
     label: "E-Wallet",
-    description: "Mock wallet payment for this order.",
+    description: "Pay with e-wallet.",
     Icon: Smartphone,
   },
 ];
-
-function formatPaymentDate(value?: string): string {
-  if (!value) {
-    return "Belum tersedia";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Belum tersedia";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
 
 function getMethodLabel(method: PaymentMethod): string {
   return PAYMENT_METHODS.find((item) => item.value === method)?.label ?? method;
@@ -88,7 +66,9 @@ function Payment() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("bank_transfer");
-  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(
+    null,
+  );
   const [isLoadingOrder, setIsLoadingOrder] = useState(Boolean(orderID));
   const [isPaying, setIsPaying] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -206,13 +186,12 @@ function Payment() {
 
       <header className="payment-hero">
         <div>
-          <span className="products-eyebrow">Mock Payment</span>
+          <span className="products-eyebrow">Payment</span>
           <h1 className="payment-title" id="payment-title">
             Bayar order.
           </h1>
           <p className="payment-copy">
-            Choose one mocked payment method. The backend handles the fake
-            provider flow.
+            Choose a payment method to complete your order.
           </p>
         </div>
 
@@ -250,7 +229,13 @@ function Payment() {
                 <strong>{paymentResult.transaction_id}</strong>
 
                 <span>Paid at</span>
-                <strong>{formatPaymentDate(paymentResult.paid_at)}</strong>
+                <strong>
+                  {formatDisplayDate(
+                    paymentResult.paid_at,
+                    "date-time",
+                    "Belum tersedia",
+                  )}
+                </strong>
               </div>
 
               <Link className="cart-secondary-link" to={`/orders/${order.id}`}>

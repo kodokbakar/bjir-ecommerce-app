@@ -12,6 +12,7 @@ import OrderSummary from "../components/OrderSummary";
 import { getOrderById, getOrderErrorMessage } from "../services/orderService";
 import type { Order, OrderStatus } from "../types/order";
 import { formatRupiah } from "../utils/product";
+import { formatDisplayDate } from "../utils/date";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Menunggu Pembayaran",
@@ -28,26 +29,6 @@ const STATUS_BADGE_CLASS_NAMES: Record<OrderStatus, string> = {
   delivered: "is-delivered",
   cancelled: "is-cancelled",
 };
-
-function formatOrderDate(value?: string): string {
-  if (!value) {
-    return "Tanggal belum tersedia";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Tanggal belum tersedia";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
 
 function getStatusLabel(status: OrderStatus): string {
   return STATUS_LABELS[status] ?? status;
@@ -173,7 +154,7 @@ function OrderDetail() {
             {order.order_number}
           </h1>
           <p>
-            Created on <strong>{formatOrderDate(order.created_at)}</strong>
+            Created on <strong>{formatDisplayDate(order.created_at)}</strong>
           </p>
         </div>
 
@@ -242,7 +223,7 @@ function OrderDetail() {
 
             <div className="order-detail-meta-row">
               <span>Created</span>
-              <strong>{formatOrderDate(order.created_at)}</strong>
+              <strong>{formatDisplayDate(order.created_at)}</strong>
             </div>
           </section>
 

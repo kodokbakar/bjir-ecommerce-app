@@ -66,6 +66,34 @@ export function getApiOrigin(): string {
   }
 }
 
+export function getResponseErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (axios.isAxiosError(error)) {
+    const responseData = error.response?.data as
+      | {
+          message?: string;
+          error?: string;
+          details?: string;
+        }
+      | undefined;
+
+    return (
+      responseData?.details ||
+      responseData?.message ||
+      responseData?.error ||
+      fallback
+    );
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 api.interceptors.request.use(
   (config) => {
     const token = readStoredToken();
@@ -96,11 +124,12 @@ api.interceptors.response.use(
 
 export const productApi = {
   async list(params?: ProductListParams): Promise<ProductListResponse> {
-    const response = await api.get<
-      ApiListResponse<Product[], ProductListMeta>
-    >("/v1/products", {
-      params: cleanParams(params),
-    });
+    const response = await api.get<ApiListResponse<Product[], ProductListMeta>>(
+      "/v1/products",
+      {
+        params: cleanParams(params),
+      },
+    );
 
     return {
       data: response.data.data,

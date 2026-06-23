@@ -1,6 +1,4 @@
-import axios from "axios";
-
-import api from "./api";
+import api, { getResponseErrorMessage } from "./api";
 import type { PayOrderInput, PaymentResult } from "../types/payment";
 
 interface ApiDataResponse<TData> {
@@ -15,28 +13,7 @@ export function getPaymentErrorMessage(
   error: unknown,
   fallback: string,
 ): string {
-  if (axios.isAxiosError(error)) {
-    const responseData = error.response?.data as
-      | {
-          message?: string;
-          error?: string;
-          details?: string;
-        }
-      | undefined;
-
-    return (
-      responseData?.details ||
-      responseData?.message ||
-      responseData?.error ||
-      fallback
-    );
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
+  return getResponseErrorMessage(error, fallback);
 }
 
 export async function payOrder(input: PayOrderInput): Promise<PaymentResult> {
