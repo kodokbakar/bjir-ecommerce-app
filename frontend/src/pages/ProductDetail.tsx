@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { getImageUrl, getProductBySlug } from "../services/productService";
+import ProductImage from "../components/ProductImage";
+import { getProductBySlug } from "../services/productService";
 import { C } from "../styles/tokens";
 import type { Product } from "../types/product";
 import { formatRupiah, getProductImage, getStockState } from "../utils/product";
@@ -43,18 +44,6 @@ function getErrorMessage(error: unknown): string {
   return "Failed to load product detail. Please try again.";
 }
 
-function ProductDetailPlaceholder() {
-  return (
-    <span className="product-detail-placeholder" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-        <path d="M4 7h16v12H4z" />
-        <path d="M8 7a4 4 0 0 1 8 0" />
-        <path d="M8 13h8" />
-      </svg>
-    </span>
-  );
-}
-
 function ProductDetailSkeleton() {
   return (
     <section className="product-detail-page" aria-label="Loading product detail">
@@ -80,7 +69,6 @@ function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null);
   const [state, setState] = useState<DetailState>("loading");
   const [error, setError] = useState<string | null>(null);
-  const [imageFailed, setImageFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   const descriptionBlocks = useMemo(() => {
@@ -105,7 +93,6 @@ function ProductDetail() {
 
       setState("loading");
       setError(null);
-      setImageFailed(false);
 
       try {
         const result = await getProductBySlug(slug);
@@ -182,7 +169,6 @@ function ProductDetail() {
 
   const stockState = getStockState(product.stock);
   const imagePath = getProductImage(product);
-  const imageUrl = imagePath ? getImageUrl(imagePath) : "";
   const categoryName = product.category?.name || "Uncategorized";
   const categorySlug = product.category?.slug || "";
 
@@ -210,15 +196,14 @@ function ProductDetail() {
             {stockState.label}
           </span>
 
-          {imageUrl && !imageFailed ? (
-            <img
-              src={imageUrl}
-              alt={product.name}
-              onError={() => setImageFailed(true)}
-            />
-          ) : (
-            <ProductDetailPlaceholder />
-          )}
+          <ProductImage
+            key={imagePath || product.id}
+            className="product-detail-image"
+            src={imagePath}
+            alt={product.name}
+            width={900}
+            height={600}
+          />
         </div>
 
         <article className="product-detail-panel">

@@ -1,4 +1,4 @@
-import { categoryApi, getApiOrigin, productApi } from "./api";
+import { categoryApi, productApi } from "./api";
 
 import type {
   Category,
@@ -6,6 +6,9 @@ import type {
   ProductListParams,
   ProductListResponse,
 } from "../types/product";
+import { getImageUrl } from "../utils/image";
+
+export { getImageUrl };
 
 export class ProductServiceValidationError extends Error {
   readonly fieldName: string;
@@ -25,25 +28,6 @@ function requireValue(value: string, fieldName: string): string {
   }
 
   return trimmed;
-}
-
-export function getImageUrl(path: string): string {
-  const trimmed = path.trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed;
-  }
-
-  const imagePath = trimmed.replace(/^\/+/, "");
-  const uploadPath = imagePath.startsWith("uploads/")
-    ? `/${imagePath}`
-    : `/uploads/${imagePath}`;
-
-  return `${getApiOrigin()}${uploadPath}`;
 }
 
 export async function listProducts(

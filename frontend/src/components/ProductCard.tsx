@@ -1,32 +1,16 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { getImageUrl } from "../services/productService";
-import { formatRupiah, getProductImage, getStockState } from "../utils/product";
+import ProductImage from "./ProductImage";
 import type { Product } from "../types/product";
+import { formatRupiah, getProductImage, getStockState } from "../utils/product";
 
 interface ProductCardProps {
   product: Product;
 }
 
-function ProductPlaceholder() {
-  return (
-    <span className="product-card-placeholder" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-        <path d="M4 7h16v12H4z" />
-        <path d="M8 7a4 4 0 0 1 8 0" />
-        <path d="M8 13h8" />
-      </svg>
-    </span>
-  );
-}
-
 function ProductCard({ product }: ProductCardProps) {
-  const [imageFailed, setImageFailed] = useState(false);
-
   const stockState = getStockState(product.stock);
   const imagePath = getProductImage(product);
-  const imageUrl = imagePath ? getImageUrl(imagePath) : "";
   const categoryName = product.category?.name || "Uncategorized";
 
   return (
@@ -40,16 +24,14 @@ function ProductCard({ product }: ProductCardProps) {
           {stockState.label}
         </span>
 
-        {imageUrl && !imageFailed ? (
-          <img
-            src={imageUrl}
-            alt={product.name}
-            loading="lazy"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <ProductPlaceholder />
-        )}
+        <ProductImage
+          key={imagePath || product.id}
+          className="product-card-image"
+          src={imagePath}
+          alt={product.name}
+          width={400}
+          height={300}
+        />
       </div>
 
       <div className="product-card-body">
