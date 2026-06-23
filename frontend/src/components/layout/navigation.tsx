@@ -1,0 +1,123 @@
+import {
+  Grid2X2,
+  Home,
+  Package,
+  Settings,
+  ShoppingBag,
+  type LucideIcon,
+} from "lucide-react";
+
+export const APP_VERSION = "1.0.0";
+
+export interface NavigationItem {
+  label: string;
+  path: string;
+  Icon: LucideIcon;
+}
+
+export interface BreadcrumbItem {
+  label: string;
+  path?: string;
+}
+
+export const MAIN_NAV_ITEMS: NavigationItem[] = [
+  {
+    label: "Dashboard",
+    path: "/dashboard",
+    Icon: Home,
+  },
+  {
+    label: "Produk",
+    path: "/products",
+    Icon: Package,
+  },
+  {
+    label: "Pesanan",
+    path: "/orders",
+    Icon: ShoppingBag,
+  },
+  {
+    label: "Pengaturan",
+    path: "/settings",
+    Icon: Settings,
+  },
+];
+
+export function getPageTitle(pathname: string): string {
+  if (pathname.startsWith("/categories")) {
+    return "Categories";
+  }
+
+  if (pathname.startsWith("/products/")) {
+    return "Product Detail";
+  }
+
+  const activeItem = MAIN_NAV_ITEMS.find((item) => pathname.startsWith(item.path));
+
+  return activeItem?.label ?? "Halaman";
+}
+
+export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
+  const breadcrumbs: BreadcrumbItem[] = [
+    {
+      label: "Home",
+      path: "/dashboard",
+    },
+  ];
+
+  if (pathname.startsWith("/products/")) {
+    breadcrumbs.push(
+      {
+        label: "Products",
+        path: "/products",
+      },
+      {
+        label: "Product Detail",
+      },
+    );
+
+    return breadcrumbs;
+  }
+
+  if (pathname === "/products") {
+    breadcrumbs.push({
+      label: "Products",
+    });
+
+    return breadcrumbs;
+  }
+
+  if (pathname.startsWith("/categories")) {
+    breadcrumbs.push(
+      {
+        label: "Categories",
+        path: "/products",
+      },
+      {
+        label: "Category",
+      },
+    );
+
+    return breadcrumbs;
+  }
+
+  if (pathname.startsWith("/orders")) {
+    breadcrumbs.push({
+      label: "Orders",
+    });
+
+    return breadcrumbs;
+  }
+
+  if (pathname.startsWith("/settings")) {
+    breadcrumbs.push({
+      label: "Settings",
+    });
+
+    return breadcrumbs;
+  }
+
+  return breadcrumbs;
+}
+
+export { Grid2X2 };
