@@ -5,6 +5,7 @@ import {
   checkoutCart,
   getCart,
   getCartErrorMessage,
+  normalizeCart,
 } from "../services/cartService";
 import type { Cart } from "../types/cart";
 import type { Order } from "../types/order";
@@ -35,12 +36,14 @@ function Checkout() {
         const result = await getCart();
 
         if (isMounted) {
-          setCart(result);
+          setCart(normalizeCart(result));
         }
       } catch (loadError) {
         if (isMounted) {
           setCart(null);
-          setError(getCartErrorMessage(loadError, "Failed to load checkout summary."));
+          setError(
+            getCartErrorMessage(loadError, "Failed to load checkout summary."),
+          );
         }
       } finally {
         if (isMounted) {
@@ -98,8 +101,8 @@ function Checkout() {
             <span className="cart-summary-label">Order Locked</span>
             <h1 id="checkout-success-title">Checkout successful.</h1>
             <p>
-              Order <strong>{order.order_number}</strong> is now waiting with status{" "}
-              <strong>{order.status}</strong>.
+              Order <strong>{order.order_number}</strong> is now waiting with
+              status <strong>{order.status}</strong>.
             </p>
             <p className="checkout-total">{formatRupiah(order.total_amount)}</p>
             <Link className="cart-primary-button" to="/orders">

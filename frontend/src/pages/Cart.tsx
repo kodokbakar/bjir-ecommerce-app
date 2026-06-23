@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
@@ -6,6 +6,9 @@ import ProductImage from "../components/ProductImage";
 import {
   getCart,
   getCartErrorMessage,
+  getCartItemPrice,
+  getCartItemSubtotal,
+  normalizeCart,
   removeCartItem,
   updateCartItem,
 } from "../services/cartService";
@@ -13,6 +16,7 @@ import type { Cart as CartModel, CartItem } from "../types/cart";
 import { formatRupiah, getProductImage } from "../utils/product";
 
 const CART_SKELETON_COUNT = 3;
+const NOTICE_TIMEOUT_MS = 4000;
 
 type CartNotice = {
   type: "success" | "error";
@@ -29,37 +33,6 @@ function getItemSlug(item: CartItem): string {
 
 function getItemStock(item: CartItem): number {
   return item.product?.stock ?? item.quantity;
-}
-
-function getItemPrice(item: CartItem): number {
-  if (item.product?.price) {
-    return item.product.price;
-  }
-
-  return item.quantity > 0 ? item.subtotal / item.quantity : 0;
-}
-
-function getItemSubtotal(item: CartItem): number {
-  if (item.product?.price) {
-    return item.product.price * item.quantity;
-  }
-
-  return item.subtotal;
-}
-
-function normalizeCart(cart: CartModel): CartModel {
-  const items = cart.items.map((item) => ({
-    ...item,
-    subtotal: getItemSubtotal(item),
-  }));
-
-  return {
-    items,
-    total_price: items.reduce(
-      (total, item) => total + getItemSubtotal(item),
-      0,
-    ),
-  };
 }
 
 function CartSkeleton() {
@@ -80,6 +53,8 @@ function CartSkeleton() {
 }
 
 function Cart() {
+  const isMountedRef = useRef(false);
+
   const [cart, setCart] = useState<CartModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,43 +62,19 @@ function Cart() {
   const [updatingItemID, setUpdatingItemID] = useState<string | null>(null);
   const [removingItemID, setRemovingItemID] = useState<string | null>(null);
 
-  async function loadCart(
-    options: { showLoading: boolean } = { showLoading: true },
-  ) {
-    if (options.showLoading) {
-      setIsLoading(true);
-    }
-
-    setError(null);
-
-    try {
-      const result = await getCart();
-      setCart(normalizeCart(result));
-    } catch (loadError) {
-      setCart(null);
-      setError(
-        getCartErrorMessage(
-          loadError,
-          "Failed to load your cart. Please try again.",
-        ),
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
+    let isActive = true;
 
     async function loadInitialCart() {
       try {
         const result = await getCart();
 
-        if (isMounted) {
+        if (isActive) {
           setCart(normalizeCart(result));
         }
       } catch (loadError) {
-        if (isMounted) {
+        if (isActive) {
           setCart(null);
           setError(
             getCartErrorMessage(
@@ -133,7 +84,7 @@ function Cart() {
           );
         }
       } finally {
-        if (isMounted) {
+        if (isActive) {
           setIsLoading(false);
         }
       }
@@ -142,9 +93,24 @@ function Cart() {
     loadInitialCart();
 
     return () => {
-      isMounted = false;
+      isActive = false;
+      isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+
+    const timeoutID = window.setTimeout(() => {
+      setNotice(null);
+    }, NOTICE_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutID);
+    };
+  }, [notice]);
 
   const itemCount = useMemo(() => {
     return cart?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
@@ -152,6 +118,38 @@ function Cart() {
 
   const totalPrice = cart?.total_price ?? 0;
   const hasItems = Boolean(cart?.items.length);
+
+  async function loadCart(options: { showLoading?: boolean } = {}) {
+    const shouldShowLoading = options.showLoading ?? true;
+
+    if (shouldShowLoading) {
+      setIsLoading(true);
+    }
+
+    setError(null);
+
+    try {
+      const result = await getCart();
+
+      if (isMountedRef.current) {
+        setCart(normalizeCart(result));
+      }
+    } catch (loadError) {
+      if (isMountedRef.current) {
+        setCart(null);
+        setError(
+          getCartErrorMessage(
+            loadError,
+            "Failed to load your cart. Please try again.",
+          ),
+        );
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
+    }
+  }
 
   async function handleQuantityChange(item: CartItem, nextQuantity: number) {
     const stock = getItemStock(item);
@@ -200,7 +198,7 @@ function Cart() {
         ),
       });
 
-      loadCart();
+      loadCart({ showLoading: false });
     } finally {
       setUpdatingItemID(null);
     }
@@ -247,7 +245,7 @@ function Cart() {
         ),
       });
 
-      loadCart();
+      loadCart({ showLoading: false });
     } finally {
       setRemovingItemID(null);
     }
@@ -347,7 +345,7 @@ function Cart() {
                     </Link>
 
                     <div className="cart-item-meta">
-                      <span>{formatRupiah(getItemPrice(item))}</span>
+                      <span>{formatRupiah(getCartItemPrice(item))}</span>
                       <span>
                         {stock > 0 ? `${stock} in stock` : "Stock unavailable"}
                       </span>
@@ -391,7 +389,7 @@ function Cart() {
 
                   <div className="cart-item-side">
                     <span className="cart-item-subtotal">
-                      {formatRupiah(getItemSubtotal(item))}
+                      {formatRupiah(getCartItemSubtotal(item))}
                     </span>
 
                     <button
