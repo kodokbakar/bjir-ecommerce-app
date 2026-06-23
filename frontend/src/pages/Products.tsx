@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import CategoryBar from "../components/CategoryBar";
 import CategorySidebar from "../components/CategorySidebar";
 import Pagination from "../components/Pagination";
 import ProductCard from "../components/ProductCard";
+import SearchBar from "../components/SearchBar";
 import { listCategories, listProducts } from "../services/productService";
 import type {
   Category,
@@ -218,27 +219,33 @@ function Products() {
     };
   }, [page, productQuery, reloadKey]);
 
-  function updateQuery(nextValues: Record<string, string | number | null>) {
-    const nextParams = new URLSearchParams(searchParams);
+  const updateQuery = useCallback(
+    (nextValues: Record<string, string | number | null>) => {
+      const nextParams = new URLSearchParams(searchParams);
 
-    Object.entries(nextValues).forEach(([key, value]) => {
-      if (value === null || value === "") {
-        nextParams.delete(key);
-        return;
-      }
+      Object.entries(nextValues).forEach(([key, value]) => {
+        if (value === null || value === "") {
+          nextParams.delete(key);
+          return;
+        }
 
-      nextParams.set(key, String(value));
-    });
+        nextParams.set(key, String(value));
+      });
 
-    setSearchParams(nextParams);
-  }
+      setSearchParams(nextParams);
+    },
+    [searchParams, setSearchParams],
+  );
 
-  function handleSearchChange(event: ChangeEvent<HTMLInputElement>) {
-    updateQuery({
-      search: event.target.value,
-      page: 1,
-    });
-  }
+  const handleSearchChange = useCallback(
+    (nextSearch: string) => {
+      updateQuery({
+        search: nextSearch,
+        page: 1,
+      });
+    },
+    [updateQuery],
+  );
 
   function handleCategorySelect(slug: string) {
     updateQuery({
@@ -254,6 +261,13 @@ function Products() {
     updateQuery({
       sort_by: nextParams.sort_by ?? null,
       sort_order: nextParams.sort_order ?? null,
+      page: 1,
+    });
+  }
+
+  function handleClearSearch() {
+    updateQuery({
+      search: null,
       page: 1,
     });
   }
@@ -310,17 +324,12 @@ function Products() {
           />
 
           <div className="products-toolbar products-toolbar-compact" aria-label="Product controls">
-            <label className="products-field">
-              <span className="products-label">Search</span>
-              <input
-                className="products-input"
-                type="search"
-                value={search}
-                onChange={handleSearchChange}
-                placeholder="Search products..."
-                aria-label="Search products"
-              />
-            </label>
+            <SearchBar
+              key={search}
+              value={search}
+              isLoading={isLoadingProducts && Boolean(search)}
+              onSearch={handleSearchChange}
+            />
 
             <label className="products-field">
               <span className="products-label">Sort</span>
@@ -342,17 +351,28 @@ function Products() {
           <div className="products-status-line">
             <span>
               {isLoadingProducts
-                ? "Loading product rows..."
-                : `${meta.total} product${meta.total === 1 ? "" : "s"} found`}
+                ? search
+                  ? `Searching for "${search}"...`
+                  : "Loading product rows..."
+                : search
+                  ? `Found ${meta.total} product${meta.total === 1 ? "" : "s"} for "${search}"`
+                  : `${meta.total} product${meta.total === 1 ? "" : "s"} found`}
               {category ? ` in ${activeCategoryName}` : ""}
-              {search ? ` for "${search}"` : ""}
             </span>
 
-            {hasActiveFilters && (
-              <button className="products-clear-button" type="button" onClick={handleClearFilters}>
-                Clear filters
-              </button>
-            )}
+            <div className="products-status-actions">
+              {search && (
+                <button className="products-clear-button" type="button" onClick={handleClearSearch}>
+                  Clear search
+                </button>
+              )}
+
+              {hasActiveFilters && (
+                <button className="products-clear-button" type="button" onClick={handleClearFilters}>
+                  Clear filters
+                </button>
+              )}
+            </div>
           </div>
 
           {isLoadingProducts ? (
@@ -372,9 +392,11 @@ function Products() {
               <div>
                 <h2>No products found.</h2>
                 <p>
-                  {hasActiveFilters
-                    ? "Your current search, category, or sorting context returned no products. Reset the filters or try a wider query."
-                    : "The catalog is empty. Add products from the admin side before exposing this shelf to buyers."}
+                  {search
+                    ? `No products found for "${search}". Try different keywords.`
+                    : hasActiveFilters
+                      ? "Your current category or sorting context returned no products. Reset the filters or try a wider query."
+                      : "The catalog is empty. Add products from the admin side before exposing this shelf to buyers."}
                 </p>
                 {hasActiveFilters && (
                   <button className="products-retry-button" type="button" onClick={handleClearFilters}>
