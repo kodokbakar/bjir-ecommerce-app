@@ -2879,10 +2879,6 @@ a.product-detail-category:hover {
   padding: 18px;
 }
 
-.order-detail-panel.compact {
-  background: var(--color-brutal-paper);
-}
-
 .order-detail-panel-heading {
   display: flex;
   align-items: center;

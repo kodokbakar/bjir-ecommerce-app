@@ -3,18 +3,13 @@ import { Link, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
-  CalendarDays,
   CreditCard,
   MapPin,
   PackageCheck,
-  StickyNote,
 } from "lucide-react";
 
 import OrderSummary from "../components/OrderSummary";
-import {
-  getOrderById,
-  getOrderErrorMessage,
-} from "../services/orderService";
+import { getOrderById, getOrderErrorMessage } from "../services/orderService";
 import type { Order, OrderStatus } from "../types/order";
 import { formatRupiah } from "../utils/product";
 
@@ -138,7 +133,10 @@ function OrderDetail() {
 
   if (error || !order) {
     return (
-      <section className="order-detail-page" aria-labelledby="order-detail-title">
+      <section
+        className="order-detail-page"
+        aria-labelledby="order-detail-title"
+      >
         <Link className="order-detail-back" to="/orders">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to orders
@@ -146,7 +144,10 @@ function OrderDetail() {
 
         <div className="orders-empty" role="alert">
           <div>
-            <AlertTriangle className="mx-auto mb-3 h-10 w-10" aria-hidden="true" />
+            <AlertTriangle
+              className="mx-auto mb-3 h-10 w-10"
+              aria-hidden="true"
+            />
             <h2 id="order-detail-title">Order tidak ditemukan.</h2>
             <p>{error || "Pesanan tidak tersedia."}</p>
             <Link className="cart-primary-button" to="/orders">
@@ -191,7 +192,10 @@ function OrderDetail() {
           />
 
           {hasShippingInfo && (
-            <section className="order-detail-panel" aria-labelledby="shipping-title">
+            <section
+              className="order-detail-panel"
+              aria-labelledby="shipping-title"
+            >
               <div className="order-detail-panel-heading">
                 <MapPin className="h-5 w-5" aria-hidden="true" />
                 <h2 id="shipping-title">Shipping details</h2>
@@ -251,7 +255,8 @@ function OrderDetail() {
             {order.status === "pending" ? (
               <>
                 <p className="order-detail-payment-copy">
-                  This order is waiting for payment. Continue when you are ready.
+                  This order is waiting for payment. Continue when you are
+                  ready.
                 </p>
                 <Link className="cart-checkout-button" to={paymentPath}>
                   Bayar Sekarang
@@ -262,28 +267,6 @@ function OrderDetail() {
                 Payment action is not available for this order status.
               </p>
             )}
-          </section>
-
-          {(order.shipping_address || order.notes) && (
-            <section className="order-detail-panel compact">
-              <div className="order-detail-panel-heading">
-                <StickyNote className="h-5 w-5" aria-hidden="true" />
-                <h2>Buyer note</h2>
-              </div>
-              <p className="order-detail-payment-copy">
-                Shipping fields are shown only when the backend returns them.
-              </p>
-            </section>
-          )}
-
-          <section className="order-detail-panel compact">
-            <div className="order-detail-panel-heading">
-              <CalendarDays className="h-5 w-5" aria-hidden="true" />
-              <h2>Refresh</h2>
-            </div>
-            <p className="order-detail-payment-copy">
-              No payment polling yet. Refresh this page to see newer order status.
-            </p>
           </section>
         </aside>
       </div>
