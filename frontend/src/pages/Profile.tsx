@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, BadgeCheck, Mail, RefreshCcw, Shield, UserRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Mail,
+  RefreshCcw,
+  Shield,
+  UserRound,
+} from "lucide-react";
 
 import { getApiErrorMessage, getCurrentUser } from "../services/authService";
 import { useAuth, type User } from "../hooks/useAuth";
@@ -37,6 +44,7 @@ function ProfileSkeleton() {
 
 function Profile() {
   const { user: authUser } = useAuth();
+  const isMountedRef = useRef(false);
 
   const [profile, setProfile] = useState<User | null>(authUser);
   const [isLoading, setIsLoading] = useState(!authUser);
@@ -48,16 +56,28 @@ function Profile() {
 
     try {
       const result = await getCurrentUser();
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
       setProfile(result);
     } catch (loadError) {
+      if (!isMountedRef.current) {
+        return;
+      }
+
       setError(
         getApiErrorMessage(
           loadError,
           "Profil belum bisa dimuat. Coba lagi sebentar.",
+          "profile",
         ),
       );
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -132,14 +152,20 @@ function Profile() {
       {!profile ? (
         <div className="profile-empty">
           <div>
-            <AlertTriangle className="mx-auto mb-3 h-10 w-10" aria-hidden="true" />
+            <AlertTriangle
+              className="mx-auto mb-3 h-10 w-10"
+              aria-hidden="true"
+            />
             <h2>Profil tidak tersedia.</h2>
             <p>Data akun belum bisa ditampilkan saat ini.</p>
           </div>
         </div>
       ) : (
         <div className="profile-shell">
-          <section className="profile-card" aria-labelledby="profile-info-title">
+          <section
+            className="profile-card"
+            aria-labelledby="profile-info-title"
+          >
             <div className="profile-card-heading">
               <UserRound className="h-5 w-5" aria-hidden="true" />
               <h2 id="profile-info-title">Identity</h2>

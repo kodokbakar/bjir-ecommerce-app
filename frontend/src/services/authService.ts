@@ -38,6 +38,8 @@ export interface AuthResult {
   user: User;
 }
 
+type ApiErrorContext = "auth" | "profile";
+
 export async function loginUser(input: LoginInput): Promise<AuthResult> {
   const response = await api.post<ApiDataResponse<AuthPayload>>(
     "/v1/auth/login",
@@ -85,7 +87,11 @@ export async function getCurrentUser(): Promise<User> {
   return unwrapCurrentUser(response.data);
 }
 
-export function getApiErrorMessage(error: unknown, fallback: string): string {
+export function getApiErrorMessage(
+  error: unknown,
+  fallback: string,
+  context: ApiErrorContext = "auth",
+): string {
   if (axios.isAxiosError(error)) {
     const responseData = error.response?.data;
 
@@ -99,7 +105,9 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
     }
 
     if (error.response?.status === 401) {
-      return "Email atau kata sandi tidak sesuai.";
+      return context === "profile"
+        ? "Sesi kamu sudah berakhir, silakan login ulang."
+        : "Email atau kata sandi tidak sesuai.";
     }
 
     if (error.response?.status === 409) {
