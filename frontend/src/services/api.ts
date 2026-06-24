@@ -3,6 +3,7 @@ import axios from "axios";
 import type {
   Category,
   Product,
+  ProductInput,
   ProductListMeta,
   ProductListParams,
   ProductListResponse,
@@ -151,6 +152,39 @@ export const productApi = {
     );
 
     return unwrapData(response.data);
+  },
+
+  async create(input: ProductInput): Promise<Product> {
+    const response = await api.post<ApiDataResponse<Product>>(
+      "/v1/products",
+      input,
+    );
+
+    return response.data.data;
+  },
+
+  async update(id: string, input: ProductInput): Promise<Product> {
+    const response = await api.put<ApiDataResponse<Product>>(
+      `/v1/products/${encodeURIComponent(id)}`,
+      input,
+    );
+
+    return response.data.data;
+  },
+
+  async uploadImage(id: string, file: File): Promise<void> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    await api.post(`/v1/products/${encodeURIComponent(id)}/image`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  async deleteById(id: string): Promise<void> {
+    await api.delete(`/v1/products/${encodeURIComponent(id)}`);
   },
 };
 
