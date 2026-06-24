@@ -14,6 +14,30 @@ export interface Category {
   updated_at?: string;
 }
 
+export interface CategoryInput {
+  parent_id?: string | null;
+  name: string;
+  description?: string;
+  image_url?: string;
+}
+
+export interface CategoryListParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface CategoryListMeta {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+export interface CategoryListResponse {
+  data: Category[];
+  meta: CategoryListMeta;
+}
+
 export interface ProductImage {
   id: string;
   product_id: string;
