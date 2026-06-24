@@ -3,6 +3,7 @@ import { categoryApi, getResponseErrorMessage, productApi } from "./api";
 import type {
   Category,
   Product,
+  ProductInput,
   ProductListParams,
   ProductListResponse,
 } from "../types/product";
@@ -40,6 +41,24 @@ export async function getProductById(id: string): Promise<Product> {
   return productApi.getById(requireValue(id, "Product ID"));
 }
 
+export async function createProduct(input: ProductInput): Promise<Product> {
+  return productApi.create(input);
+}
+
+export async function updateProduct(
+  id: string,
+  input: ProductInput,
+): Promise<Product> {
+  return productApi.update(requireValue(id, "Product ID"), input);
+}
+
+export async function uploadProductImage(
+  id: string,
+  file: File,
+): Promise<void> {
+  await productApi.uploadImage(requireValue(id, "Product ID"), file);
+}
+
 export async function getProductBySlug(slug: string): Promise<Product> {
   return productApi.getBySlug(requireValue(slug, "Product slug"));
 }
@@ -71,6 +90,9 @@ export const productService = {
   listProducts,
   getProductById,
   getProductBySlug,
+  createProduct,
+  updateProduct,
+  uploadProductImage,
   deleteProduct,
   listCategories,
   getCategoryById,

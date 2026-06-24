@@ -21,6 +21,7 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
+import ProductForm from "./pages/admin/ProductForm";
 
 function App() {
   return (
@@ -120,45 +121,63 @@ function App() {
           }
         />
 
-        <Route element={<AdminProtectedRoute />}>
-          <Route
-            path="/admin"
-            element={
-              <AdminLayout>
-                <AdminDashboard />
-              </AdminLayout>
-            }
-          />
-
-          <Route
-            path="/admin/products"
-            element={
-              <AdminLayout>
-                <AdminProducts />
-              </AdminLayout>
-            }
-          />
-
-          <Route
-            path="/admin/categories"
-            element={
-              <AdminLayout>
-                <AdminCategories />
-              </AdminLayout>
-            }
-          />
-
-          <Route
-            path="/admin/orders"
-            element={
-              <AdminLayout>
-                <AdminOrders />
-              </AdminLayout>
-            }
-          />
-        </Route>
-
         <Route path="/settings" element={<Navigate to="/profile" replace />} />
+      </Route>
+
+      <Route element={<AdminProtectedRoute />}>
+        <Route
+          path="/admin"
+          element={
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
+          }
+        />
+
+        <Route
+          path="/admin/products/new"
+          element={
+            <AdminLayout>
+              <ProductForm />
+            </AdminLayout>
+          }
+        />
+
+        <Route
+          path="/admin/products/edit"
+          element={
+            <AdminLayout>
+              <ProductForm />
+            </AdminLayout>
+          }
+        />
+
+        <Route
+          path="/admin/products"
+          element={
+            <AdminLayout>
+              <AdminProducts />
+            </AdminLayout>
+          }
+        />
+
+        <Route
+          path="/admin/categories"
+          element={
+            <AdminLayout>
+              <AdminCategories />
+            </AdminLayout>
+          }
+        />
+
+        <Route
+          path="/admin/orders"
+          element={
+            <AdminLayout>
+              <AdminOrders />
+            </AdminLayout>
+          }
+        />
       </Route>
     </Routes>
   );

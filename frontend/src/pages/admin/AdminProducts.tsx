@@ -361,7 +361,7 @@ function AdminProducts() {
                     </span>
 
                     <div className="admin-products-actions">
-                      <Link to={`/admin/products/${product.id}/edit`}>
+                      <Link to={`/admin/products/edit?id=${encodeURIComponent(product.id)}`}>
                         <Edit3 className="h-4 w-4" aria-hidden="true" />
                         Edit
                       </Link>

@@ -39,6 +39,15 @@ export interface Product {
   updated_at?: string;
 }
 
+export interface ProductInput {
+  category_id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  image_url?: string;
+}
+
 export interface ProductListParams {
   category_id?: string;
   category?: string;
