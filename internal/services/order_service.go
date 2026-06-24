@@ -12,6 +12,7 @@ import (
 type OrderService interface {
 	Checkout(ctx context.Context, userID string) (*models.Order, error)
 	GetMyOrders(ctx context.Context, userID string, input OrderListInput) (*OrderListResult, error)
+	GetAllOrders(ctx context.Context, input OrderListInput) (*OrderListResult, error)
 	GetMyOrderDetail(ctx context.Context, userID string, orderID string) (*models.Order, error)
 	UpdateStatus(ctx context.Context, orderID string, status string) (*models.Order, error)
 }
@@ -23,8 +24,10 @@ const (
 )
 
 type OrderListInput struct {
-	Page  int
-	Limit int
+	Page   int
+	Limit  int
+	Status string
+	Search string
 }
 
 type OrderListResult struct {
@@ -82,6 +85,57 @@ func (s *orderService) GetMyOrders(ctx context.Context, userID string, input Ord
 	orders, total, err := s.orderRepo.FindAllByUserID(ctx, userID, repository.OrderListFilter{
 		Limit:  limit,
 		Offset: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+
+	return &OrderListResult{
+		Orders:     orders,
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (s *orderService) GetAllOrders(ctx context.Context, input OrderListInput) (*OrderListResult, error) {
+	page := input.Page
+	if page < 1 {
+		page = DefaultOrderPage
+	}
+
+	limit := input.Limit
+	if limit < 1 {
+		limit = DefaultOrderLimit
+	}
+
+	if limit > MaxOrderLimit {
+		limit = MaxOrderLimit
+	}
+
+	status := strings.TrimSpace(input.Status)
+	if status != "" {
+		normalizedStatus, err := normalizeOrderStatus(status)
+		if err != nil {
+			return nil, err
+		}
+
+		status = normalizedStatus
+	}
+
+	offset := (page - 1) * limit
+
+	orders, total, err := s.orderRepo.FindAll(ctx, repository.OrderListFilter{
+		Limit:  limit,
+		Offset: offset,
+		Status: status,
+		Search: strings.TrimSpace(input.Search),
 	})
 	if err != nil {
 		return nil, err

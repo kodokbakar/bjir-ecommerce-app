@@ -1,4 +1,9 @@
-export type OrderStatus = "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+export type OrderStatus =
+  | "pending"
+  | "paid"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export interface CheckoutInput {
   shipping_address?: string;
@@ -19,6 +24,8 @@ export interface OrderItem {
 export interface Order {
   id: string;
   user_id: string;
+  user_name?: string;
+  user_email?: string;
   order_number: string;
   status: OrderStatus;
   total_amount: number;
@@ -32,6 +39,8 @@ export interface Order {
 export interface OrderListParams {
   page?: number;
   limit?: number;
+  status?: OrderStatus | "";
+  search?: string;
 }
 
 export interface OrderListMeta {

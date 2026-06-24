@@ -13,6 +13,7 @@ import (
 type fakeOrderRepository struct {
 	checkoutFunc          func(ctx context.Context, userID string) (*models.Order, error)
 	findAllByUserIDFunc   func(ctx context.Context, userID string, filter repository.OrderListFilter) ([]models.Order, int, error)
+	findAllFunc           func(ctx context.Context, filter repository.OrderListFilter) ([]models.Order, int, error)
 	findByIDAndUserIDFunc func(ctx context.Context, orderID string, userID string) (*models.Order, error)
 	findByIDFunc          func(ctx context.Context, orderID string) (*models.Order, error)
 	updateStatusFunc      func(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error)
@@ -103,6 +104,21 @@ func newFakeOrderRepository() *fakeOrderRepository {
 				UpdatedAt:   now,
 			}, nil
 		},
+		findAllFunc: func(ctx context.Context, filter repository.OrderListFilter) ([]models.Order, int, error) {
+			return []models.Order{
+				{
+					ID:          "order-id",
+					UserID:      "user-id",
+					UserName:    "Test User",
+					UserEmail:   "user@example.com",
+					OrderNumber: "ORD-TEST",
+					Status:      models.OrderStatusPending,
+					TotalAmount: 30000000,
+					CreatedAt:   now,
+					UpdatedAt:   now,
+				},
+			}, 1, nil
+		},
 	}
 }
 
@@ -124,6 +140,10 @@ func (f *fakeOrderRepository) FindByID(ctx context.Context, orderID string) (*mo
 
 func (f *fakeOrderRepository) UpdateStatus(ctx context.Context, orderID string, currentStatus string, nextStatus string) (*models.Order, error) {
 	return f.updateStatusFunc(ctx, orderID, currentStatus, nextStatus)
+}
+
+func (f *fakeOrderRepository) FindAll(ctx context.Context, filter repository.OrderListFilter) ([]models.Order, int, error) {
+	return f.findAllFunc(ctx, filter)
 }
 
 func TestOrderService_Checkout_Success(t *testing.T) {

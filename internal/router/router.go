@@ -80,6 +80,7 @@ func SetupRouter(
 	admin.GET("/ping", handlers.AdminPing)
 
 	if orderHandler != nil {
+		admin.GET("/orders", orderHandler.GetAllOrders)
 		admin.PATCH("/orders/:id/status", middleware.BodySizeLimit(bodyLimitConfig.API), orderHandler.UpdateOrderStatus)
 	}
 

@@ -21,6 +21,7 @@ type fakeOrderService struct {
 	getMyOrdersFunc      func(ctx context.Context, userID string, input services.OrderListInput) (*services.OrderListResult, error)
 	getMyOrderDetailFunc func(ctx context.Context, userID string, orderID string) (*models.Order, error)
 	updateStatusFunc     func(ctx context.Context, orderID string, status string) (*models.Order, error)
+	getAllOrdersFunc     func(ctx context.Context, input services.OrderListInput) (*services.OrderListResult, error)
 }
 
 func (f *fakeOrderService) Checkout(ctx context.Context, userID string) (*models.Order, error) {
@@ -37,6 +38,10 @@ func (f *fakeOrderService) GetMyOrderDetail(ctx context.Context, userID string, 
 
 func (f *fakeOrderService) UpdateStatus(ctx context.Context, orderID string, status string) (*models.Order, error) {
 	return f.updateStatusFunc(ctx, orderID, status)
+}
+
+func (f *fakeOrderService) GetAllOrders(ctx context.Context, input services.OrderListInput) (*services.OrderListResult, error) {
+	return f.getAllOrdersFunc(ctx, input)
 }
 
 func setupOrderRouter(service *fakeOrderService, withUserContext bool) *gin.Engine {
@@ -58,6 +63,7 @@ func setupOrderRouter(service *fakeOrderService, withUserContext bool) *gin.Engi
 	router.POST("/api/v1/orders/checkout", handler.Checkout)
 	router.GET("/api/v1/orders/:id", handler.GetMyOrderDetail)
 	router.PATCH("/api/v1/admin/orders/:id/status", handler.UpdateOrderStatus)
+	router.GET("/api/v1/admin/orders", handler.GetAllOrders)
 
 	return router
 }

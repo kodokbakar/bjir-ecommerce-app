@@ -13,6 +13,8 @@ const (
 type Order struct {
 	ID              string      `json:"id"`
 	UserID          string      `json:"user_id"`
+	UserName        string      `json:"user_name,omitempty"`
+	UserEmail       string      `json:"user_email,omitempty"`
 	OrderNumber     string      `json:"order_number"`
 	Status          string      `json:"status"`
 	TotalAmount     float64     `json:"total_amount"`

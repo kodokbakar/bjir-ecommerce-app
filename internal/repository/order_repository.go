@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -15,6 +16,7 @@ import (
 
 type OrderRepository interface {
 	Checkout(ctx context.Context, userID string) (*models.Order, error)
+	FindAll(ctx context.Context, filter OrderListFilter) ([]models.Order, int, error)
 	FindAllByUserID(ctx context.Context, userID string, filter OrderListFilter) ([]models.Order, int, error)
 	FindByIDAndUserID(ctx context.Context, orderID string, userID string) (*models.Order, error)
 	FindByID(ctx context.Context, orderID string) (*models.Order, error)
@@ -24,6 +26,8 @@ type OrderRepository interface {
 type OrderListFilter struct {
 	Limit  int
 	Offset int
+	Status string
+	Search string
 }
 
 type orderRepository struct {
@@ -120,6 +124,91 @@ func (r *orderRepository) Checkout(ctx context.Context, userID string) (*models.
 	committed = true
 
 	return order, nil
+}
+
+func (r *orderRepository) FindAll(ctx context.Context, filter OrderListFilter) ([]models.Order, int, error) {
+	whereClause, args := buildAdminOrderWhereClause(filter)
+
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM orders o
+		JOIN users u ON u.id = o.user_id
+		WHERE %s
+	`, whereClause)
+
+	var total int
+	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := append([]any{}, args...)
+	queryArgs = append(queryArgs, filter.Limit, filter.Offset)
+
+	limitPlaceholder := fmt.Sprintf("$%d", len(args)+1)
+	offsetPlaceholder := fmt.Sprintf("$%d", len(args)+2)
+
+	query := fmt.Sprintf(`
+		SELECT
+			o.id::text,
+			o.user_id::text,
+			COALESCE(u.name, ''),
+			COALESCE(u.email, ''),
+			o.order_number,
+			o.status,
+			o.total_amount::float8,
+			COALESCE(o.shipping_address, ''),
+			COALESCE(o.notes, ''),
+			o.created_at,
+			o.updated_at
+		FROM orders o
+		JOIN users u ON u.id = o.user_id
+		WHERE %s
+		ORDER BY o.created_at DESC
+		LIMIT %s OFFSET %s
+	`, whereClause, limitPlaceholder, offsetPlaceholder)
+
+	rows, err := r.db.Query(ctx, query, queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	orders := make([]models.Order, 0)
+
+	for rows.Next() {
+		var order models.Order
+
+		if err := scanOrderWithCustomer(&order, rows); err != nil {
+			return nil, 0, err
+		}
+
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return orders, total, nil
+}
+
+func buildAdminOrderWhereClause(filter OrderListFilter) (string, []any) {
+	clauses := []string{"1 = 1"}
+	args := make([]any, 0, 2)
+
+	status := strings.TrimSpace(filter.Status)
+	if status != "" {
+		args = append(args, status)
+		clauses = append(clauses, fmt.Sprintf("o.status = $%d", len(args)))
+	}
+
+	search := strings.TrimSpace(filter.Search)
+	if search != "" {
+		args = append(args, "%"+search+"%")
+		clauses = append(clauses, fmt.Sprintf("o.order_number ILIKE $%d", len(args)))
+	}
+
+	return strings.Join(clauses, " AND "), args
 }
 
 func (r *orderRepository) FindAllByUserID(ctx context.Context, userID string, filter OrderListFilter) ([]models.Order, int, error) {
@@ -523,6 +612,22 @@ func (r *orderRepository) clearCart(ctx context.Context, tx pgx.Tx, userID strin
 
 type orderRowScanner interface {
 	Scan(dest ...any) error
+}
+
+func scanOrderWithCustomer(order *models.Order, row orderRowScanner) error {
+	return row.Scan(
+		&order.ID,
+		&order.UserID,
+		&order.UserName,
+		&order.UserEmail,
+		&order.OrderNumber,
+		&order.Status,
+		&order.TotalAmount,
+		&order.ShippingAddress,
+		&order.Notes,
+		&order.CreatedAt,
+		&order.UpdatedAt,
+	)
 }
 
 func scanOrder(order *models.Order, row orderRowScanner) error {

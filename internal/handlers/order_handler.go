@@ -89,6 +89,30 @@ func (h *OrderHandler) GetMyOrders(c *gin.Context) {
 	response.SuccessWithMeta(c, http.StatusOK, "orders retrieved successfully", result.Orders, meta)
 }
 
+func (h *OrderHandler) GetAllOrders(c *gin.Context) {
+	pagination := GetPaginationQuery(c)
+
+	result, err := h.orderService.GetAllOrders(c.Request.Context(), services.OrderListInput{
+		Page:   pagination.Page,
+		Limit:  pagination.Limit,
+		Status: c.Query("status"),
+		Search: c.Query("search"),
+	})
+	if err != nil {
+		handleOrderError(c, err)
+		return
+	}
+
+	meta := gin.H{
+		"page":        result.Page,
+		"limit":       result.Limit,
+		"total":       result.Total,
+		"total_pages": result.TotalPages,
+	}
+
+	response.SuccessWithMeta(c, http.StatusOK, "admin orders retrieved successfully", result.Orders, meta)
+}
+
 func (h *OrderHandler) GetMyOrderDetail(c *gin.Context) {
 	userID, ok := middleware.GetCurrentUserID(c)
 	if !ok || userID == "" {

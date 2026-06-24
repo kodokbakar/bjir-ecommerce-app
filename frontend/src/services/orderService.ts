@@ -66,6 +66,19 @@ export async function listOrders(
   };
 }
 
+export async function listAdminOrders(
+  params: OrderListParams = {},
+): Promise<OrderListResponse> {
+  const response = await api.get<ApiListResponse<Order[]>>("/v1/admin/orders", {
+    params: cleanParams(params),
+  });
+
+  return {
+    data: response.data.data,
+    meta: normalizeMeta(response.data.meta),
+  };
+}
+
 export async function getOrderById(orderID: string): Promise<Order> {
   const response = await api.get<ApiDataResponse<Order>>(
     `/v1/orders/${encodeURIComponent(orderID)}`,

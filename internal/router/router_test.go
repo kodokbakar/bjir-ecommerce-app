@@ -416,6 +416,16 @@ func (f *fakeRouterOrderService) GetMyOrderDetail(ctx context.Context, userID st
 	}, nil
 }
 
+func (f *fakeRouterOrderService) GetAllOrders(ctx context.Context, input services.OrderListInput) (*services.OrderListResult, error) {
+	return &services.OrderListResult{
+		Orders:     []models.Order{},
+		Page:       1,
+		Limit:      20,
+		Total:      0,
+		TotalPages: 0,
+	}, nil
+}
+
 func TestRBAC_PublicProductRoutes_WithoutToken_ReturnsOK(t *testing.T) {
 	r, _ := setupRouterForCategoryAuthTest()
 
