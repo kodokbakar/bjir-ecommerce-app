@@ -5034,3 +5034,181 @@ a.product-detail-category:hover {
     box-shadow: 4px 4px 0 var(--color-brutal-ink);
   }
 }
+
+.admin-order-status-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.admin-order-status-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(23, 20, 18, 0.64);
+  cursor: pointer;
+}
+
+.admin-order-status-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(580px, 100%);
+  overflow: hidden;
+  border: var(--border-brutal);
+  background: white;
+  box-shadow: 10px 10px 0 var(--color-brutal-ink);
+}
+
+.admin-order-status-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 3px solid var(--color-brutal-ink);
+  background:
+    linear-gradient(135deg, rgba(107, 209, 255, 0.64), rgba(255, 248, 232, 0.96)),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(23, 20, 18, 0.08) 0,
+      rgba(23, 20, 18, 0.08) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+  padding: 18px;
+}
+
+.admin-order-status-header span {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 8px;
+  border: 2px solid var(--color-brutal-ink);
+  background: var(--color-brutal-hot);
+  color: white;
+  box-shadow: 3px 3px 0 var(--color-brutal-ink);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-order-status-header h2 {
+  margin: 0;
+  color: var(--color-brutal-ink);
+  font-size: clamp(30px, 5vw, 52px);
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.admin-order-status-header button,
+.admin-order-status-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 2px solid var(--color-brutal-ink);
+  background: var(--color-brutal-surface);
+  color: var(--color-brutal-ink);
+  box-shadow: 3px 3px 0 var(--color-brutal-ink);
+  cursor: pointer;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.admin-order-status-header button {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.admin-order-status-body {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.admin-order-status-body p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+.admin-order-status-body strong {
+  color: var(--color-brutal-ink);
+  font-weight: 950;
+}
+
+.admin-order-status-route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid var(--color-brutal-ink);
+  background: var(--color-brutal-paper);
+  box-shadow: 3px 3px 0 var(--color-brutal-ink);
+  padding: 12px;
+}
+
+.admin-order-status-terminal {
+  border: 2px solid var(--color-brutal-ink);
+  background: #ffe1d7;
+  color: var(--color-brutal-ink);
+  box-shadow: 3px 3px 0 var(--color-brutal-ink);
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-order-status-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 3px solid var(--color-brutal-ink);
+  background: var(--color-brutal-paper);
+  padding: 16px 18px;
+}
+
+.admin-order-status-actions button[type="button"]:last-child {
+  background: var(--color-brutal-hot);
+  color: white;
+}
+
+.admin-order-status-header button:hover:not(:disabled),
+.admin-order-status-actions button:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  background: var(--color-brutal-accent);
+  color: var(--color-brutal-ink);
+  box-shadow: 5px 5px 0 var(--color-brutal-ink);
+}
+
+.admin-order-status-header button:disabled,
+.admin-order-status-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@media (max-width: 720px) {
+  .admin-order-status-dialog {
+    box-shadow: 4px 4px 0 var(--color-brutal-ink);
+  }
+
+  .admin-order-status-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-order-status-route {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

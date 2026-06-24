@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
+  ArrowRight,
   Clock3,
-  Eye,
+  Edit3,
   PackageCheck,
   RefreshCw,
+  Save,
   Search,
+  X,
 } from "lucide-react";
 
 import {
   getOrderErrorMessage,
   listAdminOrders,
+  updateOrderStatus,
 } from "../../services/orderService";
 import type {
   Order,
@@ -36,6 +40,17 @@ const ORDER_STATUS_OPTIONS: Array<{
   value: OrderStatus | "";
 }> = [
   { label: "All statuses", value: "" },
+  { label: "Pending", value: "pending" },
+  { label: "Paid", value: "paid" },
+  { label: "Shipped", value: "shipped" },
+  { label: "Delivered", value: "delivered" },
+  { label: "Cancelled", value: "cancelled" },
+];
+
+const ORDER_STATUS_CHANGE_OPTIONS: Array<{
+  label: string;
+  value: OrderStatus;
+}> = [
   { label: "Pending", value: "pending" },
   { label: "Paid", value: "paid" },
   { label: "Shipped", value: "shipped" },
@@ -97,6 +112,32 @@ function getCustomerLabel(order: Order): string {
   return order.user_name || order.user_email || order.user_id;
 }
 
+function getAllowedStatusTransitions(status: OrderStatus): OrderStatus[] {
+  switch (status) {
+    case "pending":
+      return ["paid", "cancelled"];
+    case "paid":
+      return ["shipped", "cancelled"];
+    case "shipped":
+      return ["delivered"];
+    default:
+      return [];
+  }
+}
+
+function getDefaultTargetStatus(order: Order): OrderStatus {
+  return getAllowedStatusTransitions(order.status)[0] ?? order.status;
+}
+
+function mergeUpdatedOrder(currentOrder: Order, updatedOrder: Order): Order {
+  return {
+    ...currentOrder,
+    ...updatedOrder,
+    user_name: updatedOrder.user_name ?? currentOrder.user_name,
+    user_email: updatedOrder.user_email ?? currentOrder.user_email,
+  };
+}
+
 function AdminOrdersSkeleton() {
   return (
     <div className="admin-orders-list" aria-label="Loading admin orders">
@@ -121,10 +162,22 @@ function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [meta, setMeta] = useState<OrderListMeta>(EMPTY_META);
   const [reloadKey, setReloadKey] = useState(0);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [targetStatus, setTargetStatus] = useState<OrderStatus>("paid");
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const hasOrders = orders.length > 0;
+  const allowedTargetStatuses = selectedOrder
+    ? getAllowedStatusTransitions(selectedOrder.status)
+    : [];
+  const canSubmitStatusChange =
+    selectedOrder !== null &&
+    allowedTargetStatuses.includes(targetStatus) &&
+    targetStatus !== selectedOrder.status &&
+    !isUpdatingStatus;
 
   const query = useMemo<OrderListParams>(
     () => ({
@@ -233,6 +286,64 @@ function AdminOrders() {
     setReloadKey((current) => current + 1);
   }
 
+  function openStatusDialog(order: Order) {
+    setSelectedOrder(order);
+    setTargetStatus(getDefaultTargetStatus(order));
+    setError(null);
+    setNotice(null);
+  }
+
+  function closeStatusDialog() {
+    if (isUpdatingStatus) {
+      return;
+    }
+
+    setSelectedOrder(null);
+    setTargetStatus("paid");
+  }
+
+  async function handleConfirmStatusChange() {
+    if (!selectedOrder || !canSubmitStatusChange) {
+      return;
+    }
+
+    const currentOrder = selectedOrder;
+    const nextStatus = targetStatus;
+
+    setIsUpdatingStatus(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const updatedOrder = await updateOrderStatus(currentOrder.id, nextStatus);
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order.id === currentOrder.id
+            ? mergeUpdatedOrder(order, updatedOrder)
+            : order,
+        ),
+      );
+
+      setNotice(
+        `${currentOrder.order_number} changed from ${getStatusLabel(
+          currentOrder.status,
+        )} to ${getStatusLabel(nextStatus)}.`,
+      );
+      setSelectedOrder(null);
+      setTargetStatus("paid");
+    } catch (updateError) {
+      setError(
+        getOrderErrorMessage(
+          updateError,
+          "Order status could not be updated. Check the transition and try again.",
+        ),
+      );
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  }
+
   return (
     <section className="admin-page" aria-labelledby="admin-orders-title">
       <header className="admin-page-header">
@@ -291,6 +402,13 @@ function AdminOrders() {
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Retry
           </button>
+        </div>
+      )}
+
+      {notice && (
+        <div className="admin-products-notice is-success" role="status">
+          <PackageCheck className="h-5 w-5" aria-hidden="true" />
+          <span>{notice}</span>
         </div>
       )}
 
@@ -364,12 +482,13 @@ function AdminOrders() {
                   </span>
 
                   <div className="admin-products-actions">
-                    <Link
-                      to={`/admin/orders?focus=${encodeURIComponent(order.id)}`}
+                    <button
+                      type="button"
+                      onClick={() => openStatusDialog(order)}
                     >
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                      View
-                    </Link>
+                      <Edit3 className="h-4 w-4" aria-hidden="true" />
+                      Status
+                    </button>
                   </div>
                 </article>
               ))}
@@ -403,6 +522,112 @@ function AdminOrders() {
             </button>
           </nav>
         </>
+      )}
+
+      {selectedOrder && (
+        <div className="admin-order-status-modal" role="presentation">
+          <button
+            className="admin-order-status-backdrop"
+            type="button"
+            aria-label="Close order status dialog"
+            onClick={closeStatusDialog}
+          />
+
+          <section
+            className="admin-order-status-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-order-status-title"
+          >
+            <header className="admin-order-status-header">
+              <div>
+                <span>Change Order Status</span>
+                <h2 id="admin-order-status-title">Confirm status.</h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeStatusDialog}
+                disabled={isUpdatingStatus}
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+                <span className="sr-only">Close</span>
+              </button>
+            </header>
+
+            <div className="admin-order-status-body">
+              <div className="admin-order-status-route">
+                <span
+                  className={`orders-status-badge ${getStatusClassName(
+                    selectedOrder.status,
+                  )}`}
+                >
+                  {getStatusLabel(selectedOrder.status)}
+                </span>
+
+                <ArrowRight className="h-5 w-5" aria-hidden="true" />
+
+                <span
+                  className={`orders-status-badge ${getStatusClassName(
+                    targetStatus,
+                  )}`}
+                >
+                  {getStatusLabel(targetStatus)}
+                </span>
+              </div>
+
+              <p>
+                Change order <strong>{selectedOrder.order_number}</strong> from{" "}
+                <strong>{getStatusLabel(selectedOrder.status)}</strong> to{" "}
+                <strong>{getStatusLabel(targetStatus)}</strong>?
+              </p>
+
+              {allowedTargetStatuses.length > 0 ? (
+                <div className="admin-product-field">
+                  <label htmlFor="order-next-status">Next status</label>
+                  <select
+                    id="order-next-status"
+                    value={targetStatus}
+                    onChange={(event) =>
+                      setTargetStatus(event.target.value as OrderStatus)
+                    }
+                  >
+                    {ORDER_STATUS_CHANGE_OPTIONS.filter((option) =>
+                      allowedTargetStatuses.includes(option.value),
+                    ).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="admin-order-status-terminal" role="status">
+                  This order is already in a terminal state. No further status
+                  transition is available.
+                </div>
+              )}
+            </div>
+
+            <footer className="admin-order-status-actions">
+              <button
+                type="button"
+                onClick={closeStatusDialog}
+                disabled={isUpdatingStatus}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!canSubmitStatusChange}
+                onClick={() => void handleConfirmStatusChange()}
+              >
+                <Save className="h-4 w-4" aria-hidden="true" />
+                {isUpdatingStatus ? "Updating..." : "Confirm"}
+              </button>
+            </footer>
+          </section>
+        </div>
       )}
     </section>
   );

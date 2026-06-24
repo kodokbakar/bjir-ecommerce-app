@@ -242,7 +242,8 @@ func isValidOrderStatusTransition(currentStatus string, nextStatus string) bool 
 		return nextStatus == models.OrderStatusPaid ||
 			nextStatus == models.OrderStatusCancelled
 	case models.OrderStatusPaid:
-		return nextStatus == models.OrderStatusShipped
+		return nextStatus == models.OrderStatusShipped ||
+			nextStatus == models.OrderStatusCancelled
 	case models.OrderStatusShipped:
 		return nextStatus == models.OrderStatusDelivered
 	default:

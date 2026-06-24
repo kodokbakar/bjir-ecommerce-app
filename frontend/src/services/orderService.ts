@@ -4,6 +4,7 @@ import type {
   OrderListMeta,
   OrderListParams,
   OrderListResponse,
+  OrderStatus,
 } from "../types/order";
 
 interface ApiListResponse<TData> {
@@ -82,6 +83,18 @@ export async function listAdminOrders(
 export async function getOrderById(orderID: string): Promise<Order> {
   const response = await api.get<ApiDataResponse<Order>>(
     `/v1/orders/${encodeURIComponent(orderID)}`,
+  );
+
+  return response.data.data;
+}
+
+export async function updateOrderStatus(
+  orderID: string,
+  status: OrderStatus,
+): Promise<Order> {
+  const response = await api.patch<ApiDataResponse<Order>>(
+    `/v1/admin/orders/${encodeURIComponent(orderID)}/status`,
+    { status },
   );
 
   return response.data.data;

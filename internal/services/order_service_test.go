@@ -408,6 +408,27 @@ func TestOrderService_UpdateStatus_PaidToShipped_Success(t *testing.T) {
 	}
 }
 
+func TestOrderService_UpdateStatus_PaidToCancelled_Success(t *testing.T) {
+	repo := newFakeOrderRepository()
+	repo.findByIDFunc = func(ctx context.Context, orderID string) (*models.Order, error) {
+		return &models.Order{
+			ID:     orderID,
+			Status: models.OrderStatusPaid,
+		}, nil
+	}
+
+	service := NewOrderService(repo)
+
+	order, err := service.UpdateStatus(context.Background(), "order-id", "cancelled")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if order.Status != models.OrderStatusCancelled {
+		t.Fatalf("expected cancelled, got %s", order.Status)
+	}
+}
+
 func TestOrderService_UpdateStatus_ShippedToDelivered_Success(t *testing.T) {
 	repo := newFakeOrderRepository()
 	repo.findByIDFunc = func(ctx context.Context, orderID string) (*models.Order, error) {
