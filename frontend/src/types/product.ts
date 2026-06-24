@@ -34,6 +34,7 @@ export interface Product {
   category?: Category | null;
   image_url?: string | null;
   images?: ProductImage[];
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 }

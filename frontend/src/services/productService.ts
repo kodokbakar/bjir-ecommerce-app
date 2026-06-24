@@ -1,4 +1,4 @@
-import { categoryApi, productApi } from "./api";
+import { categoryApi, getResponseErrorMessage, productApi } from "./api";
 
 import type {
   Category,
@@ -44,6 +44,17 @@ export async function getProductBySlug(slug: string): Promise<Product> {
   return productApi.getBySlug(requireValue(slug, "Product slug"));
 }
 
+export async function deleteProduct(id: string): Promise<void> {
+  await productApi.deleteById(requireValue(id, "Product ID"));
+}
+
+export function getProductErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  return getResponseErrorMessage(error, fallback);
+}
+
 export async function listCategories(): Promise<Category[]> {
   return categoryApi.list();
 }
@@ -60,8 +71,10 @@ export const productService = {
   listProducts,
   getProductById,
   getProductBySlug,
+  deleteProduct,
   listCategories,
   getCategoryById,
   getCategoryBySlug,
+  getProductErrorMessage,
   getImageUrl,
 };

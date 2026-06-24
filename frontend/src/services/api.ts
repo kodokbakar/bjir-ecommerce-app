@@ -152,6 +152,10 @@ export const productApi = {
 
     return unwrapData(response.data);
   },
+
+  async deleteById(id: string): Promise<void> {
+    await api.delete(`/v1/products/${encodeURIComponent(id)}`);
+  },
 };
 
 export const categoryApi = {
