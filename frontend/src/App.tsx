@@ -24,169 +24,179 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import ProductForm from "./pages/admin/ProductForm";
 
 import DashboardRedirect from "./components/DashboardRedirect";
+import GlobalNetworkError from "./components/GlobalNetworkError";
+import ToastViewport from "./components/ToastViewport";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/" element={<DashboardRedirect />} />
+    <>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<DashboardRedirect />} />
 
-      <Route element={<ProtectedRoute />}>
-        <Route
-          path="/dashboard"
-          element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          }
-        />
+        <Route element={<ProtectedRoute />}>
+          <Route
+            path="/dashboard"
+            element={
+              <Layout>
+                <Dashboard />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/products"
-          element={
-            <Layout>
-              <Products />
-            </Layout>
-          }
-        />
+          <Route
+            path="/products"
+            element={
+              <Layout>
+                <Products />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/products/:slug"
-          element={
-            <Layout>
-              <ProductDetail />
-            </Layout>
-          }
-        />
+          <Route
+            path="/products/:slug"
+            element={
+              <Layout>
+                <ProductDetail />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/categories/:slug"
-          element={
-            <Layout>
-              <CategoryProducts />
-            </Layout>
-          }
-        />
+          <Route
+            path="/categories/:slug"
+            element={
+              <Layout>
+                <CategoryProducts />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/cart"
-          element={
-            <Layout>
-              <Cart />
-            </Layout>
-          }
-        />
+          <Route
+            path="/cart"
+            element={
+              <Layout>
+                <Cart />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/checkout"
-          element={
-            <Layout>
-              <Checkout />
-            </Layout>
-          }
-        />
+          <Route
+            path="/checkout"
+            element={
+              <Layout>
+                <Checkout />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/orders"
-          element={
-            <Layout>
-              <MyOrders />
-            </Layout>
-          }
-        />
+          <Route
+            path="/orders"
+            element={
+              <Layout>
+                <MyOrders />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/orders/:id"
-          element={
-            <Layout>
-              <OrderDetail />
-            </Layout>
-          }
-        />
+          <Route
+            path="/orders/:id"
+            element={
+              <Layout>
+                <OrderDetail />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/profile"
-          element={
-            <Layout>
-              <Profile />
-            </Layout>
-          }
-        />
+          <Route
+            path="/profile"
+            element={
+              <Layout>
+                <Profile />
+              </Layout>
+            }
+          />
 
-        <Route
-          path="/payment"
-          element={
-            <Layout>
-              <Payment />
-            </Layout>
-          }
-        />
+          <Route
+            path="/payment"
+            element={
+              <Layout>
+                <Payment />
+              </Layout>
+            }
+          />
 
-        <Route path="/settings" element={<Navigate to="/profile" replace />} />
-      </Route>
+          <Route
+            path="/settings"
+            element={<Navigate to="/profile" replace />}
+          />
+        </Route>
 
-      <Route element={<AdminProtectedRoute />}>
-        <Route
-          path="/admin"
-          element={<Navigate to="/admin/dashboard" replace />}
-        />
+        <Route element={<AdminProtectedRoute />}>
+          <Route
+            path="/admin"
+            element={<Navigate to="/admin/dashboard" replace />}
+          />
 
-        <Route
-          path="/admin/dashboard"
-          element={
-            <AdminLayout>
-              <AdminDashboard />
-            </AdminLayout>
-          }
-        />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            }
+          />
 
-        <Route
-          path="/admin/products/new"
-          element={
-            <AdminLayout>
-              <ProductForm />
-            </AdminLayout>
-          }
-        />
+          <Route
+            path="/admin/products/new"
+            element={
+              <AdminLayout>
+                <ProductForm />
+              </AdminLayout>
+            }
+          />
 
-        <Route
-          path="/admin/products/edit"
-          element={
-            <AdminLayout>
-              <ProductForm />
-            </AdminLayout>
-          }
-        />
+          <Route
+            path="/admin/products/edit"
+            element={
+              <AdminLayout>
+                <ProductForm />
+              </AdminLayout>
+            }
+          />
 
-        <Route
-          path="/admin/products"
-          element={
-            <AdminLayout>
-              <AdminProducts />
-            </AdminLayout>
-          }
-        />
+          <Route
+            path="/admin/products"
+            element={
+              <AdminLayout>
+                <AdminProducts />
+              </AdminLayout>
+            }
+          />
 
-        <Route
-          path="/admin/categories"
-          element={
-            <AdminLayout>
-              <AdminCategories />
-            </AdminLayout>
-          }
-        />
+          <Route
+            path="/admin/categories"
+            element={
+              <AdminLayout>
+                <AdminCategories />
+              </AdminLayout>
+            }
+          />
 
-        <Route
-          path="/admin/orders"
-          element={
-            <AdminLayout>
-              <AdminOrders />
-            </AdminLayout>
-          }
-        />
-      </Route>
-    </Routes>
+          <Route
+            path="/admin/orders"
+            element={
+              <AdminLayout>
+                <AdminOrders />
+              </AdminLayout>
+            }
+          />
+        </Route>
+      </Routes>
+
+      <GlobalNetworkError />
+      <ToastViewport />
+    </>
   );
 }
 

@@ -67,6 +67,40 @@ export function getApiOrigin(): string {
   }
 }
 
+export const API_SERVER_ERROR_EVENT = "bjir:api-server-error";
+
+export interface ApiServerErrorEventDetail {
+  status: number;
+  message: string;
+  method?: string;
+  url?: string;
+}
+
+function emitServerError(error: unknown): void {
+  if (
+    !axios.isAxiosError(error) ||
+    !error.response ||
+    error.response.status < 500 ||
+    typeof window === "undefined"
+  ) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent<ApiServerErrorEventDetail>(API_SERVER_ERROR_EVENT, {
+      detail: {
+        status: error.response.status,
+        message: getResponseErrorMessage(
+          error,
+          "Server is having trouble. Please try again.",
+        ),
+        method: error.config?.method?.toUpperCase(),
+        url: error.config?.url,
+      },
+    }),
+  );
+}
+
 export function getResponseErrorMessage(
   error: unknown,
   fallback: string,
@@ -111,11 +145,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      clearAuthStorage();
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        clearAuthStorage();
 
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      }
+
+      if ((error.response?.status ?? 0) >= 500) {
+        emitServerError(error);
       }
     }
 

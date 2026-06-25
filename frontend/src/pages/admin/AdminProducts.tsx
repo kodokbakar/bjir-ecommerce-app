@@ -3,8 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Edit3,
-  ImageOff,
-  PackageSearch,
+  RefreshCw,
   Plus,
   Search,
   Trash2,
@@ -26,6 +25,8 @@ import {
   getProductImage,
   getStockState,
 } from "../../utils/product";
+import EmptyState from "../../components/EmptyState";
+import { useToast } from "../../context/toast";
 
 const ADMIN_PRODUCT_LIMIT = 10;
 
@@ -92,12 +93,13 @@ function AdminProducts() {
   const [searchInput, setSearchInput] = useState(search);
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<ProductListMeta>(EMPTY_META);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingProductID, setDeletingProductID] = useState<string | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const hasProducts = products.length > 0;
 
@@ -163,7 +165,7 @@ function AdminProducts() {
     return () => {
       isActive = false;
     };
-  }, [page, query]);
+  }, [page, query, reloadKey]);
 
   function updateParams(nextPage: number, nextSearch: string) {
     const params = new URLSearchParams();
@@ -193,6 +195,10 @@ function AdminProducts() {
     updateParams(Math.max(1, nextPage), search);
   }
 
+  function handleRetry() {
+    setReloadKey((current) => current + 1);
+  }
+
   async function handleDeleteProduct(product: Product) {
     const confirmed = window.confirm(
       `Delete "${product.name}"? This action cannot be undone from this page.`,
@@ -204,7 +210,6 @@ function AdminProducts() {
 
     setDeletingProductID(product.id);
     setError(null);
-    setNotice(null);
 
     try {
       await deleteProduct(product.id);
@@ -216,13 +221,20 @@ function AdminProducts() {
         ...currentMeta,
         total: Math.max(0, currentMeta.total - 1),
       }));
-      setNotice(`${product.name} deleted.`);
+      showToast({
+        type: "success",
+        message: `${product.name} deleted.`,
+      });
     } catch (deleteError) {
-      setError(
-        getProductErrorMessage(
-          deleteError,
-          "Product could not be deleted. Try again.",
-        ),
+      showToast(
+        {
+          type: "error",
+          message: getProductErrorMessage(
+            deleteError,
+            "Product could not be deleted. Try again.",
+          ),
+        },
+        { duration: 6000 },
       );
     } finally {
       setDeletingProductID(null);
@@ -266,32 +278,46 @@ function AdminProducts() {
         </Link>
       </div>
 
-      {error && (
+      {error && hasProducts && (
         <div className="admin-products-notice is-error" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {notice && (
-        <div className="admin-products-notice is-success" role="status">
-          <PackageSearch className="h-5 w-5" aria-hidden="true" />
-          <span>{notice}</span>
+          <button type="button" onClick={handleRetry}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Retry
+          </button>
         </div>
       )}
 
       {isLoading ? (
         <AdminProductsSkeleton />
+      ) : error && !hasProducts ? (
+        <EmptyState
+          tone="error"
+          eyebrow="Product Error"
+          title="Product list jammed."
+          description={error}
+          action={
+            <button
+              className="admin-products-create-button"
+              type="button"
+              onClick={handleRetry}
+            >
+              <RefreshCw className="h-5 w-5" aria-hidden="true" />
+              Retry
+            </button>
+          }
+        />
       ) : !hasProducts ? (
-        <div className="admin-products-empty">
-          <div>
-            <ImageOff className="mx-auto mb-3 h-10 w-10" aria-hidden="true" />
-            <h2>No products found.</h2>
-            <p>
-              {search
-                ? "Try another search keyword or clear the current filter."
-                : "Create your first product to start filling the catalog."}
-            </p>
+        <EmptyState
+          eyebrow="Product Catalog"
+          title="No products found."
+          description={
+            search
+              ? "Try another search keyword or clear the current filter."
+              : "Create your first product to start filling the catalog."
+          }
+          action={
             <Link
               className="admin-products-create-button"
               to="/admin/products/new"
@@ -299,8 +325,8 @@ function AdminProducts() {
               <Plus className="h-5 w-5" aria-hidden="true" />
               Tambah Produk
             </Link>
-          </div>
-        </div>
+          }
+        />
       ) : (
         <>
           <div className="admin-products-status-line">
@@ -361,7 +387,9 @@ function AdminProducts() {
                     </span>
 
                     <div className="admin-products-actions">
-                      <Link to={`/admin/products/edit?id=${encodeURIComponent(product.id)}`}>
+                      <Link
+                        to={`/admin/products/edit?id=${encodeURIComponent(product.id)}`}
+                      >
                         <Edit3 className="h-4 w-4" aria-hidden="true" />
                         Edit
                       </Link>

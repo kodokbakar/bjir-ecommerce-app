@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -44,51 +44,25 @@ function ProfileSkeleton() {
 
 function Profile() {
   const { user: authUser } = useAuth();
-  const isMountedRef = useRef(false);
 
   const [profile, setProfile] = useState<User | null>(authUser);
-  const [isLoading, setIsLoading] = useState(!authUser);
+  const [isLoading, setIsLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadProfile() {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await getCurrentUser();
-
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      setProfile(result);
-    } catch (loadError) {
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      setError(
-        getApiErrorMessage(
-          loadError,
-          "Profil belum bisa dimuat. Coba lagi sebentar.",
-          "profile",
-        ),
-      );
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
-    }
+  function handleRetry() {
+    setReloadKey((current) => current + 1);
   }
 
   useEffect(() => {
     let isActive = true;
 
     async function loadInitialProfile() {
+      setIsLoading(true);
       setError(null);
 
       try {
-        const result = await getCurrentUser();
+        const result = await getCurrentUser(authUser);
 
         if (isActive) {
           setProfile(result);
@@ -109,12 +83,12 @@ function Profile() {
       }
     }
 
-    loadInitialProfile();
+    void loadInitialProfile();
 
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [authUser, reloadKey]);
 
   if (isLoading) {
     return <ProfileSkeleton />;
@@ -142,7 +116,7 @@ function Profile() {
         <div className="profile-notice" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
-          <button type="button" onClick={loadProfile}>
+          <button type="button" onClick={handleRetry}>
             <RefreshCcw className="h-4 w-4" aria-hidden="true" />
             Retry
           </button>
@@ -179,7 +153,7 @@ function Profile() {
 
               <div className="profile-field">
                 <span>Email</span>
-                <strong>{profile.email}</strong>
+                <strong>{profile.email || "Email belum tersedia"}</strong>
               </div>
 
               <div className="profile-field">
@@ -203,7 +177,7 @@ function Profile() {
             <div className="profile-badge-list">
               <span>
                 <Mail className="h-4 w-4" aria-hidden="true" />
-                {profile.email}
+                {profile.email || "Email belum tersedia"}
               </span>
               <span>
                 <Shield className="h-4 w-4" aria-hidden="true" />

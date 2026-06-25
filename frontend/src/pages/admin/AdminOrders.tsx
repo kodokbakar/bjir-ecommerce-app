@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
-  Clock3,
   Edit3,
   PackageCheck,
   RefreshCw,
@@ -25,6 +24,8 @@ import type {
 } from "../../types/order";
 import { formatDisplayDate } from "../../utils/date";
 import { formatRupiah } from "../../utils/product";
+import EmptyState from "../../components/EmptyState";
+import { useToast } from "../../context/toast";
 
 const ADMIN_ORDER_LIMIT = 10;
 
@@ -167,7 +168,7 @@ function AdminOrders() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const hasOrders = orders.length > 0;
   const allowedTargetStatuses = selectedOrder
@@ -290,7 +291,6 @@ function AdminOrders() {
     setSelectedOrder(order);
     setTargetStatus(getDefaultTargetStatus(order));
     setError(null);
-    setNotice(null);
   }
 
   function closeStatusDialog() {
@@ -312,7 +312,6 @@ function AdminOrders() {
 
     setIsUpdatingStatus(true);
     setError(null);
-    setNotice(null);
 
     try {
       const updatedOrder = await updateOrderStatus(currentOrder.id, nextStatus);
@@ -325,19 +324,24 @@ function AdminOrders() {
         ),
       );
 
-      setNotice(
-        `${currentOrder.order_number} changed from ${getStatusLabel(
+      showToast({
+        type: "success",
+        message: `${currentOrder.order_number} changed from ${getStatusLabel(
           currentOrder.status,
         )} to ${getStatusLabel(nextStatus)}.`,
-      );
+      });
       setSelectedOrder(null);
       setTargetStatus("paid");
     } catch (updateError) {
-      setError(
-        getOrderErrorMessage(
-          updateError,
-          "Order status could not be updated. Check the transition and try again.",
-        ),
+      showToast(
+        {
+          type: "error",
+          message: getOrderErrorMessage(
+            updateError,
+            "Order status could not be updated. Check the transition and try again.",
+          ),
+        },
+        { duration: 6000 },
       );
     } finally {
       setIsUpdatingStatus(false);
@@ -394,7 +398,7 @@ function AdminOrders() {
         </div>
       </div>
 
-      {error && (
+      {error && hasOrders && (
         <div className="admin-products-notice is-error" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
@@ -405,26 +409,31 @@ function AdminOrders() {
         </div>
       )}
 
-      {notice && (
-        <div className="admin-products-notice is-success" role="status">
-          <PackageCheck className="h-5 w-5" aria-hidden="true" />
-          <span>{notice}</span>
-        </div>
-      )}
-
       {isLoading ? (
         <AdminOrdersSkeleton />
+      ) : error && !hasOrders ? (
+        <EmptyState
+          tone="error"
+          eyebrow="Order Error"
+          title="Order list jammed."
+          description={error}
+          action={
+            <button
+              className="admin-products-create-button"
+              type="button"
+              onClick={handleRetry}
+            >
+              <RefreshCw className="h-5 w-5" aria-hidden="true" />
+              Retry
+            </button>
+          }
+        />
       ) : !hasOrders ? (
-        <div className="admin-products-empty">
-          <div>
-            <Clock3 className="mx-auto mb-3 h-10 w-10" aria-hidden="true" />
-            <h2>No orders found.</h2>
-            <p>
-              Try another order number, clear the search, or switch the status
-              filter.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          eyebrow="Order Ledger"
+          title="No orders found."
+          description="Try another order number, clear the search, or switch the status filter."
+        />
       ) : (
         <>
           <div className="admin-products-status-line">

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { useSearchParams } from "react-router-dom";
 
 import CategoryBar from "../components/CategoryBar";
@@ -13,6 +19,7 @@ import type {
   ProductListMeta,
   ProductListParams,
 } from "../types/product";
+import EmptyState from "../components/EmptyState";
 
 const PRODUCT_LIMIT = 12;
 
@@ -54,7 +61,9 @@ function getSortOption(searchParams: URLSearchParams): SortOption {
   return "relevance";
 }
 
-function getSortParams(sort: SortOption): Pick<ProductListParams, "sort_by" | "sort_order"> {
+function getSortParams(
+  sort: SortOption,
+): Pick<ProductListParams, "sort_by" | "sort_order"> {
   if (sort === "price-asc") {
     return {
       sort_by: "price",
@@ -128,7 +137,9 @@ function Products() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [meta, setMeta] = useState<ProductListMeta>(() => buildMetaFallback(page));
+  const [meta, setMeta] = useState<ProductListMeta>(() =>
+    buildMetaFallback(page),
+  );
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [categoryError, setCategoryError] = useState<string | null>(null);
@@ -298,8 +309,8 @@ function Products() {
           Browse the loud shelf.
         </h1>
         <p className="products-copy">
-          A compact catalog for buyers who want the product, the price, and the stock
-          status without wandering through decoration.
+          A compact catalog for buyers who want the product, the price, and the
+          stock status without wandering through decoration.
         </p>
       </header>
 
@@ -323,7 +334,10 @@ function Products() {
             onRetry={handleCategoryRetry}
           />
 
-          <div className="products-toolbar products-toolbar-compact" aria-label="Product controls">
+          <div
+            className="products-toolbar products-toolbar-compact"
+            aria-label="Product controls"
+          >
             <SearchBar
               key={search}
               value={search}
@@ -362,13 +376,21 @@ function Products() {
 
             <div className="products-status-actions">
               {search && (
-                <button className="products-clear-button" type="button" onClick={handleClearSearch}>
+                <button
+                  className="products-clear-button"
+                  type="button"
+                  onClick={handleClearSearch}
+                >
                   Clear search
                 </button>
               )}
 
               {hasActiveFilters && (
-                <button className="products-clear-button" type="button" onClick={handleClearFilters}>
+                <button
+                  className="products-clear-button"
+                  type="button"
+                  onClick={handleClearFilters}
+                >
                   Clear filters
                 </button>
               )}
@@ -382,29 +404,38 @@ function Products() {
               <div>
                 <h2>Catalog jammed.</h2>
                 <p>{error}</p>
-                <button className="products-retry-button" type="button" onClick={handleRetry}>
+                <button
+                  className="products-retry-button"
+                  type="button"
+                  onClick={handleRetry}
+                >
                   Retry
                 </button>
               </div>
             </div>
           ) : products.length === 0 ? (
-            <div className="products-panel-state">
-              <div>
-                <h2>No products found.</h2>
-                <p>
-                  {search
-                    ? `No products found for "${search}". Try different keywords.`
-                    : hasActiveFilters
-                      ? "Your current category or sorting context returned no products. Reset the filters or try a wider query."
-                      : "The catalog is empty. Add products from the admin side before exposing this shelf to buyers."}
-                </p>
-                {hasActiveFilters && (
-                  <button className="products-retry-button" type="button" onClick={handleClearFilters}>
+            <EmptyState
+              eyebrow="Product Catalog"
+              title="No products found."
+              description={
+                search
+                  ? `No products found for "${search}". Try different keywords.`
+                  : hasActiveFilters
+                    ? "Your current category or sorting context returned no products. Reset the filters or try a wider query."
+                    : "The catalog is empty. Add products from the admin side before exposing this shelf to buyers."
+              }
+              action={
+                hasActiveFilters ? (
+                  <button
+                    className="products-retry-button"
+                    type="button"
+                    onClick={handleClearFilters}
+                  >
                     Reset catalog
                   </button>
-                )}
-              </div>
-            </div>
+                ) : undefined
+              }
+            />
           ) : (
             <>
               <div className="products-grid">

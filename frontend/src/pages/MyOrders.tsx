@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Clock3, PackageCheck } from "lucide-react";
+import { AlertTriangle, PackageCheck } from "lucide-react";
 
 import { getOrderErrorMessage, listOrders } from "../services/orderService";
 import type { Order, OrderListMeta, OrderStatus } from "../types/order";
 import { formatRupiah } from "../utils/product";
 import { formatDisplayDate } from "../utils/date";
+import EmptyState from "../components/EmptyState";
 
 const ORDER_LIMIT = 8;
 
@@ -139,6 +140,12 @@ function MyOrders() {
     });
   }
 
+  function handleRetry() {
+    setSearchParams({
+      page: String(page),
+    });
+  }
+
   return (
     <section className="orders-page" aria-labelledby="orders-title">
       <header className="orders-hero">
@@ -152,7 +159,7 @@ function MyOrders() {
         </p>
       </header>
 
-      {error && (
+      {error && hasOrders && (
         <div className="orders-notice" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
@@ -161,20 +168,33 @@ function MyOrders() {
 
       {isLoading ? (
         <OrdersSkeleton />
+      ) : error ? (
+        <EmptyState
+          tone="error"
+          eyebrow="Order Error"
+          title="Order list jammed."
+          description={error}
+          action={
+            <button
+              className="cart-primary-button"
+              type="button"
+              onClick={handleRetry}
+            >
+              Retry
+            </button>
+          }
+        />
       ) : !hasOrders ? (
-        <div className="orders-empty">
-          <div>
-            <Clock3 className="mx-auto mb-3 h-10 w-10" aria-hidden="true" />
-            <h2>Belum ada pesanan</h2>
-            <p>
-              Mulai belanja dari katalog dan order pertama kamu akan muncul di
-              sini.
-            </p>
+        <EmptyState
+          eyebrow="Order Ledger"
+          title="Belum ada pesanan"
+          description="Mulai belanja dari katalog dan order pertama kamu akan muncul di sini."
+          action={
             <Link className="cart-primary-button" to="/products">
               Belanja Sekarang
             </Link>
-          </div>
-        </div>
+          }
+        />
       ) : (
         <>
           <div className="orders-status-line">

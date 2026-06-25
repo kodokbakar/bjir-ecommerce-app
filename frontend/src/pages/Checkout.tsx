@@ -17,6 +17,7 @@ import {
 } from "../services/cartService";
 import type { Cart } from "../types/cart";
 import type { CheckoutInput } from "../types/order";
+import { useToast } from "../context/toast";
 
 const EMPTY_CHECKOUT_FORM: Required<CheckoutInput> = {
   shipping_address: "",
@@ -31,13 +32,14 @@ function Checkout() {
   const [form, setForm] = useState(EMPTY_CHECKOUT_FORM);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const hasItems = Boolean(cart?.items.length);
 
   const loadCheckoutCart = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
+    setLoadError(null);
 
     try {
       const result = await getCart();
@@ -48,7 +50,7 @@ function Checkout() {
     } catch (loadError) {
       if (isMountedRef.current) {
         setCart(null);
-        setError(
+        setLoadError(
           getCartErrorMessage(loadError, "Failed to load checkout summary."),
         );
       }
@@ -87,12 +89,15 @@ function Checkout() {
     event.preventDefault();
 
     if (!cart || cart.items.length === 0) {
-      setError("Keranjang kosong. Tambahkan produk sebelum checkout.");
+      showToast({
+        type: "warning",
+        message: "Keranjang kosong. Tambahkan produk sebelum checkout.",
+      });
       return;
     }
 
     setIsCheckingOut(true);
-    setError(null);
+    setLoadError(null);
 
     try {
       const order = await checkoutCart({
@@ -110,11 +115,15 @@ function Checkout() {
         },
       });
     } catch (checkoutError) {
-      setError(
-        getCartErrorMessage(
-          checkoutError,
-          "Checkout failed. Keranjang kosong, stok tidak mencukupi, atau produk tidak ditemukan.",
-        ),
+      showToast(
+        {
+          type: "error",
+          message: getCartErrorMessage(
+            checkoutError,
+            "Checkout failed. Keranjang kosong, stok tidak mencukupi, atau produk tidak ditemukan.",
+          ),
+        },
+        { duration: 6000 },
       );
     } finally {
       if (isMountedRef.current) {
@@ -160,9 +169,9 @@ function Checkout() {
         </p>
       </header>
 
-      {error && (
+      {loadError && (
         <div className="cart-notice is-error" role="alert">
-          {error}
+          {loadError}
         </div>
       )}
 

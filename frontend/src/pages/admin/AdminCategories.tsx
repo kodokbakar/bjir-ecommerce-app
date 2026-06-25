@@ -8,6 +8,7 @@ import {
   Tags,
   Trash2,
   X,
+  RefreshCcw,
 } from "lucide-react";
 
 import {
@@ -22,6 +23,7 @@ import type {
   CategoryInput,
   CategoryListMeta,
 } from "../../types/product";
+import { useToast } from "../../context/toast"
 
 const ADMIN_CATEGORY_LIMIT = 10;
 
@@ -160,6 +162,7 @@ function AdminCategories() {
   const [meta, setMeta] = useState<CategoryListMeta>(EMPTY_META);
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
+  const { showToast } = useToast();
 
   const [modalMode, setModalMode] = useState<CategoryModalMode | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -172,7 +175,6 @@ function AdminCategories() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const hasCategories = categories.length > 0;
   const isModalOpen = modalMode !== null;
@@ -257,7 +259,6 @@ function AdminCategories() {
     setEditingCategory(null);
     setForm(EMPTY_FORM);
     setFormErrors({});
-    setNotice(null);
   }
 
   function openEditModal(category: Category) {
@@ -265,7 +266,6 @@ function AdminCategories() {
     setEditingCategory(category);
     setForm(buildCategoryForm(category));
     setFormErrors({});
-    setNotice(null);
   }
 
   function closeModal() {
@@ -296,6 +296,10 @@ function AdminCategories() {
     setPage(Math.max(1, nextPage));
   }
 
+  function handleRetry() {
+    setReloadKey((current) => current + 1);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -309,17 +313,22 @@ function AdminCategories() {
     setIsSaving(true);
     setFormErrors({});
     setError(null);
-    setNotice(null);
 
     try {
       const payload = buildCategoryInput(form);
 
       if (modalMode === "edit" && editingCategory) {
         await updateCategory(editingCategory.id, payload);
-        setNotice(`${payload.name} updated.`);
+        showToast({
+          type: "success",
+          message: `${payload.name} updated.`,
+        });
       } else {
         await createCategory(payload);
-        setNotice(`${payload.name} created.`);
+        showToast({
+          type: "success",
+          message: `${payload.name} created.`,
+        });
         setPage(1);
       }
 
@@ -350,18 +359,24 @@ function AdminCategories() {
 
     setDeletingCategoryID(category.id);
     setError(null);
-    setNotice(null);
 
     try {
       await deleteCategory(category.id);
-      setNotice(`${category.name} deleted.`);
+      showToast({
+        type: "success",
+        message: `${category.name} deleted.`,
+      });
       setReloadKey((current) => current + 1);
     } catch (deleteError) {
-      setError(
-        getCategoryErrorMessage(
-          deleteError,
-          "Category could not be deleted. Remove child categories first if needed.",
-        ),
+      showToast(
+        {
+          type: "error",
+          message: getCategoryErrorMessage(
+            deleteError,
+            "Category could not be deleted. Remove child categories first if needed.",
+          ),
+        },
+        { duration: 6000 },
       );
     } finally {
       setDeletingCategoryID(null);
@@ -391,22 +406,34 @@ function AdminCategories() {
         </button>
       </div>
 
-      {error && (
+      {error && hasCategories && (
         <div className="admin-products-notice is-error" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {notice && (
-        <div className="admin-products-notice is-success" role="status">
-          <FolderTree className="h-5 w-5" aria-hidden="true" />
-          <span>{notice}</span>
+          <button type="button" onClick={handleRetry}>
+            <RefreshCcw className="h-4 w-4" aria-hidden="true" />
+            Retry
+          </button>
         </div>
       )}
 
       {isLoading ? (
         <CategorySkeleton />
+      ) : error && !hasCategories ? (
+        <div className="admin-categories-empty" role="alert">
+          <div>
+            <AlertTriangle
+              className="mx-auto mb-3 h-10 w-10"
+              aria-hidden="true"
+            />
+            <h2>Category list jammed.</h2>
+            <p>{error}</p>
+            <button type="button" onClick={handleRetry}>
+              <RefreshCcw className="h-5 w-5" aria-hidden="true" />
+              Retry
+            </button>
+          </div>
+        </div>
       ) : !hasCategories ? (
         <div className="admin-categories-empty">
           <div>

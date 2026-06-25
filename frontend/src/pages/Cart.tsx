@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useToast } from "../context/toast";
 import { Link } from "react-router-dom";
 
 import OrderSummary from "../components/OrderSummary";
@@ -12,14 +13,9 @@ import {
 } from "../services/cartService";
 import type { Cart as CartModel, CartItem } from "../types/cart";
 import { formatRupiah } from "../utils/product";
+import EmptyState from "../components/EmptyState";
 
 const CART_SKELETON_COUNT = 3;
-const NOTICE_TIMEOUT_MS = 4000;
-
-type CartNotice = {
-  type: "success" | "error";
-  message: string;
-} | null;
 
 function getItemName(item: CartItem): string {
   return item.product?.name || "Unavailable product";
@@ -48,7 +44,7 @@ function Cart() {
   const [cart, setCart] = useState<CartModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<CartNotice>(null);
+  const { showToast } = useToast();
   const [updatingItemID, setUpdatingItemID] = useState<string | null>(null);
   const [removingItemID, setRemovingItemID] = useState<string | null>(null);
 
@@ -87,20 +83,6 @@ function Cart() {
       isMountedRef.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!notice) {
-      return;
-    }
-
-    const timeoutID = window.setTimeout(() => {
-      setNotice(null);
-    }, NOTICE_TIMEOUT_MS);
-
-    return () => {
-      window.clearTimeout(timeoutID);
-    };
-  }, [notice]);
 
   const itemCount = useMemo(() => {
     return cart?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
@@ -149,15 +131,17 @@ function Cart() {
     }
 
     if (nextQuantity > stock) {
-      setNotice({
-        type: "error",
-        message: `Only ${stock} unit${stock === 1 ? "" : "s"} available for ${getItemName(item)}.`,
-      });
+      showToast(
+        {
+          type: "warning",
+          message: `Only ${stock} unit${stock === 1 ? "" : "s"} available for ${getItemName(item)}.`,
+        },
+        { duration: 6000 },
+      );
       return;
     }
 
     setUpdatingItemID(item.id);
-    setNotice(null);
 
     try {
       const updatedItem = await updateCartItem(item.id, nextQuantity);
@@ -175,18 +159,21 @@ function Cart() {
         });
       });
 
-      setNotice({
+      showToast({
         type: "success",
         message: `${getItemName(updatedItem)} quantity updated.`,
       });
     } catch (updateError) {
-      setNotice({
-        type: "error",
-        message: getCartErrorMessage(
-          updateError,
-          "Failed to update quantity. The item may be gone or stock may be insufficient.",
-        ),
-      });
+      showToast(
+        {
+          type: "error",
+          message: getCartErrorMessage(
+            updateError,
+            "Failed to update quantity. The item may be gone or stock may be insufficient.",
+          ),
+        },
+        { duration: 6000 },
+      );
 
       loadCart({ showLoading: false });
     } finally {
@@ -204,7 +191,6 @@ function Cart() {
     }
 
     setRemovingItemID(item.id);
-    setNotice(null);
 
     try {
       await removeCartItem(item.id);
@@ -222,18 +208,21 @@ function Cart() {
         });
       });
 
-      setNotice({
+      showToast({
         type: "success",
         message: `${getItemName(item)} removed from cart.`,
       });
     } catch (removeError) {
-      setNotice({
-        type: "error",
-        message: getCartErrorMessage(
-          removeError,
-          "Failed to remove item. It may already be gone.",
-        ),
-      });
+      showToast(
+        {
+          type: "error",
+          message: getCartErrorMessage(
+            removeError,
+            "Failed to remove item. It may already be gone.",
+          ),
+        },
+        { duration: 6000 },
+      );
 
       loadCart({ showLoading: false });
     } finally {
@@ -254,22 +243,15 @@ function Cart() {
         </p>
       </header>
 
-      {notice && (
-        <div
-          className={`cart-notice is-${notice.type}`}
-          role={notice.type === "error" ? "alert" : "status"}
-        >
-          {notice.message}
-        </div>
-      )}
-
       {isLoading ? (
         <CartSkeleton />
       ) : error ? (
-        <div className="cart-state" role="alert">
-          <div>
-            <h2>Cart jammed.</h2>
-            <p>{error}</p>
+        <EmptyState
+          tone="error"
+          eyebrow="Cart Error"
+          title="Cart jammed."
+          description={error}
+          action={
             <button
               className="cart-primary-button"
               type="button"
@@ -277,21 +259,19 @@ function Cart() {
             >
               Reload cart
             </button>
-          </div>
-        </div>
+          }
+        />
       ) : !hasItems ? (
-        <div className="cart-state">
-          <div>
-            <h2>Cart is empty.</h2>
-            <p>
-              Your basket has no products yet. Go back to the shelf and grab
-              something worth checking out.
-            </p>
+        <EmptyState
+          eyebrow="Cart Counter"
+          title="Cart is empty."
+          description="Your basket has no products yet. Go back to the shelf and grab something worth checking out."
+          action={
             <Link className="cart-primary-button" to="/products">
               Belanja Sekarang
             </Link>
-          </div>
-        </div>
+          }
+        />
       ) : (
         <div className="cart-shell">
           <OrderSummary

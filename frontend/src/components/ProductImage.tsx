@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
+import { ImageOff } from "lucide-react";
 
 import { getImageUrl } from "../utils/image";
 
@@ -12,16 +13,18 @@ interface ProductImageProps {
   width?: number;
   height?: number;
   loading?: "eager" | "lazy";
+  sizes?: string;
+  srcSet?: string;
 }
 
 function ProductImagePlaceholder({ alt }: { alt: string }) {
   return (
-    <span className="product-image-placeholder" role="img" aria-label={`No image for ${alt}`}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-        <path d="M4 7h16v12H4z" />
-        <path d="M8 7a4 4 0 0 1 8 0" />
-        <path d="M8 13h8" />
-      </svg>
+    <span
+      className="product-image-placeholder"
+      role="img"
+      aria-label={`No image for ${alt}`}
+    >
+      <ImageOff className="h-11 w-11" aria-hidden="true" />
       <span>Image not available</span>
     </span>
   );
@@ -32,9 +35,11 @@ function ProductImage({
   alt,
   className = "",
   fallbackSrc = "",
-  width,
-  height,
+  width = 640,
+  height = 480,
   loading = "lazy",
+  sizes = "(max-width: 720px) 100vw, (max-width: 1180px) 50vw, 25vw",
+  srcSet,
 }: ProductImageProps) {
   const initialSrc = getImageUrl(src) || getImageUrl(fallbackSrc);
   const [activeSrc, setActiveSrc] = useState(initialSrc);
@@ -67,14 +72,22 @@ function ProductImage({
     .filter(Boolean)
     .join(" ");
 
+  const style = {
+    aspectRatio: `${width} / ${height}`,
+  } satisfies CSSProperties;
+
   return (
-    <span className={rootClassName}>
-      {status === "loading" && <span className="product-image-skeleton" aria-hidden="true" />}
+    <span className={rootClassName} style={style}>
+      {status === "loading" && (
+        <span className="product-image-skeleton" aria-hidden="true" />
+      )}
 
       {activeSrc && status !== "error" ? (
         <img
           className="product-image-element"
           src={activeSrc}
+          srcSet={srcSet}
+          sizes={sizes}
           alt={alt}
           width={width}
           height={height}
