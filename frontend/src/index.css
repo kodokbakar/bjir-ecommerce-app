@@ -6202,3 +6202,37 @@ a.product-detail-category:hover {
     box-shadow: 4px 4px 0 var(--color-brutal-ink);
   }
 }
+
+/* Image Optimization */
+
+.product-image {
+  width: 100%;
+  min-width: 0;
+  contain: layout paint;
+}
+
+.product-image-element {
+  max-width: 100%;
+  object-fit: cover;
+}
+
+.product-image.is-error {
+  background:
+    radial-gradient(circle at 24% 22%, rgba(255, 92, 53, 0.18), transparent 28%),
+    linear-gradient(90deg, rgba(23, 20, 18, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(23, 20, 18, 0.08) 1px, transparent 1px),
+    var(--color-secondary);
+  background-size:
+    auto,
+    18px 18px,
+    18px 18px;
+}
+
+.product-image-placeholder {
+  position: relative;
+  z-index: 2;
+}
+
+.product-detail-image .product-image-element {
+  object-fit: contain;
+}
