@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Edit3,
   RefreshCw,
-  PackageSearch,
   Plus,
   Search,
   Trash2,
@@ -27,6 +26,7 @@ import {
   getStockState,
 } from "../../utils/product";
 import EmptyState from "../../components/EmptyState";
+import { useToast } from "../../context/toast";
 
 const ADMIN_PRODUCT_LIMIT = 10;
 
@@ -99,7 +99,7 @@ function AdminProducts() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const hasProducts = products.length > 0;
 
@@ -196,7 +196,6 @@ function AdminProducts() {
   }
 
   function handleRetry() {
-    setNotice(null);
     setReloadKey((current) => current + 1);
   }
 
@@ -211,7 +210,6 @@ function AdminProducts() {
 
     setDeletingProductID(product.id);
     setError(null);
-    setNotice(null);
 
     try {
       await deleteProduct(product.id);
@@ -223,13 +221,20 @@ function AdminProducts() {
         ...currentMeta,
         total: Math.max(0, currentMeta.total - 1),
       }));
-      setNotice(`${product.name} deleted.`);
+      showToast({
+        type: "success",
+        message: `${product.name} deleted.`,
+      });
     } catch (deleteError) {
-      setError(
-        getProductErrorMessage(
-          deleteError,
-          "Product could not be deleted. Try again.",
-        ),
+      showToast(
+        {
+          type: "error",
+          message: getProductErrorMessage(
+            deleteError,
+            "Product could not be deleted. Try again.",
+          ),
+        },
+        { duration: 6000 },
       );
     } finally {
       setDeletingProductID(null);
@@ -281,13 +286,6 @@ function AdminProducts() {
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Retry
           </button>
-        </div>
-      )}
-
-      {notice && (
-        <div className="admin-products-notice is-success" role="status">
-          <PackageSearch className="h-5 w-5" aria-hidden="true" />
-          <span>{notice}</span>
         </div>
       )}
 

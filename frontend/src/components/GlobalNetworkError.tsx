@@ -1,18 +1,28 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { useEffect } from "react";
 
 import {
   API_SERVER_ERROR_EVENT,
   type ApiServerErrorEventDetail,
 } from "../services/api";
+import { useToast } from "../context/toast"
 
 function GlobalNetworkError() {
-  const [error, setError] = useState<ApiServerErrorEventDetail | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     function handleServerError(event: Event) {
       const customEvent = event as CustomEvent<ApiServerErrorEventDetail>;
-      setError(customEvent.detail);
+
+      showToast(
+        {
+          type: "error",
+          title: `Server error ${customEvent.detail.status}`,
+          message: customEvent.detail.message,
+        },
+        {
+          duration: 6000,
+        },
+      );
     }
 
     window.addEventListener(API_SERVER_ERROR_EVENT, handleServerError);
@@ -20,30 +30,9 @@ function GlobalNetworkError() {
     return () => {
       window.removeEventListener(API_SERVER_ERROR_EVENT, handleServerError);
     };
-  }, []);
+  }, [showToast]);
 
-  if (!error) {
-    return null;
-  }
-
-  return (
-    <aside className="global-network-error" role="alert" aria-live="assertive">
-      <AlertTriangle className="h-5 w-5" aria-hidden="true" />
-
-      <div>
-        <strong>Server error {error.status}</strong>
-        <p>{error.message}</p>
-      </div>
-
-      <button
-        type="button"
-        aria-label="Dismiss server error"
-        onClick={() => setError(null)}
-      >
-        <X className="h-4 w-4" aria-hidden="true" />
-      </button>
-    </aside>
-  );
+  return null;
 }
 
 export default GlobalNetworkError;

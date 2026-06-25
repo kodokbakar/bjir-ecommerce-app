@@ -6085,3 +6085,120 @@ a.product-detail-category:hover {
     overflow-wrap: anywhere;
   }
 }
+
+/* Toast Styles */
+
+.toast-viewport {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 220;
+  display: grid;
+  gap: 12px;
+  width: min(430px, calc(100vw - 36px));
+  pointer-events: none;
+}
+
+.toast-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  border: 2px solid var(--color-brutal-ink);
+  background: var(--color-brutal-surface);
+  color: var(--color-brutal-ink);
+  box-shadow: 5px 5px 0 var(--color-brutal-ink);
+  padding: 14px;
+  pointer-events: auto;
+  animation: toast-enter 180ms ease-out both;
+}
+
+.toast-card.is-success {
+  background: #dcfce7;
+}
+
+.toast-card.is-error {
+  background: #ffe1d7;
+}
+
+.toast-card.is-warning {
+  background: #fef3c7;
+}
+
+.toast-card.is-info {
+  background: #dff4ff;
+}
+
+.toast-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid var(--color-brutal-ink);
+  background: white;
+  box-shadow: 2px 2px 0 var(--color-brutal-ink);
+}
+
+.toast-copy {
+  min-width: 0;
+}
+
+.toast-copy strong {
+  display: block;
+  color: var(--color-brutal-ink);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.toast-copy p {
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.toast-card button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 2px solid var(--color-brutal-ink);
+  background: white;
+  color: var(--color-brutal-ink);
+  box-shadow: 2px 2px 0 var(--color-brutal-ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.toast-card button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--color-brutal-ink);
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translate(12px, -8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+@media (max-width: 720px) {
+  .toast-viewport {
+    top: 12px;
+    right: 12px;
+    width: calc(100vw - 24px);
+  }
+
+  .toast-card {
+    box-shadow: 4px 4px 0 var(--color-brutal-ink);
+  }
+}

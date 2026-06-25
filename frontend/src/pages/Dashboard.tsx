@@ -21,6 +21,7 @@ import {
 } from "../services/dashboardService";
 import type { Product } from "../types/product";
 import { formatRupiah, getProductImage } from "../utils/product";
+import { useToast } from "../context/toast";
 
 interface DashboardState {
   products: Product[];
@@ -107,11 +108,21 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorNote, setErrorNote] = useState<string | null>(null);
   const [ordersError, setOrdersError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!checkoutSuccess) {
       return;
     }
+
+    showToast({
+      type: "success",
+      title: "Checkout successful",
+      message: `Order ${
+        checkoutSuccess.orderNumber ||
+        `#${checkoutSuccess.orderID.slice(0, 8).toUpperCase()}`
+      } has been created. Check your order list for the latest status.`,
+    });
 
     navigate(
       {
@@ -123,7 +134,13 @@ function Dashboard() {
         state: null,
       },
     );
-  }, [checkoutSuccess, location.pathname, location.search, navigate]);
+  }, [
+    checkoutSuccess,
+    location.pathname,
+    location.search,
+    navigate,
+    showToast,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -248,40 +265,6 @@ function Dashboard() {
           aria-hidden="true"
         />
       </header>
-
-      {checkoutSuccess && (
-        <div
-          className="flex flex-col gap-4 border-4 border-[var(--color-brutal-ink)] bg-[#dcfce7] p-4 text-[var(--color-brutal-ink)] shadow-[5px_5px_0_var(--color-brutal-ink)] sm:flex-row sm:items-center sm:justify-between"
-          role="status"
-        >
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center border-2 border-[var(--color-brutal-ink)] bg-[var(--color-stock-in)] text-white shadow-[3px_3px_0_var(--color-brutal-ink)]">
-              <PackageCheck className="h-6 w-6" aria-hidden="true" />
-            </span>
-
-            <div className="min-w-0">
-              <strong className="block text-lg font-black uppercase tracking-[-0.04em]">
-                Checkout successful.
-              </strong>
-              <p className="m-0 mt-1 text-sm font-bold text-[var(--color-text-muted)]">
-                Order{" "}
-                <span className="font-black text-[var(--color-brutal-ink)]">
-                  {checkoutSuccess.orderNumber ||
-                    `#${checkoutSuccess.orderID.slice(0, 8).toUpperCase()}`}
-                </span>{" "}
-                has been created. Check your order list for the latest status.
-              </p>
-            </div>
-          </div>
-
-          <Link
-            className="inline-flex min-h-10 shrink-0 items-center justify-center border-2 border-[var(--color-brutal-ink)] bg-[var(--color-primary)] px-4 text-xs font-black uppercase tracking-[0.1em] text-white no-underline shadow-[3px_3px_0_var(--color-brutal-ink)]"
-            to="/orders"
-          >
-            View orders
-          </Link>
-        </div>
-      )}
 
       {errorNote && (
         <div className="border-2 border-[var(--color-brutal-ink)] bg-[#ffe1d7] px-4 py-3 text-sm font-bold text-[var(--color-brutal-ink)] shadow-[3px_3px_0_var(--color-brutal-ink)]">

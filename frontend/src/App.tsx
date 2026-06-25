@@ -25,6 +25,7 @@ import ProductForm from "./pages/admin/ProductForm";
 
 import DashboardRedirect from "./components/DashboardRedirect";
 import GlobalNetworkError from "./components/GlobalNetworkError";
+import ToastViewport from "./components/ToastViewport";
 
 function App() {
   return (
@@ -194,6 +195,7 @@ function App() {
       </Routes>
 
       <GlobalNetworkError />
+      <ToastViewport />
     </>
   );
 }

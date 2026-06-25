@@ -25,6 +25,7 @@ import type {
 import { formatDisplayDate } from "../../utils/date";
 import { formatRupiah } from "../../utils/product";
 import EmptyState from "../../components/EmptyState";
+import { useToast } from "../../context/toast";
 
 const ADMIN_ORDER_LIMIT = 10;
 
@@ -167,7 +168,7 @@ function AdminOrders() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const hasOrders = orders.length > 0;
   const allowedTargetStatuses = selectedOrder
@@ -290,7 +291,6 @@ function AdminOrders() {
     setSelectedOrder(order);
     setTargetStatus(getDefaultTargetStatus(order));
     setError(null);
-    setNotice(null);
   }
 
   function closeStatusDialog() {
@@ -312,7 +312,6 @@ function AdminOrders() {
 
     setIsUpdatingStatus(true);
     setError(null);
-    setNotice(null);
 
     try {
       const updatedOrder = await updateOrderStatus(currentOrder.id, nextStatus);
@@ -325,19 +324,24 @@ function AdminOrders() {
         ),
       );
 
-      setNotice(
-        `${currentOrder.order_number} changed from ${getStatusLabel(
+      showToast({
+        type: "success",
+        message: `${currentOrder.order_number} changed from ${getStatusLabel(
           currentOrder.status,
         )} to ${getStatusLabel(nextStatus)}.`,
-      );
+      });
       setSelectedOrder(null);
       setTargetStatus("paid");
     } catch (updateError) {
-      setError(
-        getOrderErrorMessage(
-          updateError,
-          "Order status could not be updated. Check the transition and try again.",
-        ),
+      showToast(
+        {
+          type: "error",
+          message: getOrderErrorMessage(
+            updateError,
+            "Order status could not be updated. Check the transition and try again.",
+          ),
+        },
+        { duration: 6000 },
       );
     } finally {
       setIsUpdatingStatus(false);
@@ -402,13 +406,6 @@ function AdminOrders() {
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Retry
           </button>
-        </div>
-      )}
-
-      {notice && (
-        <div className="admin-products-notice is-success" role="status">
-          <PackageCheck className="h-5 w-5" aria-hidden="true" />
-          <span>{notice}</span>
         </div>
       )}
 
