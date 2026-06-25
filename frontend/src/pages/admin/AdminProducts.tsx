@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Edit3,
-  ImageOff,
+  RefreshCw,
   PackageSearch,
   Plus,
   Search,
@@ -26,6 +26,7 @@ import {
   getProductImage,
   getStockState,
 } from "../../utils/product";
+import EmptyState from "../../components/EmptyState";
 
 const ADMIN_PRODUCT_LIMIT = 10;
 
@@ -92,6 +93,7 @@ function AdminProducts() {
   const [searchInput, setSearchInput] = useState(search);
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<ProductListMeta>(EMPTY_META);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingProductID, setDeletingProductID] = useState<string | null>(
     null,
@@ -163,7 +165,7 @@ function AdminProducts() {
     return () => {
       isActive = false;
     };
-  }, [page, query]);
+  }, [page, query, reloadKey]);
 
   function updateParams(nextPage: number, nextSearch: string) {
     const params = new URLSearchParams();
@@ -191,6 +193,11 @@ function AdminProducts() {
 
   function handlePageChange(nextPage: number) {
     updateParams(Math.max(1, nextPage), search);
+  }
+
+  function handleRetry() {
+    setNotice(null);
+    setReloadKey((current) => current + 1);
   }
 
   async function handleDeleteProduct(product: Product) {
@@ -266,10 +273,14 @@ function AdminProducts() {
         </Link>
       </div>
 
-      {error && (
+      {error && hasProducts && (
         <div className="admin-products-notice is-error" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
+          <button type="button" onClick={handleRetry}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Retry
+          </button>
         </div>
       )}
 
@@ -282,16 +293,33 @@ function AdminProducts() {
 
       {isLoading ? (
         <AdminProductsSkeleton />
+      ) : error && !hasProducts ? (
+        <EmptyState
+          tone="error"
+          eyebrow="Product Error"
+          title="Product list jammed."
+          description={error}
+          action={
+            <button
+              className="admin-products-create-button"
+              type="button"
+              onClick={handleRetry}
+            >
+              <RefreshCw className="h-5 w-5" aria-hidden="true" />
+              Retry
+            </button>
+          }
+        />
       ) : !hasProducts ? (
-        <div className="admin-products-empty">
-          <div>
-            <ImageOff className="mx-auto mb-3 h-10 w-10" aria-hidden="true" />
-            <h2>No products found.</h2>
-            <p>
-              {search
-                ? "Try another search keyword or clear the current filter."
-                : "Create your first product to start filling the catalog."}
-            </p>
+        <EmptyState
+          eyebrow="Product Catalog"
+          title="No products found."
+          description={
+            search
+              ? "Try another search keyword or clear the current filter."
+              : "Create your first product to start filling the catalog."
+          }
+          action={
             <Link
               className="admin-products-create-button"
               to="/admin/products/new"
@@ -299,8 +327,8 @@ function AdminProducts() {
               <Plus className="h-5 w-5" aria-hidden="true" />
               Tambah Produk
             </Link>
-          </div>
-        </div>
+          }
+        />
       ) : (
         <>
           <div className="admin-products-status-line">
@@ -361,7 +389,9 @@ function AdminProducts() {
                     </span>
 
                     <div className="admin-products-actions">
-                      <Link to={`/admin/products/edit?id=${encodeURIComponent(product.id)}`}>
+                      <Link
+                        to={`/admin/products/edit?id=${encodeURIComponent(product.id)}`}
+                      >
                         <Edit3 className="h-4 w-4" aria-hidden="true" />
                         Edit
                       </Link>

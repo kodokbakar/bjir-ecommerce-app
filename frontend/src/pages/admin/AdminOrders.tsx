@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
-  Clock3,
   Edit3,
   PackageCheck,
   RefreshCw,
@@ -25,6 +24,7 @@ import type {
 } from "../../types/order";
 import { formatDisplayDate } from "../../utils/date";
 import { formatRupiah } from "../../utils/product";
+import EmptyState from "../../components/EmptyState";
 
 const ADMIN_ORDER_LIMIT = 10;
 
@@ -394,7 +394,7 @@ function AdminOrders() {
         </div>
       </div>
 
-      {error && (
+      {error && hasOrders && (
         <div className="admin-products-notice is-error" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
@@ -414,17 +414,29 @@ function AdminOrders() {
 
       {isLoading ? (
         <AdminOrdersSkeleton />
+      ) : error && !hasOrders ? (
+        <EmptyState
+          tone="error"
+          eyebrow="Order Error"
+          title="Order list jammed."
+          description={error}
+          action={
+            <button
+              className="admin-products-create-button"
+              type="button"
+              onClick={handleRetry}
+            >
+              <RefreshCw className="h-5 w-5" aria-hidden="true" />
+              Retry
+            </button>
+          }
+        />
       ) : !hasOrders ? (
-        <div className="admin-products-empty">
-          <div>
-            <Clock3 className="mx-auto mb-3 h-10 w-10" aria-hidden="true" />
-            <h2>No orders found.</h2>
-            <p>
-              Try another order number, clear the search, or switch the status
-              filter.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          eyebrow="Order Ledger"
+          title="No orders found."
+          description="Try another order number, clear the search, or switch the status filter."
+        />
       ) : (
         <>
           <div className="admin-products-status-line">

@@ -8,6 +8,7 @@ import {
   Tags,
   Trash2,
   X,
+  RefreshCcw,
 } from "lucide-react";
 
 import {
@@ -296,6 +297,11 @@ function AdminCategories() {
     setPage(Math.max(1, nextPage));
   }
 
+  function handleRetry() {
+    setNotice(null);
+    setReloadKey((current) => current + 1);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -391,10 +397,14 @@ function AdminCategories() {
         </button>
       </div>
 
-      {error && (
+      {error && hasCategories && (
         <div className="admin-products-notice is-error" role="alert">
           <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           <span>{error}</span>
+          <button type="button" onClick={handleRetry}>
+            <RefreshCcw className="h-4 w-4" aria-hidden="true" />
+            Retry
+          </button>
         </div>
       )}
 
@@ -407,6 +417,21 @@ function AdminCategories() {
 
       {isLoading ? (
         <CategorySkeleton />
+      ) : error && !hasCategories ? (
+        <div className="admin-categories-empty" role="alert">
+          <div>
+            <AlertTriangle
+              className="mx-auto mb-3 h-10 w-10"
+              aria-hidden="true"
+            />
+            <h2>Category list jammed.</h2>
+            <p>{error}</p>
+            <button type="button" onClick={handleRetry}>
+              <RefreshCcw className="h-5 w-5" aria-hidden="true" />
+              Retry
+            </button>
+          </div>
+        </div>
       ) : !hasCategories ? (
         <div className="admin-categories-empty">
           <div>

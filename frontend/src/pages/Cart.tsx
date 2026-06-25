@@ -12,6 +12,7 @@ import {
 } from "../services/cartService";
 import type { Cart as CartModel, CartItem } from "../types/cart";
 import { formatRupiah } from "../utils/product";
+import EmptyState from "../components/EmptyState";
 
 const CART_SKELETON_COUNT = 3;
 const NOTICE_TIMEOUT_MS = 4000;
@@ -266,10 +267,12 @@ function Cart() {
       {isLoading ? (
         <CartSkeleton />
       ) : error ? (
-        <div className="cart-state" role="alert">
-          <div>
-            <h2>Cart jammed.</h2>
-            <p>{error}</p>
+        <EmptyState
+          tone="error"
+          eyebrow="Cart Error"
+          title="Cart jammed."
+          description={error}
+          action={
             <button
               className="cart-primary-button"
               type="button"
@@ -277,21 +280,19 @@ function Cart() {
             >
               Reload cart
             </button>
-          </div>
-        </div>
+          }
+        />
       ) : !hasItems ? (
-        <div className="cart-state">
-          <div>
-            <h2>Cart is empty.</h2>
-            <p>
-              Your basket has no products yet. Go back to the shelf and grab
-              something worth checking out.
-            </p>
+        <EmptyState
+          eyebrow="Cart Counter"
+          title="Cart is empty."
+          description="Your basket has no products yet. Go back to the shelf and grab something worth checking out."
+          action={
             <Link className="cart-primary-button" to="/products">
               Belanja Sekarang
             </Link>
-          </div>
-        </div>
+          }
+        />
       ) : (
         <div className="cart-shell">
           <OrderSummary

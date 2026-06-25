@@ -55,6 +55,112 @@ input:focus-visible {
   outline-offset: 3px;
 }
 
+.error-boundary-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 92, 53, 0.28), transparent 28%),
+    linear-gradient(90deg, rgba(23, 20, 18, 0.06) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(23, 20, 18, 0.06) 1px, transparent 1px),
+    var(--color-brutal-paper);
+  background-size:
+    auto,
+    28px 28px,
+    28px 28px;
+  padding: 24px;
+}
+
+.error-boundary-card {
+  position: relative;
+  width: min(100%, 560px);
+  overflow: hidden;
+  border: var(--border-brutal);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 232, 0.98), rgba(255, 191, 31, 0.7)),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(23, 20, 18, 0.08) 0,
+      rgba(23, 20, 18, 0.08) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+  box-shadow: var(--shadow-brutal);
+  padding: 28px;
+}
+
+.error-boundary-card::after {
+  content: "ERR";
+  position: absolute;
+  right: -18px;
+  bottom: -34px;
+  color: rgba(23, 20, 18, 0.08);
+  font-size: clamp(76px, 20vw, 160px);
+  font-weight: 950;
+  letter-spacing: -0.12em;
+  pointer-events: none;
+}
+
+.error-boundary-card h1 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: var(--color-brutal-ink);
+  font-size: clamp(38px, 8vw, 72px);
+  font-weight: 950;
+  line-height: 0.88;
+  letter-spacing: -0.08em;
+  text-transform: uppercase;
+}
+
+.error-boundary-card p {
+  position: relative;
+  z-index: 1;
+  max-width: 440px;
+  margin: 16px 0 0;
+  color: var(--color-brutal-ink);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+.error-boundary-button {
+  position: relative;
+  z-index: 1;
+  min-height: 46px;
+  margin-top: 22px;
+  border: 3px solid var(--color-brutal-ink);
+  background: var(--color-brutal-hot);
+  color: white;
+  box-shadow: 5px 5px 0 var(--color-brutal-ink);
+  cursor: pointer;
+  padding: 0 18px;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.error-boundary-button:hover {
+  transform: translate(-3px, -3px);
+  background: var(--color-brutal-accent);
+  color: var(--color-brutal-ink);
+  box-shadow: 8px 8px 0 var(--color-brutal-ink);
+}
+
+@media (max-width: 720px) {
+  .error-boundary-card {
+    box-shadow: 4px 4px 0 var(--color-brutal-ink);
+    padding: 22px;
+  }
+}
+
 .products-page {
   display: flex;
   flex-direction: column;
@@ -430,6 +536,99 @@ input:focus-visible {
 
 .products-skeleton-line.tiny {
   width: 34%;
+}
+
+.empty-state {
+  display: grid;
+  min-height: 320px;
+  place-items: center;
+  border: var(--border-brutal);
+  background:
+    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    linear-gradient(0deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    var(--color-brutal-surface);
+  background-size: 28px 28px;
+  box-shadow: var(--shadow-brutal);
+  padding: 28px;
+  text-align: center;
+}
+
+.empty-state.is-error {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 92, 53, 0.18), transparent 28%),
+    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    linear-gradient(0deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    #ffe1d7;
+  background-size:
+    auto,
+    28px 28px,
+    28px 28px;
+}
+
+.empty-state-inner {
+  display: grid;
+  justify-items: center;
+  max-width: 620px;
+}
+
+.empty-state-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 14px;
+  border: 2px solid var(--color-brutal-ink);
+  background: var(--color-brutal-hot);
+  color: white;
+  box-shadow: 3px 3px 0 var(--color-brutal-ink);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.empty-state-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 14px;
+  place-items: center;
+  border: 3px solid var(--color-brutal-ink);
+  background: var(--color-brutal-accent);
+  color: var(--color-brutal-ink);
+  box-shadow: 4px 4px 0 var(--color-brutal-ink);
+}
+
+.empty-state h2 {
+  margin: 0;
+  color: var(--color-brutal-ink);
+  font-size: clamp(30px, 5vw, 58px);
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.empty-state p {
+  max-width: 540px;
+  margin: 12px auto 0;
+  color: var(--color-text-muted);
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.empty-state-action {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 720px) {
+  .empty-state {
+    box-shadow: 4px 4px 0 var(--color-brutal-ink);
+    padding: 22px;
+  }
 }
 
 .products-panel-state {
@@ -5366,5 +5565,59 @@ a.product-detail-category:hover {
 
   .admin-stat-card-copy strong {
     font-size: clamp(24px, 9vw, 34px);
+  }
+}
+
+.global-network-error {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 120;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  width: min(420px, calc(100vw - 36px));
+  border: var(--border-brutal);
+  background: #ffe1d7;
+  color: var(--color-brutal-ink);
+  box-shadow: var(--shadow-brutal);
+  padding: 14px;
+}
+
+.global-network-error strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.global-network-error p {
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.global-network-error button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 2px solid var(--color-brutal-ink);
+  background: white;
+  color: var(--color-brutal-ink);
+  box-shadow: 2px 2px 0 var(--color-brutal-ink);
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .global-network-error {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+    box-shadow: 4px 4px 0 var(--color-brutal-ink);
   }
 }

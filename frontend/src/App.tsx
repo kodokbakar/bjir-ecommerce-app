@@ -24,6 +24,7 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import ProductForm from "./pages/admin/ProductForm";
 
 import DashboardRedirect from "./components/DashboardRedirect";
+import GlobalNetworkError from "./components/GlobalNetworkError";
 
 function App() {
   return (
@@ -186,6 +187,7 @@ function App() {
           }
         />
       </Route>
+      <GlobalNetworkError />
     </Routes>
   );
 }
