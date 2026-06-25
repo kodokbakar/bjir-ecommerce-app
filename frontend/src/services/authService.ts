@@ -16,8 +16,14 @@ interface AuthPayload {
   user: User;
 }
 
+interface MeIdentityResponse {
+  user_id: string;
+  email: string;
+  role: string;
+}
+
 type MeResponse =
-  | ApiDataResponse<User | { user?: User }>
+  | ApiDataResponse<User | { user?: User } | MeIdentityResponse>
   | {
       user?: User;
     };
@@ -61,21 +67,76 @@ export async function registerUser(input: RegisterInput): Promise<void> {
   await api.post<ApiDataResponse<AuthPayload>>("/v1/auth/register", input);
 }
 
-function unwrapCurrentUser(payload: MeResponse): User {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isUser(value: unknown): value is User {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.email === "string"
+  );
+}
+
+function isWrappedUser(value: unknown): value is { user: User } {
+  return isRecord(value) && isUser(value.user);
+}
+
+function isMeIdentityResponse(value: unknown): value is MeIdentityResponse {
+  return (
+    isRecord(value) &&
+    typeof value.user_id === "string" &&
+    typeof value.email === "string" &&
+    typeof value.role === "string"
+  );
+}
+
+function normalizeUser(user: User, fallbackUser: User | null = null): User {
+  return {
+    ...fallbackUser,
+    ...user,
+    name: user.name || fallbackUser?.name || user.email,
+    is_active: user.is_active ?? fallbackUser?.is_active ?? true,
+  };
+}
+
+function normalizeMeIdentity(
+  identity: MeIdentityResponse,
+  fallbackUser: User | null = null,
+): User {
+  return {
+    id: identity.user_id || fallbackUser?.id || "",
+    name: fallbackUser?.name || identity.email,
+    email: identity.email || fallbackUser?.email || "",
+    role: identity.role || fallbackUser?.role,
+    is_active: fallbackUser?.is_active ?? true,
+    created_at: fallbackUser?.created_at,
+  };
+}
+
+export function unwrapCurrentUser(
+  payload: MeResponse,
+  fallbackUser: User | null = null,
+): User {
   if ("data" in payload) {
     const data = payload.data;
 
-    if (data && typeof data === "object" && "user" in data && data.user) {
-      return data.user;
+    if (isWrappedUser(data)) {
+      return normalizeUser(data.user, fallbackUser);
     }
 
-    if (data && typeof data === "object" && "id" in data) {
-      return data as User;
+    if (isMeIdentityResponse(data)) {
+      return normalizeMeIdentity(data, fallbackUser);
+    }
+
+    if (isUser(data)) {
+      return normalizeUser(data, fallbackUser);
     }
   }
 
-  if ("user" in payload && payload.user) {
-    return payload.user;
+  if ("user" in payload && isUser(payload.user)) {
+    return normalizeUser(payload.user, fallbackUser);
   }
 
   throw new Error("Format respon profil dari server tidak sesuai.");

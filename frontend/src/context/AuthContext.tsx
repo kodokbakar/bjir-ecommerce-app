@@ -2,9 +2,11 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { AuthContext, type User } from "../hooks/useAuth";
 import api, { clearAuthStorage, readStoredToken } from "../services/api";
+import { unwrapCurrentUser } from "../services/authService";
 
 function readStoredUser(): User | null {
-  const rawUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+  const rawUser =
+    localStorage.getItem("user") || sessionStorage.getItem("user");
 
   if (!rawUser) {
     return null;
@@ -52,16 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
 
         const response = await api.get("/v1/me");
-
-        const userData =
-          response.data?.data?.user ||
-          response.data?.data ||
-          response.data?.user ||
-          storedUser;
-
-        if (!userData) {
-          throw new Error("Data user tidak ditemukan pada response /me");
-        }
+        const userData = unwrapCurrentUser(response.data, storedUser);
 
         if (isMounted) {
           setToken(storedToken);
@@ -108,7 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = Boolean(token);
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, isAuthenticated, isLoading, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
