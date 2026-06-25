@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { getResponseErrorMessage } from "../../services/api";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,7 +14,6 @@ import {
 
 import {
   getAdminDashboardStats,
-  getDashboardErrorMessage,
   type AdminDashboardStats,
 } from "../../services/dashboardService";
 import { formatRupiah } from "../../utils/product";
@@ -85,67 +85,6 @@ function AdminDashboard() {
   const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const statCards = useMemo<ReactNode[]>(() => {
-    return [
-      <AdminStatCard
-        key="total-orders"
-        label="Total Orders"
-        value={formatNumber(stats.totalOrders)}
-        description="All orders created by customers."
-        Icon={ShoppingBag}
-        accent="hot"
-      />,
-      <AdminStatCard
-        key="total-revenue"
-        label="Total Revenue"
-        value={formatRupiah(stats.totalRevenue)}
-        description="Delivered-order revenue."
-        Icon={WalletCards}
-        accent="green"
-      />,
-      <AdminStatCard
-        key="pending-orders"
-        label="Pending Orders"
-        value={formatNumber(stats.pendingOrders)}
-        description="Orders waiting for payment or review."
-        Icon={Clock3}
-        accent="yellow"
-      />,
-      <AdminStatCard
-        key="completed-today"
-        label="Completed Today"
-        value={formatNumber(stats.completedToday)}
-        description="Delivered orders created today."
-        Icon={CheckCircle2}
-        accent="blue"
-      />,
-      <AdminStatCard
-        key="revenue-today"
-        label="Revenue Today"
-        value={formatRupiah(stats.revenueToday)}
-        description="Delivered revenue recorded today."
-        Icon={WalletCards}
-        accent="green"
-      />,
-      <AdminStatCard
-        key="total-products"
-        label="Products"
-        value={formatNumber(stats.totalProducts)}
-        description="Products in the catalog."
-        Icon={Package}
-        accent="hot"
-      />,
-      <AdminStatCard
-        key="total-categories"
-        label="Categories"
-        value={formatNumber(stats.totalCategories)}
-        description="Storefront taxonomy entries."
-        Icon={Tags}
-        accent="yellow"
-      />,
-    ];
-  }, [stats]);
-
   useEffect(() => {
     let isActive = true;
 
@@ -163,7 +102,7 @@ function AdminDashboard() {
         if (isActive) {
           setStats(EMPTY_STATS);
           setError(
-            getDashboardErrorMessage(
+            getResponseErrorMessage(
               loadError,
               "Admin dashboard could not be loaded.",
             ),
@@ -212,7 +151,63 @@ function AdminDashboard() {
       {isLoading ? (
         <AdminDashboardSkeleton />
       ) : (
-        <div className="admin-dashboard-grid">{statCards}</div>
+        <div className="admin-dashboard-grid">
+          <AdminStatCard
+            label="Total Orders"
+            value={formatNumber(stats.totalOrders)}
+            description="All orders created by customers."
+            Icon={ShoppingBag}
+            accent="hot"
+          />
+
+          <AdminStatCard
+            label="Total Revenue"
+            value={formatRupiah(stats.totalRevenue)}
+            description="Delivered-order revenue."
+            Icon={WalletCards}
+            accent="green"
+          />
+
+          <AdminStatCard
+            label="Pending Orders"
+            value={formatNumber(stats.pendingOrders)}
+            description="Orders waiting for payment or review."
+            Icon={Clock3}
+            accent="yellow"
+          />
+
+          <AdminStatCard
+            label="Completed Today"
+            value={formatNumber(stats.completedToday)}
+            description="Delivered orders created today."
+            Icon={CheckCircle2}
+            accent="blue"
+          />
+
+          <AdminStatCard
+            label="Revenue Today"
+            value={formatRupiah(stats.revenueToday)}
+            description="Delivered revenue recorded today."
+            Icon={WalletCards}
+            accent="green"
+          />
+
+          <AdminStatCard
+            label="Products"
+            value={formatNumber(stats.totalProducts)}
+            description="Products in the catalog."
+            Icon={Package}
+            accent="hot"
+          />
+
+          <AdminStatCard
+            label="Categories"
+            value={formatNumber(stats.totalCategories)}
+            description="Storefront taxonomy entries."
+            Icon={Tags}
+            accent="yellow"
+          />
+        </div>
       )}
     </section>
   );

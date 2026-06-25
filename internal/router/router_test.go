@@ -994,6 +994,38 @@ func TestProductImageRoutes_AdminDeleteWithAdminToken_ReturnsNoContent(t *testin
 	}
 }
 
+func TestDashboardAdminRoute_WithoutToken_ReturnsUnauthorized(t *testing.T) {
+	r, _ := setupRouterForCategoryAuthTest()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/dashboard", nil)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestDashboardAdminRoute_WithCustomerToken_ReturnsForbidden(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("customer-id", "customer@example.com", "customer")
+	if err != nil {
+		t.Fatalf("failed to generate customer token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/dashboard", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d. body: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestDashboardAdminRoute_WithAdminToken_ReturnsOK(t *testing.T) {
 	r, jwtManager := setupRouterForCategoryAuthTest()
 

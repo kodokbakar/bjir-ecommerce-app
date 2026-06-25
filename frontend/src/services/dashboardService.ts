@@ -1,4 +1,4 @@
-import api, { getResponseErrorMessage } from "./api";
+import api from "./api";
 import { listProducts } from "./productService";
 import type { Product, ProductListResponse } from "../types/product";
 
@@ -75,13 +75,6 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   );
 
   return mapAdminDashboardStats(response.data.data);
-}
-
-export function getDashboardErrorMessage(
-  error: unknown,
-  fallback: string,
-): string {
-  return getResponseErrorMessage(error, fallback);
 }
 
 export async function getDashboardProducts(): Promise<ProductListResponse> {
