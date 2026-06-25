@@ -357,7 +357,14 @@ function AdminProducts() {
                   <article className="admin-products-row" key={product.id}>
                     <div className="admin-products-product-cell">
                       <div className="admin-products-thumb">
-                        <ProductImage src={imagePath} alt={product.name} />
+                        <ProductImage
+                          key={imagePath || product.id}
+                          src={imagePath}
+                          alt={product.name}
+                          width={116}
+                          height={116}
+                          sizes="58px"
+                        />
                       </div>
 
                       <div>

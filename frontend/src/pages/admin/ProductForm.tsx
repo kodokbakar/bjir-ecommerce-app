@@ -423,8 +423,12 @@ function ProductForm() {
             <div className="admin-product-image-preview">
               {currentImagePath ? (
                 <ProductImage
+                  key={currentImagePath}
                   src={currentImagePath}
                   alt={form.name || "Product"}
+                  width={760}
+                  height={520}
+                  sizes="(max-width: 1040px) 100vw, 380px"
                 />
               ) : (
                 <div className="admin-product-image-empty">

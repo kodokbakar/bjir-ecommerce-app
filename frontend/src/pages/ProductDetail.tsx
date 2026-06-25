@@ -47,7 +47,10 @@ function getErrorMessage(error: unknown): string {
 
 function ProductDetailSkeleton() {
   return (
-    <section className="product-detail-page" aria-label="Loading product detail">
+    <section
+      className="product-detail-page"
+      aria-label="Loading product detail"
+    >
       <div className="product-detail-skeleton breadcrumb" />
       <div className="product-detail-shell">
         <div className="product-detail-skeleton image" />
@@ -165,7 +168,8 @@ function ProductDetail() {
           <div>
             <h2>Product not found.</h2>
             <p>
-              This product slug does not exist anymore, or the catalog link is outdated.
+              This product slug does not exist anymore, or the catalog link is
+              outdated.
             </p>
             <Link className="product-detail-back-link" to="/products">
               Back to products
@@ -183,7 +187,11 @@ function ProductDetail() {
           <div>
             <h2>Detail jammed.</h2>
             <p>{error || "Failed to load product detail. Please try again."}</p>
-            <button className="products-retry-button" type="button" onClick={handleRetry}>
+            <button
+              className="products-retry-button"
+              type="button"
+              onClick={handleRetry}
+            >
               Retry
             </button>
           </div>
@@ -200,7 +208,10 @@ function ProductDetail() {
   const isCartDisabled = product.stock <= 0 || cartState === "loading";
 
   return (
-    <section className="product-detail-page" aria-labelledby="product-detail-title">
+    <section
+      className="product-detail-page"
+      aria-labelledby="product-detail-title"
+    >
       <nav className="product-detail-breadcrumbs" aria-label="Breadcrumb">
         <Link to="/dashboard">Home</Link>
         <span aria-hidden="true">/</span>
@@ -230,6 +241,8 @@ function ProductDetail() {
             alt={product.name}
             width={900}
             height={600}
+            sizes="(max-width: 1080px) 100vw, 58vw"
+            loading="lazy"
           />
         </div>
 
@@ -252,7 +265,9 @@ function ProductDetail() {
           <p className="product-detail-price">{formatRupiah(product.price)}</p>
 
           <div className="product-detail-stock-row">
-            <span className={`product-detail-stock-pill ${stockState.className}`}>
+            <span
+              className={`product-detail-stock-pill ${stockState.className}`}
+            >
               {stockState.label}
             </span>
             <span className="product-detail-stock-copy">

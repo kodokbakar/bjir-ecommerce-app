@@ -414,11 +414,13 @@ function Dashboard() {
                 to={`/products/${product.slug}`}
               >
                 <ProductImage
+                  key={getProductImage(product) || product.id}
                   className="h-40 w-full border-b-4 border-[var(--color-brutal-ink)] [&_.product-image-element]:object-cover"
                   src={getProductImage(product)}
                   alt={product.name}
-                  width={320}
-                  height={180}
+                  width={640}
+                  height={360}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
                 />
 
                 <div className="grid gap-2 p-4">

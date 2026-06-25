@@ -60,8 +60,9 @@ function ProductCard({ product }: ProductCardProps) {
             className="product-card-image"
             src={imagePath}
             alt={product.name}
-            width={400}
-            height={300}
+            width={640}
+            height={480}
+            sizes="(max-width: 720px) 100vw, (max-width: 1180px) 50vw, 25vw"
           />
         </div>
 
@@ -71,7 +72,9 @@ function ProductCard({ product }: ProductCardProps) {
           <h3 className="product-card-title">{product.name}</h3>
 
           <div className="product-card-footer">
-            <span className="product-card-price">{formatRupiah(product.price)}</span>
+            <span className="product-card-price">
+              {formatRupiah(product.price)}
+            </span>
 
             <span className="product-card-stock-count">
               {product.stock > 0 ? `${product.stock} left` : "Sold out"}

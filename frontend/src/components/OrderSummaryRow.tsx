@@ -53,12 +53,13 @@ function OrderSummaryRow({
             aria-label={`View ${row.name}`}
           >
             <ProductImage
-              key={`${row.id}-${row.imagePath || ""}`}
+              key={row.imagePath || row.id}
+              src={row.imagePath}
               className="order-summary-image"
-              src={row.imagePath || ""}
               alt={row.name}
-              width={160}
-              height={140}
+              width={144}
+              height={128}
+              sizes="72px"
             />
           </Link>
         ) : (
