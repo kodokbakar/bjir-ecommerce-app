@@ -7,6 +7,7 @@ import FormField from "../components/auth/FormField";
 import PasswordToggle from "../components/auth/PasswordToggle";
 import { useAuth } from "../hooks/useAuth";
 import { getApiErrorMessage, registerUser } from "../services/authService";
+import { getDashboardPath } from "../utils/authRouting";
 
 type RegisterFieldErrors = Partial<
   Record<"name" | "email" | "password" | "confirmPassword", string>
@@ -87,7 +88,7 @@ function getPasswordStrengthLabel(score: number): string {
 
 function Register() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { login, user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -120,18 +121,14 @@ function Register() {
     setIsSubmitting(true);
 
     try {
-      await registerUser({
+      const result = await registerUser({
         name: name.trim(),
         email: email.trim(),
         password,
       });
 
-      navigate("/login", {
-        replace: true,
-        state: {
-          authNotice: "Registrasi berhasil. Silakan login dengan akun barumu.",
-        },
-      });
+      login(result.accessToken, result.user, true);
+      navigate(getDashboardPath(result.user), { replace: true });
     } catch (error) {
       setFormError(
         getApiErrorMessage(error, "Gagal mendaftar. Silakan coba lagi."),
@@ -141,7 +138,7 @@ function Register() {
   }
 
   if (!isAuthLoading && isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={getDashboardPath(user)} replace />;
   }
 
   return (

@@ -63,8 +63,21 @@ export async function loginUser(input: LoginInput): Promise<AuthResult> {
   };
 }
 
-export async function registerUser(input: RegisterInput): Promise<void> {
-  await api.post<ApiDataResponse<AuthPayload>>("/v1/auth/register", input);
+export async function registerUser(input: RegisterInput): Promise<AuthResult> {
+  const response = await api.post<ApiDataResponse<AuthPayload>>(
+    "/v1/auth/register",
+    input,
+  );
+  const payload = response.data.data;
+
+  if (!payload?.access_token || !payload.user) {
+    throw new Error("Format respon register dari server tidak sesuai.");
+  }
+
+  return {
+    accessToken: payload.access_token,
+    user: payload.user,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

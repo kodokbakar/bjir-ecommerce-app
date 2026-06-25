@@ -96,6 +96,14 @@ function Checkout() {
       return;
     }
 
+    if (!form.shipping_address.trim()) {
+      showToast({
+        type: "warning",
+        message: "Shipping address wajib diisi.",
+      });
+      return;
+    }
+
     setIsCheckingOut(true);
     setLoadError(null);
 
