@@ -7,6 +7,7 @@ import AuthLayout from "../components/auth/AuthLayout";
 import FormField from "../components/auth/FormField";
 import PasswordToggle from "../components/auth/PasswordToggle";
 import { useAuth } from "../hooks/useAuth";
+import { getDashboardPath } from "../utils/authRouting";
 import { getApiErrorMessage, loginUser } from "../services/authService";
 
 interface LoginLocationState {
@@ -42,10 +43,12 @@ function validateLoginForm(email: string, password: string): LoginFieldErrors {
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { login, user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const authNotice = useMemo(() => {
-    return isLoginLocationState(location.state) ? location.state.authNotice ?? null : null;
+    return isLoginLocationState(location.state)
+      ? (location.state.authNotice ?? null)
+      : null;
   }, [location.state]);
 
   const [email, setEmail] = useState("");
@@ -76,9 +79,11 @@ function Login() {
       });
 
       login(result.accessToken, result.user, rememberMe);
-      navigate("/dashboard", { replace: true });
+      navigate(getDashboardPath(result.user), { replace: true });
     } catch (error) {
-      setFormError(getApiErrorMessage(error, "Login gagal. Silakan coba lagi."));
+      setFormError(
+        getApiErrorMessage(error, "Login gagal. Silakan coba lagi."),
+      );
       setIsSubmitting(false);
     }
   }
@@ -88,7 +93,7 @@ function Login() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={getDashboardPath(user)} replace />;
   }
 
   return (

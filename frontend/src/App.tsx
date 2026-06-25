@@ -23,12 +23,14 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import ProductForm from "./pages/admin/ProductForm";
 
+import DashboardRedirect from "./components/DashboardRedirect";
+
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<DashboardRedirect />} />
 
       <Route element={<ProtectedRoute />}>
         <Route
@@ -127,6 +129,11 @@ function App() {
       <Route element={<AdminProtectedRoute />}>
         <Route
           path="/admin"
+          element={<Navigate to="/admin/dashboard" replace />}
+        />
+
+        <Route
+          path="/admin/dashboard"
           element={
             <AdminLayout>
               <AdminDashboard />

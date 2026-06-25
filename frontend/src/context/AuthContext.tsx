@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
 
-        const response = await api.get("/v1/auth/me");
+        const response = await api.get("/v1/me");
 
         const userData =
           response.data?.data?.user ||

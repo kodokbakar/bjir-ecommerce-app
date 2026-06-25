@@ -2,10 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 
 import AuthLoading from "./auth/AuthLoading";
 import { useAuth } from "../hooks/useAuth";
-
-function isAdminRole(role?: string): boolean {
-  return role?.toLowerCase() === "admin";
-}
+import { isAdminRole } from "../utils/authRouting";
 
 function AdminProtectedRoute() {
   const { isAuthenticated, isLoading, user } = useAuth();

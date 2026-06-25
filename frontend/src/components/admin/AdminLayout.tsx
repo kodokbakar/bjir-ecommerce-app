@@ -22,7 +22,7 @@ interface AdminNavLink {
 const ADMIN_NAV_LINKS: AdminNavLink[] = [
   {
     label: "Dashboard",
-    path: "/admin",
+    path: "/admin/dashboard",
     Icon: Home,
   },
   {
@@ -43,8 +43,8 @@ const ADMIN_NAV_LINKS: AdminNavLink[] = [
 ];
 
 function isActivePath(pathname: string, path: string): boolean {
-  if (path === "/admin") {
-    return pathname === "/admin";
+  if (path === "/admin/dashboard") {
+    return pathname === "/admin" || pathname === "/admin/dashboard";
   }
 
   return pathname.startsWith(path);
@@ -56,7 +56,7 @@ function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar" aria-label="Admin navigation">
-        <Link className="admin-brand" to="/admin">
+        <Link className="admin-brand" to="/admin/dashboard">
           <span className="admin-brand-mark">
             <Grid2X2 className="h-5 w-5" aria-hidden="true" />
           </span>

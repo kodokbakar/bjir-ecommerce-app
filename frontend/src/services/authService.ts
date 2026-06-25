@@ -82,7 +82,7 @@ function unwrapCurrentUser(payload: MeResponse): User {
 }
 
 export async function getCurrentUser(): Promise<User> {
-  const response = await api.get<MeResponse>("/v1/auth/me");
+  const response = await api.get<MeResponse>("/v1/me");
 
   return unwrapCurrentUser(response.data);
 }
