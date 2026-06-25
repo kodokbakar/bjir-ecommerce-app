@@ -62,7 +62,7 @@ function Profile() {
       setError(null);
 
       try {
-        const result = await getCurrentUser();
+        const result = await getCurrentUser(authUser);
 
         if (isActive) {
           setProfile(result);
@@ -88,7 +88,7 @@ function Profile() {
     return () => {
       isActive = false;
     };
-  }, [reloadKey]);
+  }, [authUser, reloadKey]);
 
   if (isLoading) {
     return <ProfileSkeleton />;
@@ -177,7 +177,7 @@ function Profile() {
             <div className="profile-badge-list">
               <span>
                 <Mail className="h-4 w-4" aria-hidden="true" />
-                {profile.email}
+                {profile.email || "Email belum tersedia"}
               </span>
               <span>
                 <Shield className="h-4 w-4" aria-hidden="true" />

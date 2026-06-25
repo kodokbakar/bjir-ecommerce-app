@@ -142,10 +142,12 @@ export function unwrapCurrentUser(
   throw new Error("Format respon profil dari server tidak sesuai.");
 }
 
-export async function getCurrentUser(): Promise<User> {
+export async function getCurrentUser(
+  fallbackUser: User | null = null,
+): Promise<User> {
   const response = await api.get<MeResponse>("/v1/me");
 
-  return unwrapCurrentUser(response.data);
+  return unwrapCurrentUser(response.data, fallbackUser);
 }
 
 export function getApiErrorMessage(
