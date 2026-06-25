@@ -328,6 +328,7 @@ func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 	cartHandler := handlers.NewCartHandler(&fakeRouterCartService{})
 	orderHandler := handlers.NewOrderHandler(&fakeRouterOrderService{})
 	paymentHandler := handlers.NewPaymentHandler(&fakeRouterPaymentService{})
+	dashboardHandler := handlers.NewDashboardHandler(&fakeRouterDashboardService{})
 
 	return SetupRouter(
 		jwtManager,
@@ -337,6 +338,7 @@ func setupRouterForCategoryAuthTest() (*gin.Engine, *auth.JWTManager) {
 		cartHandler,
 		orderHandler,
 		paymentHandler,
+		dashboardHandler,
 	), jwtManager
 }
 
@@ -990,4 +992,41 @@ func TestProductImageRoutes_AdminDeleteWithAdminToken_ReturnsNoContent(t *testin
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d. body: %s", w.Code, w.Body.String())
 	}
+}
+
+func TestDashboardAdminRoute_WithAdminToken_ReturnsOK(t *testing.T) {
+	r, jwtManager := setupRouterForCategoryAuthTest()
+
+	token, err := jwtManager.GenerateToken("admin-id", "admin@example.com", "admin")
+	if err != nil {
+		t.Fatalf("failed to generate admin token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/dashboard", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. body: %s", w.Code, w.Body.String())
+	}
+
+	if !strings.Contains(w.Body.String(), "total_orders") {
+		t.Fatalf("expected dashboard stats response, got: %s", w.Body.String())
+	}
+}
+
+type fakeRouterDashboardService struct{}
+
+func (f *fakeRouterDashboardService) GetStats(ctx context.Context) (*models.DashboardStats, error) {
+	return &models.DashboardStats{
+		TotalOrders:     10,
+		TotalRevenue:    1500000,
+		PendingOrders:   2,
+		CompletedToday:  1,
+		RevenueToday:    250000,
+		TotalProducts:   8,
+		TotalCategories: 4,
+	}, nil
 }

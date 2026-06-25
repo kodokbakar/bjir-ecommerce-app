@@ -20,6 +20,7 @@ func SetupRouter(
 	cartHandler *handlers.CartHandler,
 	orderHandler *handlers.OrderHandler,
 	paymentHandler *handlers.PaymentHandler,
+	dashboardHandler *handlers.DashboardHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -78,6 +79,10 @@ func SetupRouter(
 	admin.Use(middleware.RequireRole("admin"))
 
 	admin.GET("/ping", handlers.AdminPing)
+
+	if dashboardHandler != nil {
+		admin.GET("/dashboard", dashboardHandler.GetStats)
+	}
 
 	if orderHandler != nil {
 		admin.GET("/orders", orderHandler.GetAllOrders)

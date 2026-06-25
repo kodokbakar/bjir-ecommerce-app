@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { getResponseErrorMessage } from "./api";
 import { listProducts } from "./productService";
 import type { Product, ProductListResponse } from "../types/product";
 
@@ -12,6 +12,32 @@ interface ApiListResponse<TData> {
     total?: number;
     total_pages?: number;
   };
+}
+
+interface ApiDataResponse<TData> {
+  success?: boolean;
+  message?: string;
+  data: TData;
+}
+
+interface AdminDashboardStatsResponse {
+  total_orders: number;
+  total_revenue: number;
+  pending_orders: number;
+  completed_today: number;
+  revenue_today: number;
+  total_products: number;
+  total_categories: number;
+}
+
+export interface AdminDashboardStats {
+  totalOrders: number;
+  totalRevenue: number;
+  pendingOrders: number;
+  completedToday: number;
+  revenueToday: number;
+  totalProducts: number;
+  totalCategories: number;
 }
 
 export interface DashboardOrder {
@@ -29,6 +55,35 @@ export interface DashboardOrderResult {
   total: number;
 }
 
+function mapAdminDashboardStats(
+  stats: AdminDashboardStatsResponse,
+): AdminDashboardStats {
+  return {
+    totalOrders: stats.total_orders,
+    totalRevenue: stats.total_revenue,
+    pendingOrders: stats.pending_orders,
+    completedToday: stats.completed_today,
+    revenueToday: stats.revenue_today,
+    totalProducts: stats.total_products,
+    totalCategories: stats.total_categories,
+  };
+}
+
+export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+  const response = await api.get<ApiDataResponse<AdminDashboardStatsResponse>>(
+    "/v1/admin/dashboard",
+  );
+
+  return mapAdminDashboardStats(response.data.data);
+}
+
+export function getDashboardErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  return getResponseErrorMessage(error, fallback);
+}
+
 export async function getDashboardProducts(): Promise<ProductListResponse> {
   return listProducts({
     page: 1,
@@ -38,13 +93,18 @@ export async function getDashboardProducts(): Promise<ProductListResponse> {
   });
 }
 
-export async function getRecentOrders(limit = 3): Promise<DashboardOrderResult> {
-  const response = await api.get<ApiListResponse<DashboardOrder[]>>("/v1/orders", {
-    params: {
-      page: 1,
-      limit,
+export async function getRecentOrders(
+  limit = 3,
+): Promise<DashboardOrderResult> {
+  const response = await api.get<ApiListResponse<DashboardOrder[]>>(
+    "/v1/orders",
+    {
+      params: {
+        page: 1,
+        limit,
+      },
     },
-  });
+  );
 
   return {
     data: response.data.data,

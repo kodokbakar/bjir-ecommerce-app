@@ -87,7 +87,20 @@ func main() {
 	paymentService := services.NewPaymentService(paymentRepository)
 	paymentHandler := handlers.NewPaymentHandler(paymentService)
 
-	r := router.SetupRouter(jwtManager, authHandler, categoryHandler, productHandler, cartHandler, orderHandler, paymentHandler)
+	dashboardRepository := repository.NewDashboardRepository(dbPool)
+	dashboardService := services.NewDashboardService(dashboardRepository)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
+
+	r := router.SetupRouter(
+		jwtManager,
+		authHandler,
+		categoryHandler,
+		productHandler,
+		cartHandler,
+		orderHandler,
+		paymentHandler,
+		dashboardHandler,
+	)
 
 	httpServer := &http.Server{
 		Addr:    ":" + cfg.App.Port,
