@@ -4,7 +4,7 @@ function Footer() {
   return (
     <footer className="flex flex-col gap-3 border-t border-[var(--color-border)] bg-white px-4 py-5 text-xs font-bold text-[var(--color-text-muted)] sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
       <span className="text-center lg:text-left">
-        &copy; {new Date().getFullYear()} Bjir E-commerce. Hak cipta dilindungi.
+        &copy; {new Date().getFullYear()} Pratama Enterprise. Hak cipta dilindungi.
       </span>
 
       <nav

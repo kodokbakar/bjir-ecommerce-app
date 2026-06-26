@@ -45,7 +45,7 @@ const FOOTER_SOCIAL_LINKS = [
   },
   {
     label: "Email",
-    href: "mailto:support@bjir-commerce.test",
+    href: "mailto:yudisbaek@gmail.com",
     icon: Mail,
   },
 ];
@@ -383,7 +383,7 @@ function LandingPage() {
         <div className="landing-hero-copy">
           <span className="landing-eyebrow">
             <Sparkles size={15} aria-hidden="true" />
-            Brutal storefront
+            Pratama Enterprise
           </span>
 
           <h1 id="landing-title">
@@ -572,21 +572,21 @@ function LandingPage() {
           </p>
 
           <div className="landing-contact-list" aria-label="Kontak cepat">
-            <a href="mailto:support@bjir-commerce.test">
+            <a href="mailto:yudisbaek@gmail.com">
               <Mail size={18} aria-hidden="true" />
-              support@bjir-commerce.test
+              yudisbaek@gmail.com
             </a>
             <a href="tel:+62000000000">
               <Phone size={18} aria-hidden="true" />
-              +62 000 0000 000
+              +62 000 000 000
             </a>
             <span>
               <MapPin size={18} aria-hidden="true" />
-              Indonesia storefront lab
+              Malang, Jawa Timur, Indonesia
             </span>
             <span>
               <Truck size={18} aria-hidden="true" />
-              Fulfillment-ready catalog
+                Pengiriman cepat, aman
             </span>
           </div>
         </div>
@@ -732,8 +732,8 @@ function LandingPage() {
         </div>
 
         <div className="landing-footer-bottom">
-          <span>© {currentYear} Bjir E-Commerce</span>
-          <span>Built with brutalist commerce energy.</span>
+          <span>© {currentYear} Pratama Enterprise</span>
+          <span>Built with love, made with passion.</span>
         </div>
       </footer>
     </main>
