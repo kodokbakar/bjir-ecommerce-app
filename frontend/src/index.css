@@ -6427,8 +6427,9 @@ a.product-detail-category:hover {
 /* Landing Page */
 
 .landing-page {
+  min-width: 0;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(
       circle at 10% 12%,
@@ -6470,6 +6471,7 @@ a.product-detail-category:hover {
 
 .landing-brand,
 .landing-nav-actions,
+.landing-mobile-nav,
 .landing-hero-actions,
 .landing-contact-list {
   display: flex;
@@ -6477,6 +6479,7 @@ a.product-detail-category:hover {
 }
 
 .landing-brand {
+  min-width: 0;
   gap: 10px;
   color: var(--color-brutal-ink);
   font-size: 17px;
@@ -6484,6 +6487,11 @@ a.product-detail-category:hover {
   letter-spacing: -0.04em;
   text-decoration: none;
   text-transform: uppercase;
+}
+
+.landing-brand span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .landing-brand-mark {
@@ -6501,12 +6509,46 @@ a.product-detail-category:hover {
   gap: 10px;
 }
 
+.landing-nav-toggle {
+  display: none;
+  width: 46px;
+  min-height: 46px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid var(--color-brutal-ink);
+  background: var(--color-brutal-accent);
+  color: var(--color-brutal-ink);
+  box-shadow: 3px 3px 0 var(--color-brutal-ink);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.landing-nav-toggle:hover,
+.landing-nav-toggle:active {
+  transform: translate(-2px, -2px);
+  background: var(--color-brutal-hot);
+  color: white;
+  box-shadow: 5px 5px 0 var(--color-brutal-ink);
+}
+
+.landing-mobile-nav {
+  grid-column: 1 / -1;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 2px solid var(--color-brutal-ink);
+  padding-top: 12px;
+}
+
 .landing-nav-link,
 .landing-nav-cta,
 .landing-primary-button,
 .landing-secondary-button {
   display: inline-flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -6538,9 +6580,13 @@ a.product-detail-category:hover {
 }
 
 .landing-nav-link:hover,
+.landing-nav-link:active,
 .landing-nav-cta:hover,
+.landing-nav-cta:active,
 .landing-primary-button:hover,
-.landing-secondary-button:hover {
+.landing-primary-button:active,
+.landing-secondary-button:hover,
+.landing-secondary-button:active {
   transform: translate(-2px, -2px);
   background: var(--color-brutal-accent);
   color: var(--color-brutal-ink);
@@ -6553,6 +6599,7 @@ a.product-detail-category:hover {
 .landing-contact,
 .landing-footer {
   width: min(1180px, 100%);
+  min-width: 0;
   margin: 0 auto;
 }
 
@@ -6792,6 +6839,7 @@ a.product-detail-category:hover {
 
 .landing-featured-grid {
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
 }
@@ -7027,6 +7075,7 @@ a.product-detail-category:hover {
 .landing-contact-list a,
 .landing-contact-list span {
   display: flex;
+  min-height: 44px;
   align-items: center;
   gap: 10px;
   border: 2px solid var(--color-brutal-ink);
@@ -7136,6 +7185,7 @@ a.product-detail-category:hover {
 .landing-footer-nav a {
   display: inline-flex;
   width: fit-content;
+  min-height: 44px;
   align-items: center;
   gap: 8px;
   color: rgba(255, 248, 232, 0.82);
@@ -7214,16 +7264,31 @@ a.product-detail-category:hover {
   }
 }
 
+@media (max-width: 860px) {
+  .landing-about-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .landing-page {
-    padding: 12px;
+    padding: 10px;
   }
 
   .landing-navbar {
     position: static;
-    align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     box-shadow: 4px 4px 0 var(--color-brutal-ink);
+  }
+
+  .landing-nav-toggle {
+    display: grid;
+  }
+
+  .landing-nav-actions-desktop {
+    display: none;
   }
 
   .landing-nav-actions,
@@ -7305,8 +7370,8 @@ a.product-detail-category:hover {
   }
 
   .landing-hero h1 {
-    font-size: clamp(40px, 15vw, 68px);
-    line-height: 0.86;
+    font-size: clamp(38px, 14vw, 68px);
+    line-height: 0.88;
   }
 
   .landing-hero p {
@@ -7320,5 +7385,56 @@ a.product-detail-category:hover {
   .landing-hero-cta-placeholder,
   .landing-hero-cta-placeholder.is-wide {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .landing-page {
+    padding: 8px;
+  }
+
+  .landing-brand {
+    font-size: 14px;
+    letter-spacing: -0.05em;
+  }
+
+  .landing-brand-mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .landing-hero,
+  .landing-section,
+  .landing-about,
+  .landing-contact,
+  .landing-footer {
+    padding: 16px;
+  }
+
+  .landing-hero {
+    min-height: auto;
+  }
+
+  .landing-hero h1 {
+    font-size: clamp(34px, 13vw, 52px);
+  }
+
+  .landing-section-heading h2,
+  .landing-about h2,
+  .landing-contact h2 {
+    font-size: clamp(30px, 11vw, 48px);
+    line-height: 0.94;
+  }
+
+  .landing-featured-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-product-image {
+    height: 210px;
+  }
+
+  .landing-footer-bottom span {
+    overflow-wrap: anywhere;
   }
 }

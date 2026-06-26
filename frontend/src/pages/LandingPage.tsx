@@ -7,12 +7,14 @@ import {
   Grid2X2,
   Mail,
   MapPin,
+  Menu,
   Phone,
   RotateCcw,
   ShieldCheck,
   ShoppingCart,
   Sparkles,
   Truck,
+  X,
 } from "lucide-react";
 
 import ProductImage from "../components/ProductImage";
@@ -70,6 +72,7 @@ function LandingPage() {
   const [featuredStatus, setFeaturedStatus] =
     useState<FeaturedStatus>("loading");
   const [featuredError, setFeaturedError] = useState("");
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const dashboardPath = getDashboardPath(user);
@@ -116,6 +119,24 @@ function LandingPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMobileNavOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMobileNavOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMobileNavOpen]);
+
   return (
     <main className="landing-page">
       <nav className="landing-navbar" aria-label="Landing navigation">
@@ -126,7 +147,26 @@ function LandingPage() {
           <span>Bjir E-Commerce</span>
         </Link>
 
-        <div className="landing-nav-actions">
+        <button
+          className="landing-nav-toggle"
+          type="button"
+          onClick={() => setIsMobileNavOpen((current) => !current)}
+          aria-controls="landing-mobile-menu"
+          aria-expanded={isMobileNavOpen}
+          aria-label={
+            isMobileNavOpen
+              ? "Tutup menu navigasi landing"
+              : "Buka menu navigasi landing"
+          }
+        >
+          {isMobileNavOpen ? (
+            <X size={20} aria-hidden="true" />
+          ) : (
+            <Menu size={20} aria-hidden="true" />
+          )}
+        </button>
+
+        <div className="landing-nav-actions landing-nav-actions-desktop">
           {isAuthLoading ? (
             <>
               <span className="landing-nav-placeholder" aria-hidden="true" />
@@ -155,6 +195,79 @@ function LandingPage() {
             </>
           )}
         </div>
+
+        {isMobileNavOpen && (
+          <nav
+            className="landing-mobile-nav"
+            id="landing-mobile-menu"
+            aria-label="Mobile landing navigation"
+          >
+            {isAuthLoading ? (
+              <>
+                <span className="landing-nav-placeholder" aria-hidden="true" />
+                <span
+                  className="landing-nav-placeholder is-short"
+                  aria-hidden="true"
+                />
+              </>
+            ) : isAuthenticated ? (
+              <>
+                <Link
+                  className="landing-nav-link"
+                  to="/products"
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  Produk
+                </Link>
+                <Link
+                  className="landing-nav-link"
+                  to="/cart"
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  Keranjang
+                </Link>
+                <Link
+                  className="landing-nav-cta"
+                  to={dashboardPath}
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  className="landing-nav-link"
+                  to="/products"
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  Produk
+                </Link>
+                <Link
+                  className="landing-nav-link"
+                  to="/cart"
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  Keranjang
+                </Link>
+                <Link
+                  className="landing-nav-link"
+                  to="/login"
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  className="landing-nav-cta"
+                  to="/register"
+                  onClick={() => setIsMobileNavOpen(false)}
+                >
+                  Daftar
+                </Link>
+              </>
+            )}
+          </nav>
+        )}
       </nav>
 
       <section

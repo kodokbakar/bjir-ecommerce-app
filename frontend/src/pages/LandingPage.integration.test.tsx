@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -140,6 +141,43 @@ describe("LandingPage", () => {
     expect(
       screen.getByText(`© ${new Date().getFullYear()} Bjir E-Commerce`),
     ).toBeInTheDocument();
+  });
+
+  it("toggles the mobile landing navigation menu", async () => {
+    const user = userEvent.setup();
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+
+    renderAppAtRoot();
+
+    const menuButton = screen.getByRole("button", {
+      name: /buka menu navigasi landing/i,
+    });
+
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(menuButton);
+
+    expect(
+      screen.getByRole("button", {
+        name: /tutup menu navigasi landing/i,
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    expect(
+      screen.getByRole("navigation", { name: /mobile landing navigation/i }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /tutup menu navigasi landing/i,
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: /buka menu navigasi landing/i,
+      }),
+    ).toHaveAttribute("aria-expanded", "false");
   });
 
   it("shows hero loading placeholders while auth state is loading", () => {
