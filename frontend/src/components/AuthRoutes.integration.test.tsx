@@ -3,7 +3,6 @@ import { Navigate, Outlet } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import AdminProtectedRoute from "./AdminProtectedRoute";
-import DashboardRedirect from "./DashboardRedirect";
 import ProtectedRoute from "./ProtectedRoute";
 import {
   adminUser,
@@ -107,10 +106,6 @@ describe("auth route guards", () => {
     const customerResult = renderWithProviders(
       [
         {
-          path: "/",
-          element: <DashboardRedirect />,
-        },
-        {
           path: "/dashboard",
           element: <p>Customer dashboard</p>,
         },
@@ -120,7 +115,7 @@ describe("auth route guards", () => {
         },
       ],
       {
-        initialEntries: ["/"],
+        initialEntries: ["/dashboard"],
         auth: {
           user: customerUser,
           token: "customer-token",
@@ -136,10 +131,6 @@ describe("auth route guards", () => {
     renderWithProviders(
       [
         {
-          path: "/",
-          element: <DashboardRedirect />,
-        },
-        {
           path: "/dashboard",
           element: <p>Customer dashboard</p>,
         },
@@ -149,7 +140,7 @@ describe("auth route guards", () => {
         },
       ],
       {
-        initialEntries: ["/"],
+        initialEntries: ["/admin/dashboard"],
         auth: {
           user: adminUser,
           token: "admin-token",
