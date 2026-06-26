@@ -3,10 +3,14 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../App";
-import { AuthContext } from "../hooks/useAuth";
+import { AuthContext, type AuthContextType } from "../hooks/useAuth";
 import { listProducts } from "../services/productService";
 import { productFixtures, productListResponse } from "../test-utils/fixtures";
-import { createAuthValue } from "../test-utils/renderWithProviders";
+import {
+  adminUser,
+  createAuthValue,
+  customerUser,
+} from "../test-utils/renderWithProviders";
 import { ToastProvider } from "../context/ToastContext";
 
 vi.mock("../services/productService", async () => {
@@ -22,7 +26,7 @@ vi.mock("../services/productService", async () => {
 
 const mockedListProducts = vi.mocked(listProducts);
 
-function renderAppAtRoot() {
+function renderAppAtRoot(authOverrides: Partial<AuthContextType> = {}) {
   return render(
     <ToastProvider>
       <AuthContext.Provider
@@ -31,6 +35,7 @@ function renderAppAtRoot() {
           token: null,
           isAuthenticated: false,
           isLoading: false,
+          ...authOverrides,
         })}
       >
         <MemoryRouter initialEntries={["/"]}>
@@ -78,7 +83,7 @@ describe("LandingPage", () => {
     ).toHaveAttribute("href", "/products");
 
     expect(
-      screen.getAllByRole("link", { name: /^daftar$/i })[0],
+      screen.getByRole("link", { name: /daftar sekarang/i }),
     ).toHaveAttribute("href", "/register");
 
     expect(
@@ -93,6 +98,51 @@ describe("LandingPage", () => {
       screen.getByRole("heading", { name: /need the shelf opened/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/sharp catalog/i)).toBeInTheDocument();
+  });
+
+  it("shows hero loading placeholders while auth state is loading", () => {
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+
+    renderAppAtRoot({
+      isLoading: true,
+    });
+
+    expect(screen.getByLabelText(/loading hero actions/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /daftar sekarang/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("points the hero dashboard CTA to the customer dashboard when logged in", () => {
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+
+    renderAppAtRoot({
+      user: customerUser,
+      token: "customer-token",
+      isAuthenticated: true,
+    });
+
+    expect(
+      screen.getByRole("link", { name: /buka dashboard/i }),
+    ).toHaveAttribute("href", "/dashboard");
+
+    expect(
+      screen.getByRole("link", { name: /lanjut belanja/i }),
+    ).toHaveAttribute("href", "/products");
+  });
+
+  it("points the hero dashboard CTA to the admin dashboard when logged in as admin", () => {
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+
+    renderAppAtRoot({
+      user: adminUser,
+      token: "admin-token",
+      isAuthenticated: true,
+    });
+
+    expect(
+      screen.getByRole("link", { name: /buka dashboard/i }),
+    ).toHaveAttribute("href", "/admin/dashboard");
   });
 
   it("loads featured products through the mocked product service", async () => {

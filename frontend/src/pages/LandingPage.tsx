@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 
 import ProductImage from "../components/ProductImage";
+import { useAuth } from "../hooks/useAuth";
 import { listProducts } from "../services/productService";
 import type { Product } from "../types/product";
+import { getDashboardPath } from "../utils/authRouting";
 import { formatRupiah, getProductImage } from "../utils/product";
 
 const FEATURED_LIMIT = 4;
@@ -47,6 +49,15 @@ function LandingPage() {
   const [featuredStatus, setFeaturedStatus] =
     useState<FeaturedStatus>("loading");
   const [featuredError, setFeaturedError] = useState("");
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+  const dashboardPath = getDashboardPath(user);
+  const primaryHeroPath = isAuthenticated ? dashboardPath : "/products";
+  const primaryHeroLabel = isAuthenticated ? "Buka Dashboard" : "Mulai Belanja";
+  const secondaryHeroPath = isAuthenticated ? "/products" : "/register";
+  const secondaryHeroLabel = isAuthenticated
+    ? "Lanjut Belanja"
+    : "Daftar Sekarang";
 
   useEffect(() => {
     let isActive = true;
@@ -94,16 +105,40 @@ function LandingPage() {
         </Link>
 
         <div className="landing-nav-actions">
-          <Link className="landing-nav-link" to="/login">
-            Login
-          </Link>
-          <Link className="landing-nav-cta" to="/register">
-            Daftar
-          </Link>
+          {isAuthLoading ? (
+            <>
+              <span className="landing-nav-placeholder" aria-hidden="true" />
+              <span
+                className="landing-nav-placeholder is-short"
+                aria-hidden="true"
+              />
+            </>
+          ) : isAuthenticated ? (
+            <>
+              <Link className="landing-nav-link" to="/products">
+                Products
+              </Link>
+              <Link className="landing-nav-cta" to={dashboardPath}>
+                Dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link className="landing-nav-link" to="/login">
+                Login
+              </Link>
+              <Link className="landing-nav-cta" to="/register">
+                Daftar
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
-      <section className="landing-hero" aria-labelledby="landing-title">
+      <section
+        className={`landing-hero${isAuthLoading ? " is-loading" : ""}`}
+        aria-labelledby="landing-title"
+      >
         <div className="landing-hero-copy">
           <span className="landing-eyebrow">
             <Sparkles size={15} aria-hidden="true" />
@@ -120,15 +155,31 @@ function LandingPage() {
             generic.
           </p>
 
-          <div className="landing-hero-actions">
-            <Link className="landing-primary-button" to="/products">
-              Mulai Belanja
-              <ArrowRight size={17} aria-hidden="true" />
-            </Link>
-            <Link className="landing-secondary-button" to="/register">
-              Daftar
-            </Link>
-          </div>
+          {isAuthLoading ? (
+            <div
+              className="landing-hero-actions is-loading"
+              aria-label="Loading hero actions"
+            >
+              <span
+                className="landing-hero-cta-placeholder is-wide"
+                aria-hidden="true"
+              />
+              <span
+                className="landing-hero-cta-placeholder"
+                aria-hidden="true"
+              />
+            </div>
+          ) : (
+            <div className="landing-hero-actions">
+              <Link className="landing-primary-button" to={primaryHeroPath}>
+                {primaryHeroLabel}
+                <ArrowRight size={17} aria-hidden="true" />
+              </Link>
+              <Link className="landing-secondary-button" to={secondaryHeroPath}>
+                {secondaryHeroLabel}
+              </Link>
+            </div>
+          )}
         </div>
 
         <aside className="landing-hero-panel" aria-label="Store highlights">
