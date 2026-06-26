@@ -61,7 +61,11 @@ input:focus-visible {
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 92, 53, 0.28), transparent 28%),
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(255, 92, 53, 0.28),
+      transparent 28%
+    ),
     linear-gradient(90deg, rgba(23, 20, 18, 0.06) 1px, transparent 1px),
     linear-gradient(0deg, rgba(23, 20, 18, 0.06) 1px, transparent 1px),
     var(--color-brutal-paper);
@@ -238,7 +242,10 @@ input:focus-visible {
 
 .products-toolbar {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 240px) minmax(180px, 240px);
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 240px) minmax(
+      180px,
+      240px
+    );
   gap: 14px;
   align-items: end;
   border: var(--border-brutal);
@@ -382,8 +389,16 @@ input:focus-visible {
   overflow: hidden;
   border-bottom: var(--border-brutal);
   background:
-    radial-gradient(circle at 25% 20%, rgba(255, 92, 53, 0.22), transparent 28%),
-    radial-gradient(circle at 80% 65%, rgba(107, 209, 255, 0.28), transparent 24%),
+    radial-gradient(
+      circle at 25% 20%,
+      rgba(255, 92, 53, 0.22),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 80% 65%,
+      rgba(107, 209, 255, 0.28),
+      transparent 24%
+    ),
     var(--color-secondary);
 }
 
@@ -544,8 +559,18 @@ input:focus-visible {
   place-items: center;
   border: var(--border-brutal);
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
-    linear-gradient(0deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
+    linear-gradient(
+      0deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
     var(--color-brutal-surface);
   background-size: 28px 28px;
   box-shadow: var(--shadow-brutal);
@@ -555,9 +580,23 @@ input:focus-visible {
 
 .empty-state.is-error {
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 92, 53, 0.18), transparent 28%),
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
-    linear-gradient(0deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(255, 92, 53, 0.18),
+      transparent 28%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
+    linear-gradient(
+      0deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
     #ffe1d7;
   background-size:
     auto,
@@ -637,8 +676,18 @@ input:focus-visible {
   place-items: center;
   border: var(--border-brutal);
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
-    linear-gradient(0deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
+    linear-gradient(
+      0deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
     var(--color-brutal-surface);
   background-size: 28px 28px;
   box-shadow: var(--shadow-brutal);
@@ -867,8 +916,16 @@ input:focus-visible {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 20% 18%, rgba(255, 92, 53, 0.24), transparent 28%),
-    radial-gradient(circle at 80% 72%, rgba(107, 209, 255, 0.32), transparent 25%),
+    radial-gradient(
+      circle at 20% 18%,
+      rgba(255, 92, 53, 0.24),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 80% 72%,
+      rgba(107, 209, 255, 0.32),
+      transparent 25%
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.06) 0,
@@ -1367,7 +1424,11 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    linear-gradient(135deg, rgba(107, 209, 255, 0.88), rgba(255, 248, 232, 0.92)),
+    linear-gradient(
+      135deg,
+      rgba(107, 209, 255, 0.88),
+      rgba(255, 248, 232, 0.92)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -1542,8 +1603,16 @@ a.product-detail-category:hover {
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 24% 24%, rgba(255, 92, 53, 0.16), transparent 28%),
-    radial-gradient(circle at 78% 70%, rgba(107, 209, 255, 0.2), transparent 24%),
+    radial-gradient(
+      circle at 24% 24%,
+      rgba(255, 92, 53, 0.16),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 78% 70%,
+      rgba(107, 209, 255, 0.2),
+      transparent 24%
+    ),
     #f3f0ec;
   color: var(--color-brutal-ink);
 }
@@ -1773,8 +1842,16 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 12% 12%, rgba(255, 92, 53, 0.22), transparent 28%),
-    linear-gradient(135deg, rgba(255, 248, 232, 0.96), rgba(107, 209, 255, 0.7)),
+    radial-gradient(
+      circle at 12% 12%,
+      rgba(255, 92, 53, 0.22),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 248, 232, 0.96),
+      rgba(107, 209, 255, 0.7)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -2033,7 +2110,12 @@ a.product-detail-category:hover {
   gap: 16px;
   border: var(--border-brutal);
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.08) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.08) 50%,
+      transparent 51%
+    ),
     var(--color-secondary);
   background-size: 18px 18px;
   box-shadow: var(--shadow-brutal);
@@ -2124,8 +2206,18 @@ a.product-detail-category:hover {
   place-items: center;
   border: var(--border-brutal);
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
-    linear-gradient(0deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
+    linear-gradient(
+      0deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
     var(--color-brutal-surface);
   background-size: 28px 28px;
   box-shadow: var(--shadow-brutal);
@@ -2208,7 +2300,11 @@ a.product-detail-category:hover {
 
 .checkout-success {
   background:
-    radial-gradient(circle at 20% 20%, rgba(22, 163, 74, 0.18), transparent 28%),
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(22, 163, 74, 0.18),
+      transparent 28%
+    ),
     var(--color-brutal-surface);
 }
 
@@ -2284,7 +2380,11 @@ a.product-detail-category:hover {
   gap: 16px;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 90% 12%, rgba(255, 191, 31, 0.28), transparent 24%),
+    radial-gradient(
+      circle at 90% 12%,
+      rgba(255, 191, 31, 0.28),
+      transparent 24%
+    ),
     var(--color-brutal-surface);
   box-shadow: var(--shadow-brutal);
   padding: 20px;
@@ -2370,7 +2470,12 @@ a.product-detail-category:hover {
   gap: 16px;
   border: var(--border-brutal);
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.08) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.08) 50%,
+      transparent 51%
+    ),
     var(--color-secondary);
   background-size: 18px 18px;
   box-shadow: var(--shadow-brutal);
@@ -2528,7 +2633,10 @@ a.product-detail-category:hover {
 
 .order-summary-table-head {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(92px, 0.45fr) minmax(110px, 0.55fr) minmax(130px, 0.65fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(92px, 0.45fr) minmax(
+      110px,
+      0.55fr
+    ) minmax(130px, 0.65fr);
   gap: 12px;
   border-bottom: 3px solid var(--color-brutal-ink);
   padding-bottom: 10px;
@@ -2540,16 +2648,25 @@ a.product-detail-category:hover {
 }
 
 .order-summary.is-editable .order-summary-table-head {
-  grid-template-columns: minmax(0, 1.5fr) minmax(118px, 0.56fr) minmax(110px, 0.52fr) minmax(130px, 0.62fr) minmax(118px, 0.56fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(118px, 0.56fr) minmax(
+      110px,
+      0.52fr
+    ) minmax(130px, 0.62fr) minmax(118px, 0.56fr);
 }
 
 .order-summary-item {
-  grid-template-columns: minmax(0, 1.6fr) minmax(92px, 0.45fr) minmax(110px, 0.55fr) minmax(130px, 0.65fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(92px, 0.45fr) minmax(
+      110px,
+      0.55fr
+    ) minmax(130px, 0.65fr);
   align-items: center;
 }
 
 .order-summary.is-editable .order-summary-item {
-  grid-template-columns: minmax(0, 1.5fr) minmax(118px, 0.56fr) minmax(110px, 0.52fr) minmax(130px, 0.62fr) minmax(118px, 0.56fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(118px, 0.56fr) minmax(
+      110px,
+      0.52fr
+    ) minmax(130px, 0.62fr) minmax(118px, 0.56fr);
 }
 
 .order-summary-product-cell {
@@ -2644,8 +2761,16 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 14% 18%, rgba(107, 209, 255, 0.34), transparent 28%),
-    linear-gradient(135deg, rgba(255, 248, 232, 0.98), rgba(255, 191, 31, 0.72)),
+    radial-gradient(
+      circle at 14% 18%,
+      rgba(107, 209, 255, 0.34),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 248, 232, 0.98),
+      rgba(255, 191, 31, 0.72)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -2723,7 +2848,10 @@ a.product-detail-category:hover {
 
 .orders-table-head {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(140px, 0.6fr) minmax(130px, 0.55fr) minmax(180px, 0.7fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(140px, 0.6fr) minmax(
+      130px,
+      0.55fr
+    ) minmax(180px, 0.7fr);
   gap: 12px;
   border: var(--border-brutal);
   background: var(--color-brutal-ink);
@@ -2743,7 +2871,10 @@ a.product-detail-category:hover {
 
 .orders-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(140px, 0.6fr) minmax(130px, 0.55fr) minmax(180px, 0.7fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(140px, 0.6fr) minmax(
+      130px,
+      0.55fr
+    ) minmax(180px, 0.7fr);
   gap: 12px;
   align-items: center;
   border: var(--border-brutal);
@@ -2866,8 +2997,18 @@ a.product-detail-category:hover {
   place-items: center;
   border: var(--border-brutal);
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
-    linear-gradient(0deg, transparent 49%, rgba(23, 20, 18, 0.06) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
+    linear-gradient(
+      0deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.06) 50%,
+      transparent 51%
+    ),
     var(--color-brutal-surface);
   background-size: 28px 28px;
   box-shadow: var(--shadow-brutal);
@@ -2997,8 +3138,16 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 92, 53, 0.24), transparent 28%),
-    linear-gradient(135deg, rgba(255, 248, 232, 0.98), rgba(107, 209, 255, 0.72)),
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(255, 92, 53, 0.24),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 248, 232, 0.98),
+      rgba(107, 209, 255, 0.72)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -3200,7 +3349,11 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 191, 31, 0.34), transparent 28%),
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(255, 191, 31, 0.34),
+      transparent 28%
+    ),
     linear-gradient(135deg, rgba(255, 248, 232, 0.98), rgba(255, 92, 53, 0.34)),
     repeating-linear-gradient(
       -45deg,
@@ -3309,7 +3462,12 @@ a.product-detail-category:hover {
 
 .profile-card.accent {
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.08) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.08) 50%,
+      transparent 51%
+    ),
     var(--color-secondary);
   background-size: 18px 18px;
 }
@@ -3485,8 +3643,16 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 18% 18%, rgba(107, 209, 255, 0.34), transparent 28%),
-    linear-gradient(135deg, rgba(255, 248, 232, 0.98), rgba(255, 191, 31, 0.72)),
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(107, 209, 255, 0.34),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 248, 232, 0.98),
+      rgba(255, 191, 31, 0.72)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -3567,7 +3733,12 @@ a.product-detail-category:hover {
   position: sticky;
   top: 94px;
   background:
-    linear-gradient(90deg, transparent 49%, rgba(23, 20, 18, 0.08) 50%, transparent 51%),
+    linear-gradient(
+      90deg,
+      transparent 49%,
+      rgba(23, 20, 18, 0.08) 50%,
+      transparent 51%
+    ),
     var(--color-secondary);
   background-size: 18px 18px;
 }
@@ -3926,7 +4097,11 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    radial-gradient(circle at 18% 18%, rgba(107, 209, 255, 0.3), transparent 28%),
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(107, 209, 255, 0.3),
+      transparent 28%
+    ),
     linear-gradient(135deg, rgba(255, 248, 232, 0.98), rgba(255, 191, 31, 0.64));
   box-shadow: var(--shadow-brutal);
   padding: 26px;
@@ -4185,7 +4360,10 @@ a.product-detail-category:hover {
 .admin-products-table-head,
 .admin-products-row {
   display: grid;
-  grid-template-columns: minmax(240px, 1.8fr) minmax(130px, 0.9fr) minmax(120px, 0.8fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(160px, 0.9fr);
+  grid-template-columns: minmax(240px, 1.8fr) minmax(130px, 0.9fr) minmax(
+      120px,
+      0.8fr
+    ) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(160px, 0.9fr);
   gap: 14px;
   align-items: center;
 }
@@ -4757,7 +4935,10 @@ a.product-detail-category:hover {
 .admin-categories-table-head,
 .admin-categories-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(150px, 0.9fr) minmax(220px, 1.4fr) minmax(150px, 0.9fr) minmax(150px, 0.8fr);
+  grid-template-columns: minmax(180px, 1.2fr) minmax(150px, 0.9fr) minmax(
+      220px,
+      1.4fr
+    ) minmax(150px, 0.9fr) minmax(150px, 0.8fr);
   gap: 14px;
   align-items: center;
 }
@@ -4972,7 +5153,11 @@ a.product-detail-category:hover {
   gap: 16px;
   border-bottom: 3px solid var(--color-brutal-ink);
   background:
-    linear-gradient(135deg, rgba(255, 191, 31, 0.78), rgba(255, 248, 232, 0.96)),
+    linear-gradient(
+      135deg,
+      rgba(255, 191, 31, 0.78),
+      rgba(255, 248, 232, 0.96)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -5107,7 +5292,10 @@ a.product-detail-category:hover {
 .admin-orders-table-head,
 .admin-orders-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.25fr) minmax(190px, 1.1fr) minmax(120px, 0.8fr) minmax(110px, 0.7fr) minmax(120px, 0.7fr) minmax(110px, 0.6fr);
+  grid-template-columns: minmax(220px, 1.25fr) minmax(190px, 1.1fr) minmax(
+      120px,
+      0.8fr
+    ) minmax(110px, 0.7fr) minmax(120px, 0.7fr) minmax(110px, 0.6fr);
   gap: 14px;
   align-items: center;
 }
@@ -5268,7 +5456,11 @@ a.product-detail-category:hover {
   gap: 16px;
   border-bottom: 3px solid var(--color-brutal-ink);
   background:
-    linear-gradient(135deg, rgba(107, 209, 255, 0.64), rgba(255, 248, 232, 0.96)),
+    linear-gradient(
+      135deg,
+      rgba(107, 209, 255, 0.64),
+      rgba(255, 248, 232, 0.96)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -6218,7 +6410,11 @@ a.product-detail-category:hover {
 
 .product-image.is-error {
   background:
-    radial-gradient(circle at 24% 22%, rgba(255, 92, 53, 0.18), transparent 28%),
+    radial-gradient(
+      circle at 24% 22%,
+      rgba(255, 92, 53, 0.18),
+      transparent 28%
+    ),
     linear-gradient(90deg, rgba(23, 20, 18, 0.08) 1px, transparent 1px),
     linear-gradient(0deg, rgba(23, 20, 18, 0.08) 1px, transparent 1px),
     var(--color-secondary);
@@ -6243,8 +6439,16 @@ a.product-detail-category:hover {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 10% 12%, rgba(255, 92, 53, 0.22), transparent 26%),
-    radial-gradient(circle at 88% 18%, rgba(107, 209, 255, 0.24), transparent 22%),
+    radial-gradient(
+      circle at 10% 12%,
+      rgba(255, 92, 53, 0.22),
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at 88% 18%,
+      rgba(107, 209, 255, 0.24),
+      transparent 22%
+    ),
     linear-gradient(90deg, rgba(23, 20, 18, 0.07) 1px, transparent 1px),
     linear-gradient(0deg, rgba(23, 20, 18, 0.07) 1px, transparent 1px),
     var(--color-brutal-paper);
@@ -6372,7 +6576,11 @@ a.product-detail-category:hover {
   overflow: hidden;
   border: var(--border-brutal);
   background:
-    linear-gradient(135deg, rgba(255, 191, 31, 0.86), rgba(255, 248, 232, 0.94)),
+    linear-gradient(
+      135deg,
+      rgba(255, 191, 31, 0.86),
+      rgba(255, 248, 232, 0.94)
+    ),
     repeating-linear-gradient(
       -45deg,
       rgba(23, 20, 18, 0.08) 0,
@@ -6909,24 +7117,24 @@ a.product-detail-category:hover {
   }
 
   .landing-hero {
-  min-height: 70vh;
-}
+    min-height: 70vh;
+  }
 
-.landing-hero h1 {
-  font-size: clamp(40px, 15vw, 68px);
-  line-height: 0.86;
-}
+  .landing-hero h1 {
+    font-size: clamp(40px, 15vw, 68px);
+    line-height: 0.86;
+  }
 
-.landing-hero p {
-  font-size: 14px;
-}
+  .landing-hero p {
+    font-size: 14px;
+  }
 
-.landing-hero-actions.is-loading {
-  width: 100%;
-}
+  .landing-hero-actions.is-loading {
+    width: 100%;
+  }
 
-.landing-hero-cta-placeholder,
-.landing-hero-cta-placeholder.is-wide {
-  width: 100%;
-}
+  .landing-hero-cta-placeholder,
+  .landing-hero-cta-placeholder.is-wide {
+    width: 100%;
+  }
 }
