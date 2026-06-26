@@ -87,7 +87,7 @@ describe("LandingPage", () => {
     ).toHaveAttribute("href", "/register");
 
     expect(
-      screen.getByRole("heading", { name: /fresh from the shelf/i }),
+      screen.getByRole("heading", { name: /produk unggulan terbaru/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
@@ -153,9 +153,17 @@ describe("LandingPage", () => {
     expect(await screen.findByText("Brutal Keyboard")).toBeInTheDocument();
     expect(screen.getByText("Sharp Mouse")).toBeInTheDocument();
 
+    expect(
+      screen.getByRole("link", { name: /lihat produk brutal keyboard/i }),
+    ).toHaveAttribute("href", "/products/brutal-keyboard");
+    expect(screen.getByText("Grid Monitor")).toBeInTheDocument();
+    expect(screen.getAllByText(/in stock/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/low stock/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/out of stock/i)).toBeInTheDocument();
+
     expect(mockedListProducts).toHaveBeenCalledWith({
       page: 1,
-      limit: 4,
+      limit: 8,
       sort_by: "created_at",
       sort_order: "desc",
     });
@@ -167,7 +175,17 @@ describe("LandingPage", () => {
     renderAppAtRoot();
 
     expect(
-      await screen.findByText("Featured products could not be loaded."),
+      await screen.findByText("Produk belum tersedia"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows an empty featured products fallback when API returns no products", async () => {
+    mockedListProducts.mockResolvedValue(productListResponse([]));
+
+    renderAppAtRoot();
+
+    expect(
+      await screen.findByText("Produk belum tersedia"),
     ).toBeInTheDocument();
   });
 });

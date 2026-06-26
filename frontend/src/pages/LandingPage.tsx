@@ -18,9 +18,9 @@ import { useAuth } from "../hooks/useAuth";
 import { listProducts } from "../services/productService";
 import type { Product } from "../types/product";
 import { getDashboardPath } from "../utils/authRouting";
-import { formatRupiah, getProductImage } from "../utils/product";
+import { formatRupiah, getProductImage, getStockState } from "../utils/product";
 
-const FEATURED_LIMIT = 4;
+const FEATURED_LIMIT = 8;
 
 type FeaturedStatus = "loading" | "ready" | "error";
 
@@ -82,7 +82,7 @@ function LandingPage() {
         if (isActive) {
           setFeaturedProducts([]);
           setFeaturedStatus("error");
-          setFeaturedError("Featured products could not be loaded.");
+          setFeaturedError("Produk belum tersedia");
         }
       }
     }
@@ -207,10 +207,10 @@ function LandingPage() {
       >
         <div className="landing-section-heading">
           <span className="landing-eyebrow">Featured Products</span>
-          <h2 id="landing-featured-title">Fresh from the shelf.</h2>
+          <h2 id="landing-featured-title">Produk unggulan terbaru.</h2>
           <p>
-            A quick storefront preview before buyers step into the protected
-            shopping flow.
+            Delapan produk terbaru dari katalog, lengkap dengan gambar, harga,
+            dan status stok.
           </p>
         </div>
 
@@ -222,32 +222,45 @@ function LandingPage() {
           </div>
         ) : featuredProducts.length === 0 ? (
           <div className="landing-featured-state" role="status">
-            No featured products yet. Add products from the admin shelf.
+            Produk belum tersedia
           </div>
         ) : (
           <div className="landing-featured-grid">
-            {featuredProducts.map((product) => (
-              <Link
-                className="landing-product-card"
-                to={`/products/${product.slug}`}
-                key={product.id}
-              >
-                <ProductImage
-                  className="landing-product-image"
-                  src={getProductImage(product)}
-                  alt={product.name}
-                  width={640}
-                  height={480}
-                  sizes="(max-width: 720px) 100vw, (max-width: 1180px) 50vw, 25vw"
-                />
+            {featuredProducts.map((product) => {
+              const stockState = getStockState(product.stock);
 
-                <div className="landing-product-body">
-                  <span>{product.category?.name || "Uncategorized"}</span>
-                  <h3>{product.name}</h3>
-                  <strong>{formatRupiah(product.price)}</strong>
-                </div>
-              </Link>
-            ))}
+              return (
+                <Link
+                  className="landing-product-card"
+                  to={`/products/${product.slug}`}
+                  key={product.id}
+                  aria-label={`Lihat produk ${product.name}`}
+                >
+                  <ProductImage
+                    className="landing-product-image"
+                    src={getProductImage(product)}
+                    alt={product.name}
+                    width={640}
+                    height={480}
+                    sizes="(max-width: 720px) 100vw, (max-width: 1180px) 50vw, 25vw"
+                  />
+
+                  <div className="landing-product-body">
+                    <span>{product.category?.name || "Uncategorized"}</span>
+                    <h3>{product.name}</h3>
+
+                    <div className="landing-product-meta">
+                      <strong>{formatRupiah(product.price)}</strong>
+                      <span
+                        className={`landing-product-stock ${stockState.className}`}
+                      >
+                        {stockState.label}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>

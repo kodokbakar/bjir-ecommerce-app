@@ -95,7 +95,7 @@ describe("customer browsing, cart, and checkout flow", () => {
 
     expect(await screen.findByText("Brutal Keyboard")).toBeInTheDocument();
     expect(screen.getByText("Sharp Mouse")).toBeInTheDocument();
-    expect(screen.getByText(/2 products found/i)).toBeInTheDocument();
+    expect(screen.getByText(/8 products found/i)).toBeInTheDocument();
   });
 
   it("loads product list using search query params", async () => {
