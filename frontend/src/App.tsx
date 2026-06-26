@@ -23,9 +23,10 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import ProductForm from "./pages/admin/ProductForm";
 
-import DashboardRedirect from "./components/DashboardRedirect";
 import GlobalNetworkError from "./components/GlobalNetworkError";
 import ToastViewport from "./components/ToastViewport";
+
+import LandingPage from "./pages/LandingPage";
 
 function App() {
   return (
@@ -33,7 +34,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<DashboardRedirect />} />
+        <Route path="/" element={<LandingPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route
