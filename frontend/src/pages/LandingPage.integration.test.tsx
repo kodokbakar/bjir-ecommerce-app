@@ -150,10 +150,10 @@ describe("LandingPage", () => {
     );
     expect(screen.getByRole("link", { name: /email/i })).toHaveAttribute(
       "href",
-      "mailto:support@bjir-commerce.test",
+      "mailto:yudisbaek@gmail.com",
     );
     expect(
-      screen.getByText(`© ${new Date().getFullYear()} Bjir E-Commerce`),
+      screen.getByText(`© ${new Date().getFullYear()} Pratama Enterprise`),
     ).toBeInTheDocument();
   });
 
