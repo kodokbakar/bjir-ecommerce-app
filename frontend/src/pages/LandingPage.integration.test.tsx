@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../App";
 import { AuthContext, type AuthContextType } from "../hooks/useAuth";
+import { sendContactMessage } from "../services/contactService";
 import { listProducts } from "../services/productService";
 import { productFixtures, productListResponse } from "../test-utils/fixtures";
 import {
@@ -25,7 +26,19 @@ vi.mock("../services/productService", async () => {
   };
 });
 
+vi.mock("../services/contactService", async () => {
+  const actual = await vi.importActual<
+    typeof import("../services/contactService")
+  >("../services/contactService");
+
+  return {
+    ...actual,
+    sendContactMessage: vi.fn(),
+  };
+});
+
 const mockedListProducts = vi.mocked(listProducts);
+const mockedSendContactMessage = vi.mocked(sendContactMessage);
 
 function renderAppAtRoot(authOverrides: Partial<AuthContextType> = {}) {
   return render(
@@ -50,6 +63,7 @@ function renderAppAtRoot(authOverrides: Partial<AuthContextType> = {}) {
 describe("LandingPage", () => {
   beforeEach(() => {
     mockedListProducts.mockReset();
+    mockedSendContactMessage.mockReset();
   });
 
   it("renders the root landing page instead of redirecting to dashboard", async () => {
@@ -110,7 +124,7 @@ describe("LandingPage", () => {
       screen.getByRole("heading", { name: /garansi uang kembali/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: /need the shelf opened/i }),
+      screen.getByRole("heading", { name: /ada pertanyaan untuk toko/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/belanja cepat, stok jelas/i)).toBeInTheDocument();
 
@@ -225,6 +239,82 @@ describe("LandingPage", () => {
     ).toHaveAttribute("href", "/admin/dashboard");
   });
 
+  it("validates required contact form fields inline", async () => {
+    const user = userEvent.setup();
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+
+    renderAppAtRoot();
+
+    await user.click(screen.getByRole("button", { name: /kirim pesan/i }));
+
+    expect(screen.getByText("Nama wajib diisi.")).toBeInTheDocument();
+    expect(screen.getByText("Email wajib diisi.")).toBeInTheDocument();
+    expect(screen.getByText("Pesan wajib diisi.")).toBeInTheDocument();
+    expect(mockedSendContactMessage).not.toHaveBeenCalled();
+  });
+
+  it("validates contact email format inline", async () => {
+    const user = userEvent.setup();
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+
+    renderAppAtRoot();
+
+    await user.type(screen.getByLabelText(/^nama$/i), "Bintang");
+    await user.type(screen.getByLabelText(/^email$/i), "not-an-email");
+    await user.type(screen.getByLabelText(/^pesan$/i), "Tolong bantu pesanan.");
+    await user.click(screen.getByRole("button", { name: /kirim pesan/i }));
+
+    expect(
+      await screen.findByText("Format email tidak valid."),
+    ).toBeInTheDocument();
+    expect(mockedSendContactMessage).not.toHaveBeenCalled();
+  });
+
+  it("submits the contact form, resets fields, and shows a success toast", async () => {
+    const user = userEvent.setup();
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+    mockedSendContactMessage.mockResolvedValue();
+
+    renderAppAtRoot();
+
+    await user.type(screen.getByLabelText(/^nama$/i), "Bintang");
+    await user.type(screen.getByLabelText(/^email$/i), "bintang@example.test");
+    await user.type(
+      screen.getByLabelText(/^pesan$/i),
+      "Saya ingin bertanya soal produk.",
+    );
+
+    await user.click(screen.getByRole("button", { name: /kirim pesan/i }));
+
+    expect(mockedSendContactMessage).toHaveBeenCalledWith({
+      name: "Bintang",
+      email: "bintang@example.test",
+      message: "Saya ingin bertanya soal produk.",
+    });
+
+    expect(
+      await screen.findByText("Pesan berhasil dikirim"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/^nama$/i)).toHaveValue("");
+    expect(screen.getByLabelText(/^email$/i)).toHaveValue("");
+    expect(screen.getByLabelText(/^pesan$/i)).toHaveValue("");
+  });
+
+  it("shows an error toast when contact form submit fails", async () => {
+    const user = userEvent.setup();
+    mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
+    mockedSendContactMessage.mockRejectedValue(new Error("Contact API down"));
+
+    renderAppAtRoot();
+
+    await user.type(screen.getByLabelText(/^nama$/i), "Bintang");
+    await user.type(screen.getByLabelText(/^email$/i), "bintang@example.test");
+    await user.type(screen.getByLabelText(/^pesan$/i), "Butuh bantuan.");
+    await user.click(screen.getByRole("button", { name: /kirim pesan/i }));
+
+    expect(await screen.findByText("Contact API down")).toBeInTheDocument();
+  });
+
   it("loads featured products through the mocked product service", async () => {
     mockedListProducts.mockResolvedValue(productListResponse(productFixtures));
 
@@ -247,6 +337,17 @@ describe("LandingPage", () => {
       sort_by: "created_at",
       sort_order: "desc",
     });
+  });
+
+  vi.mock("../services/contactService", async () => {
+    const actual = await vi.importActual<
+      typeof import("../services/contactService")
+    >("../services/contactService");
+
+    return {
+      ...actual,
+      sendContactMessage: vi.fn(),
+    };
   });
 
   it("shows a safe featured product fallback when loading fails", async () => {

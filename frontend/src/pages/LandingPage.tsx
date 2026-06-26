@@ -18,7 +18,12 @@ import {
 } from "lucide-react";
 
 import ProductImage from "../components/ProductImage";
+import { useToast } from "../context/toast";
 import { useAuth } from "../hooks/useAuth";
+import {
+  getContactErrorMessage,
+  sendContactMessage,
+} from "../services/contactService";
 import { listProducts } from "../services/productService";
 import type { Product } from "../types/product";
 import { getDashboardPath } from "../utils/authRouting";
@@ -44,6 +49,22 @@ const FOOTER_SOCIAL_LINKS = [
     icon: Mail,
   },
 ];
+
+const CONTACT_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface ContactFormState {
+  name: string;
+  email: string;
+  message: string;
+}
+
+type ContactFormErrors = Partial<Record<keyof ContactFormState, string>>;
+
+const CONTACT_FORM_INITIAL_STATE: ContactFormState = {
+  name: "",
+  email: "",
+  message: "",
+};
 
 type FeaturedStatus = "loading" | "ready" | "error";
 
@@ -73,6 +94,12 @@ function LandingPage() {
     useState<FeaturedStatus>("loading");
   const [featuredError, setFeaturedError] = useState("");
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [contactForm, setContactForm] = useState<ContactFormState>(
+    CONTACT_FORM_INITIAL_STATE,
+  );
+  const [contactErrors, setContactErrors] = useState<ContactFormErrors>({});
+  const [isContactSubmitting, setIsContactSubmitting] = useState(false);
+  const { showToast } = useToast();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const dashboardPath = getDashboardPath(user);
@@ -136,6 +163,85 @@ function LandingPage() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMobileNavOpen]);
+
+  function validateContactForm(input: ContactFormState): ContactFormErrors {
+    const nextErrors: ContactFormErrors = {};
+
+    if (!input.name.trim()) {
+      nextErrors.name = "Nama wajib diisi.";
+    }
+
+    if (!input.email.trim()) {
+      nextErrors.email = "Email wajib diisi.";
+    } else if (!CONTACT_EMAIL_PATTERN.test(input.email.trim())) {
+      nextErrors.email = "Format email tidak valid.";
+    }
+
+    if (!input.message.trim()) {
+      nextErrors.message = "Pesan wajib diisi.";
+    }
+
+    return nextErrors;
+  }
+
+  function handleContactInputChange(
+    fieldName: keyof ContactFormState,
+    value: string,
+  ) {
+    setContactForm((currentForm) => ({
+      ...currentForm,
+      [fieldName]: value,
+    }));
+
+    setContactErrors((currentErrors) => {
+      if (!currentErrors[fieldName]) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[fieldName];
+      return nextErrors;
+    });
+  }
+
+  async function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const nextErrors = validateContactForm(contactForm);
+    setContactErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setIsContactSubmitting(true);
+
+    try {
+      await sendContactMessage({
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        message: contactForm.message.trim(),
+      });
+
+      setContactForm(CONTACT_FORM_INITIAL_STATE);
+      setContactErrors({});
+
+      showToast({
+        type: "success",
+        message: "Pesan berhasil dikirim",
+      });
+    } catch (error) {
+      showToast({
+        type: "error",
+        message: getContactErrorMessage(
+          error,
+          "Pesan gagal dikirim. Coba lagi nanti.",
+        ),
+      });
+    } finally {
+      setIsContactSubmitting(false);
+    }
+  }
 
   return (
     <main className="landing-page">
@@ -457,33 +563,121 @@ function LandingPage() {
         className="landing-contact"
         aria-labelledby="landing-contact-title"
       >
-        <div>
-          <span className="landing-eyebrow">Contact</span>
-          <h2 id="landing-contact-title">Need the shelf opened?</h2>
+        <div className="landing-contact-copy">
+          <span className="landing-eyebrow">Kontak Admin</span>
+          <h2 id="landing-contact-title">Ada pertanyaan untuk toko?</h2>
           <p>
-            Reach the store team for order support, admin access, or catalog
-            questions.
+            Kirim pesan ke admin untuk bantuan pesanan, katalog, atau akses
+            toko. Tim Bjir akan membaca pesanmu dari jalur support.
           </p>
+
+          <div className="landing-contact-list" aria-label="Kontak cepat">
+            <a href="mailto:support@bjir-commerce.test">
+              <Mail size={18} aria-hidden="true" />
+              support@bjir-commerce.test
+            </a>
+            <a href="tel:+62000000000">
+              <Phone size={18} aria-hidden="true" />
+              +62 000 0000 000
+            </a>
+            <span>
+              <MapPin size={18} aria-hidden="true" />
+              Indonesia storefront lab
+            </span>
+            <span>
+              <Truck size={18} aria-hidden="true" />
+              Fulfillment-ready catalog
+            </span>
+          </div>
         </div>
 
-        <div className="landing-contact-list">
-          <a href="mailto:support@bjir-commerce.test">
-            <Mail size={18} aria-hidden="true" />
-            support@bjir-commerce.test
-          </a>
-          <a href="tel:+62000000000">
-            <Phone size={18} aria-hidden="true" />
-            +62 000 0000 000
-          </a>
-          <span>
-            <MapPin size={18} aria-hidden="true" />
-            Indonesia storefront lab
-          </span>
-          <span>
-            <Truck size={18} aria-hidden="true" />
-            Fulfillment-ready catalog
-          </span>
-        </div>
+        <form
+          className="landing-contact-form"
+          onSubmit={handleContactSubmit}
+          noValidate
+        >
+          <div className="landing-form-field">
+            <label htmlFor="landing-contact-name">Nama</label>
+            <input
+              id="landing-contact-name"
+              type="text"
+              value={contactForm.name}
+              onChange={(event) =>
+                handleContactInputChange("name", event.target.value)
+              }
+              aria-invalid={Boolean(contactErrors.name)}
+              aria-describedby={
+                contactErrors.name ? "landing-contact-name-error" : undefined
+              }
+              disabled={isContactSubmitting}
+            />
+            {contactErrors.name && (
+              <p className="landing-form-error" id="landing-contact-name-error">
+                {contactErrors.name}
+              </p>
+            )}
+          </div>
+
+          <div className="landing-form-field">
+            <label htmlFor="landing-contact-email">Email</label>
+            <input
+              id="landing-contact-email"
+              type="email"
+              value={contactForm.email}
+              onChange={(event) =>
+                handleContactInputChange("email", event.target.value)
+              }
+              aria-invalid={Boolean(contactErrors.email)}
+              aria-describedby={
+                contactErrors.email ? "landing-contact-email-error" : undefined
+              }
+              disabled={isContactSubmitting}
+            />
+            {contactErrors.email && (
+              <p
+                className="landing-form-error"
+                id="landing-contact-email-error"
+              >
+                {contactErrors.email}
+              </p>
+            )}
+          </div>
+
+          <div className="landing-form-field">
+            <label htmlFor="landing-contact-message">Pesan</label>
+            <textarea
+              id="landing-contact-message"
+              rows={5}
+              value={contactForm.message}
+              onChange={(event) =>
+                handleContactInputChange("message", event.target.value)
+              }
+              aria-invalid={Boolean(contactErrors.message)}
+              aria-describedby={
+                contactErrors.message
+                  ? "landing-contact-message-error"
+                  : undefined
+              }
+              disabled={isContactSubmitting}
+            />
+            {contactErrors.message && (
+              <p
+                className="landing-form-error"
+                id="landing-contact-message-error"
+              >
+                {contactErrors.message}
+              </p>
+            )}
+          </div>
+
+          <button
+            className="landing-contact-submit"
+            type="submit"
+            disabled={isContactSubmitting}
+          >
+            {isContactSubmitting ? "Mengirim..." : "Kirim Pesan"}
+          </button>
+        </form>
       </section>
 
       <footer className="landing-footer">
