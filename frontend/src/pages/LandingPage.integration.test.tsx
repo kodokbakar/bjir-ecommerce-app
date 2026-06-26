@@ -91,8 +91,22 @@ describe("LandingPage", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: /built like a serious commerce console/i,
+        name: /belanja cepat, aman, tanpa drama/i,
       }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText(/etalase digital yang rapi/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /pengiriman cepat/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /pembayaran aman/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /produk original/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /garansi uang kembali/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: /need the shelf opened/i }),

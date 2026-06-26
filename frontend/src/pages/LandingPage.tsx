@@ -7,9 +7,9 @@ import {
   Mail,
   MapPin,
   Phone,
-  ShoppingBag,
+  RotateCcw,
+  ShieldCheck,
   Sparkles,
-  Store,
   Truck,
 } from "lucide-react";
 
@@ -266,34 +266,54 @@ function LandingPage() {
       </section>
 
       <section className="landing-about" aria-labelledby="landing-about-title">
-        <div>
-          <span className="landing-eyebrow">About</span>
-          <h2 id="landing-about-title">
-            Built like a serious commerce console.
-          </h2>
+        <div className="landing-about-story">
+          <span className="landing-eyebrow">Tentang Bjir</span>
+          <h2 id="landing-about-title">Belanja cepat, aman, tanpa drama.</h2>
+          <p>
+            Bjir E-Commerce dibuat sebagai etalase digital yang rapi, tegas, dan
+            langsung ke inti: pembeli bisa menemukan produk, melihat stok,
+            checkout, lalu memantau pesanan tanpa alur yang bertele-tele.
+          </p>
         </div>
 
-        <div className="landing-about-grid">
+        <div
+          className="landing-about-grid"
+          aria-label="Keunggulan Bjir E-Commerce"
+        >
           <article>
-            <ShoppingBag aria-hidden="true" />
-            <h3>Buyer flow</h3>
+            <Truck aria-hidden="true" />
+            <h3>Pengiriman Cepat</h3>
             <p>
-              Products, product details, cart quantity, checkout, and orders.
+              Pesanan diproses dengan alur yang jelas supaya barang lebih cepat
+              masuk antrean pengiriman.
             </p>
           </article>
 
           <article>
-            <Store aria-hidden="true" />
-            <h3>Admin shelf</h3>
+            <ShieldCheck aria-hidden="true" />
+            <h3>Pembayaran Aman</h3>
             <p>
-              Manage products, categories, order status, and dashboard stats.
+              Flow checkout dibuat terstruktur, dengan status pembayaran dan
+              pesanan yang mudah dipantau.
             </p>
           </article>
 
           <article>
             <BadgeCheck aria-hidden="true" />
-            <h3>Production-ready</h3>
-            <p>Auth routing, Railway deploy config, lazy images, and tests.</p>
+            <h3>Produk Original</h3>
+            <p>
+              Katalog menampilkan informasi produk, harga, gambar, dan stok
+              secara transparan.
+            </p>
+          </article>
+
+          <article>
+            <RotateCcw aria-hidden="true" />
+            <h3>Garansi Uang Kembali</h3>
+            <p>
+              Belanja lebih tenang dengan dukungan pengembalian dana sesuai
+              kebijakan toko.
+            </p>
           </article>
         </div>
       </section>

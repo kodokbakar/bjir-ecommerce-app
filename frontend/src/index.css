@@ -6956,18 +6956,33 @@ a.product-detail-category:hover {
   gap: 22px;
 }
 
+.landing-about-story {
+  display: grid;
+  gap: 14px;
+}
+
+.landing-about-story p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--color-brutal-ink);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.65;
+}
+
 .landing-about-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
 .landing-about-grid article {
   display: grid;
   gap: 10px;
+  min-width: 0;
   border: 2px solid var(--color-brutal-ink);
   background: var(--color-brutal-paper);
-  box-shadow: var(--shadow-brutal-small);
+  box-shadow: 4px 4px 0 var(--color-brutal-ink);
   padding: 16px;
 }
 
@@ -6985,6 +7000,8 @@ a.product-detail-category:hover {
   font-size: 20px;
   font-weight: 950;
   letter-spacing: -0.06em;
+  line-height: 0.95;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 
