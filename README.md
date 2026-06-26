@@ -1,36 +1,71 @@
 <div align="center">
 
-# Bjir E-Commerce API
+# Bjir E-Commerce
 
-A production-ready REST API backend for e-commerce platforms, built with clean architecture principles.
+**Sharp catalog. Hard shadows. No generic shelf.**
+
+A full-stack e-commerce platform with Go API backend and React frontend.  
+Brutalist design, clean architecture, production-ready.
 
 [![Go CI](https://github.com/kodokbakar/bjir-ecommerce-app/actions/workflows/ci.yml/badge.svg)](https://github.com/kodokbakar/bjir-ecommerce-app/actions/workflows/ci.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.26.3-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
 
 ---
 
+## Overview
+
+Monorepo containing a Go REST API backend (`internal/`) and a React SPA frontend (`frontend/`). The backend handles auth, products, categories, cart, orders, payments, and contact — all with RBAC. The frontend ships as a Vite SPA with landing page, product catalog, shopping cart, checkout flow, and admin dashboard.
+
+| Layer | Stack | Lines |
+|-------|-------|-------|
+| Backend (Go) | Gin + pgx + go-redis + golang-jwt | 22,801 |
+| Frontend (React) | React 19 + TypeScript 6 + Vite 8 | 13,140 |
+
+---
+
 ## Features
+
+### Backend
 
 | Feature | Description |
 |---------|-------------|
-| JWT Authentication | Access token with configurable expiry |
-| Role-Based Access Control | Customer & Admin role separation |
-| Category Management | CRUD with slug-based lookup |
-| Product Management | CRUD with categories, images, stock tracking |
+| JWT Auth | Access token with configurable expiry |
+| RBAC | Customer & Admin role separation |
+| Categories | CRUD with slug-based lookup |
+| Products | CRUD with categories, images, stock tracking |
 | Shopping Cart | Add, update, remove items with stock validation |
-| Order Management | Checkout flow with status tracking |
-| Mock Payment | Payment simulation with status lifecycle |
+| Orders | Checkout flow with status tracking |
+| Payments | Mock payment with status lifecycle |
+| Contact | Store contact message submission |
 | Search & Filter | Product search with category filters + pagination |
 | Redis Caching | Product listing cache with invalidation on writes |
-| Request Logging | Structured logging with slog, auto log-level |
-| Panic Recovery | Global error handler with JSON responses |
-| Input Validation | Request payload validation on all endpoints |
+| Structured Logging | slog with auto log-level |
+| Validation | Request payload validation on all endpoints |
 | Swagger Docs | Auto-generated OpenAPI documentation |
-| Docker Ready | Multi-stage build + docker-compose |
+| Docker | Multi-stage build + docker-compose |
 | CI/CD | GitHub Actions (go vet + go test) |
+
+### Frontend
+
+| Feature | Description |
+|---------|-------------|
+| Landing Page | Hero, featured products (8), about, contact form, footer |
+| Auth Pages | Login, register with role-aware redirect |
+| Product Catalog | Grid/list, search, category filter, pagination |
+| Product Detail | Image, price, stock state, add to cart |
+| Shopping Cart | Quantity update, remove, checkout |
+| Checkout | Address form, order summary, payment |
+| Order Management | Order list, detail, status tracking |
+| Dashboard | Role-aware: customer orders / admin panel |
+| Admin Panel | Products, categories, orders CRUD |
+| Responsive | 320px–1440px, hamburger menu, 44px touch targets |
+| SEO | Meta tags, OG/Twitter cards, JSON-LD, sitemap |
 
 ---
 
@@ -38,40 +73,79 @@ A production-ready REST API backend for e-commerce platforms, built with clean a
 
 | Layer | Technology |
 |-------|-----------|
-| Language | [Go 1.26.3](https://go.dev/) |
-| HTTP Router | [Gin](https://github.com/gin-gonic/gin) |
-| Database | [PostgreSQL 17](https://www.postgresql.org/) |
-| DB Driver | [pgx/v5](https://github.com/jackc/pgx) |
-| Cache | [Redis 7](https://redis.io/) via [go-redis/v9](https://github.com/redis/go-redis) |
-| Auth | [golang-jwt/v5](https://github.com/golang-jwt/jwt) + bcrypt |
-| Validation | [go-playground/validator](https://github.com/go-playground/validator) |
-| Docs | [Swaggo](https://github.com/swaggo/swag) (Swagger/OpenAPI) |
-| Migration | [golang-migrate](https://github.com/golang-migrate/migrate) |
-| Container | [Docker](https://www.docker.com/) (multi-stage, Alpine) |
-| CI | [GitHub Actions](https://github.com/features/actions) |
+| **Language** | [Go 1.26.3](https://go.dev/) |
+| **HTTP Router** | [Gin](https://github.com/gin-gonic/gin) |
+| **Database** | [PostgreSQL 17](https://www.postgresql.org/) |
+| **DB Driver** | [pgx/v5](https://github.com/jackc/pgx) |
+| **Cache** | [Redis 7](https://redis.io/) via [go-redis/v9](https://github.com/redis/go-redis) |
+| **Auth** | [golang-jwt/v5](https://github.com/golang-jwt/jwt) + bcrypt |
+| **Validation** | [go-playground/validator](https://github.com/go-playground/validator) |
+| **Docs** | [Swaggo](https://github.com/swaggo/swag) |
+| **Migration** | [golang-migrate](https://github.com/golang-migrate/migrate) |
+| **Container** | Docker (multi-stage, Alpine) |
+| | |
+| **Language** | [TypeScript 6](https://www.typescriptlang.org/) |
+| **UI Library** | [React 19](https://react.dev/) |
+| **Bundler** | [Vite 8](https://vite.dev/) |
+| **Styling** | Tailwind CSS 4 + custom brutalist CSS |
+| **Icons** | [Lucide React](https://lucide.dev/) |
+| **HTTP Client** | [Axios](https://axios-http.com/) |
+| **Routing** | [React Router 7](https://reactrouter.com/) |
+| **Testing** | [Vitest 4](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) |
+| **CI** | [GitHub Actions](https://github.com/features/actions) |
 
 ---
 
 ## Architecture
 
 ```
-cmd/server/main.go          Entry point, dependency wiring
-        │
-internal/
-├── router/                 Gin route registration
-├── middleware/              JWT, RBAC, recovery, request logger
-├── handlers/               HTTP request/response handlers
-├── services/               Business logic layer
-├── repository/             Database queries (pgx)
-├── models/                 Domain entities
-├── auth/                   JWT manager + password hashing
-├── config/                 Environment-based configuration
-├── database/               PostgreSQL + Redis connections
-├── response/               Standardized response helpers
-└── docs/                   Swagger generated code
+bjir-ecommerce-app/
+│
+├── cmd/server/main.go          Entry point, dependency wiring
+│
+├── internal/
+│   ├── router/                 Gin route registration
+│   ├── middleware/             JWT, RBAC, recovery, request logger
+│   ├── handlers/               HTTP request/response handlers
+│   ├── services/               Business logic layer
+│   ├── repository/             Database queries (pgx)
+│   ├── models/                 Domain entities
+│   ├── auth/                   JWT manager + password hashing
+│   ├── config/                 Environment-based configuration
+│   ├── database/               PostgreSQL + Redis connections
+│   ├── response/               Standardized response helpers
+│   └── docs/                   Swagger generated code
+│
+└── frontend/
+    ├── src/
+    │   ├── pages/              17 route pages (LandingPage, Products, Cart, etc.)
+    │   ├── components/         Reusable UI (ProductImage, Toast, Pagination, etc.)
+    │   ├── services/           API client layer per domain (auth, product, cart, etc.)
+    │   ├── hooks/              useAuth, useCartCount
+    │   ├── context/            AuthContext, ToastContext
+    │   └── utils/              formatRupiah, getStockState, authRouting, etc.
+    ├── public/                 Static assets: OG image, sitemap.xml, robots.txt
+    └── test/                   Test setup + vitest config
 ```
 
-Clean architecture: **Handler → Service → Repository → Database**. Each layer depends only on the layer below it.
+Clean architecture — **Handler → Service → Repository → Database**.  
+Frontend follows — **Page → Component → Service → API**.
+
+---
+
+## Landing Page
+
+The landing page ships as part of the SPA and covers the full customer journey:
+
+| Section | Notes |
+|---------|-------|
+| **Navbar** | Auth-aware desktop + mobile hamburger, Escape key |
+| **Hero** | Auth-aware CTAs, loading placeholders, entrance animation |
+| **Featured Products** | 8 newest from API, stock states (in/low/out), skeleton loading |
+| **About** | 4 value propositions (Pengiriman Cepat, Pembayaran Aman, etc.) |
+| **Contact Form** | Name/email/message, validation, toast feedback, POST `/v1/contact` |
+| **Footer** | Quick links, social links (GitHub, Email), copyright auto-year |
+| **SEO** | Meta tags, OG/Twitter cards, JSON-LD Structured Data, sitemap.xml |
 
 ---
 
@@ -82,9 +156,10 @@ Clean architecture: **Handler → Service → Repository → Database**. Each la
 - Go 1.26.3+
 - PostgreSQL 17+
 - Redis 7+
+- Node.js 22+
 - Docker & Docker Compose (recommended)
 
-### Quick Start (Docker)
+### Quick Start (Docker — Full Stack)
 
 ```bash
 git clone https://github.com/kodokbakar/bjir-ecommerce-app.git
@@ -93,37 +168,72 @@ docker compose up -d
 curl http://localhost:8080/health
 ```
 
+### Frontend Dev
+
+```bash
+cd frontend
+npm install
+npm run dev          # → http://localhost:5173
+npm run test:run     # 42 tests, 7 files
+```
+
+### Backend Dev
+
+```bash
+cp .env.example .env
+docker compose up -d postgres redis
+go mod download
+go run ./cmd/server  # → http://localhost:8080
+```
+
 ### Seeder
+
 ```bash
 go run cmd/seed/main.go
 ```
 
-### Manual Setup
+### Production Build
 
 ```bash
-git clone https://github.com/kodokbakar/bjir-ecommerce-app.git
-cd bjir-ecommerce-app
-cp .env.example .env
-docker compose up -d postgres redis
-go mod download
-go run ./cmd/server
+cd frontend
+npm run build          # → dist/
+npm run start          # serve on PORT
 ```
-
-Server starts at `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagger/index.html`.
 
 ### Deployment
 
-Live API: [https://bjir-ecommerce-app-production.up.railway.app](https://bjir-ecommerce-app-production.up.railway.app)
+Live API: [bjir-ecommerce-app-production.up.railway.app](https://bjir-ecommerce-app-production.up.railway.app)  
+Swagger UI: [bjir-ecommerce-app-production.up.railway.app/swagger/index.html](https://bjir-ecommerce-app-production.up.railway.app/swagger/index.html)  
+Frontend: [frontend-bjir-ecommerce-production.up.railway.app](https://frontend-bjir-ecommerce-production.up.railway.app) (root)
 
-Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.html](https://bjir-ecommerce-app-production.up.railway.app/swagger/index.html)
+---
+
+## Testing
+
+### Backend (Go)
+
+```bash
+go test ./...
+go test ./... -v
+go test ./... -coverprofile=coverage.out
+```
+
+10 packages — auth, config, database, handlers, middleware, repository, response, router, server, services.
+
+### Frontend (React)
+
+```bash
+cd frontend
+npm run test:run
+```
+
+7 test files — 42 tests total (unit + integration).
 
 ---
 
 ## API Reference
 
-### Endpoints
-
-#### System
+### System
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -131,20 +241,20 @@ Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.
 | `HEAD` | `/health` | No | Health check (HEAD) |
 | `GET` | `/swagger/*any` | No | Swagger UI |
 
-#### Authentication
+### Authentication
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `POST` | `/api/v1/auth/register` | No | Register new user |
 | `POST` | `/api/v1/auth/login` | No | Login & get JWT token |
 
-#### User
+### User
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET` | `/api/v1/me` | Yes | Get current user profile |
 
-#### Categories
+### Categories
 
 | Method | Endpoint | Auth | Role | Description |
 |--------|----------|------|------|-------------|
@@ -155,7 +265,7 @@ Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.
 | `PUT` | `/api/v1/categories/:id` | Yes | Admin | Update category |
 | `DELETE` | `/api/v1/categories/:id` | Yes | Admin | Delete category |
 
-#### Products
+### Products
 
 | Method | Endpoint | Auth | Role | Description |
 |--------|----------|------|------|-------------|
@@ -167,7 +277,7 @@ Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.
 | `PUT` | `/api/v1/products/:id` | Yes | Admin | Update product |
 | `DELETE` | `/api/v1/products/:id` | Yes | Admin | Delete product |
 
-#### Cart
+### Cart
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -176,7 +286,7 @@ Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.
 | `PUT` | `/api/v1/cart/items/:id` | Yes | Update cart item quantity |
 | `DELETE` | `/api/v1/cart/items/:id` | Yes | Remove cart item |
 
-#### Orders
+### Orders
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -185,13 +295,19 @@ Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.
 | `GET` | `/api/v1/orders/:id` | Yes | Get order detail |
 | `PATCH` | `/api/v1/admin/orders/:id/status` | Yes (Admin) | Update order status |
 
-#### Payments
+### Payments
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `POST` | `/api/v1/payments/pay` | Yes | Mock payment |
 
-### Error Response Format
+### Contact
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/v1/contact` | No | Submit contact message |
+
+### Error Response
 
 ```json
 {
@@ -218,21 +334,17 @@ Swagger UI: [https://bjir-ecommerce-app-production.up.railway.app/swagger/index.
 
 ## Database
 
-### ER Diagram
-
 ```
 users ─────┬──────── categories
-           │              │
-           │           products
-           │              │
-         carts ───────────┘
-           │
-         orders ──── order_items
-           │
-         payments
+            │              │
+            │           products
+            │              │
+          carts ───────────┘
+            │
+          orders ──── order_items
+            │
+          payments
 ```
-
-### Tables
 
 | Table | Description |
 |-------|-------------|
@@ -254,6 +366,28 @@ pending → paid → shipped → delivered
 
 ---
 
+## Ponytail Notes
+
+Intentional ceilings — things we chose not to build yet.
+
+| Area | Ceiling | Upgrade Path |
+|------|---------|-------------|
+| **i18n** | Indonesian only (landing, SEO, contact) | react-helmet-async for dynamic meta, i18n for EN |
+| **SSR/SSG** | Vite static SPA | Next.js/Remix for product page SEO |
+| **CMS** | Hardcoded landing content | CMS integration for dynamic sections |
+| **OG Image** | Static SVG | Dynamic OG per page (@vercel/og) |
+| **Pagination** | Landing: 8 items, no pagination | Full pagination if landing becomes secondary catalog |
+| **Animations** | CSS keyframes only | Framer Motion / GSAP for complex sequences |
+| **Carousel** | Static hero, no slider | Carousel on desgin request |
+| **Image Opt** | Single srcset | `<picture>` + multiple densities |
+| **State Mgmt** | React context, no Redux | Zustand/Redux if cross-component state grows |
+| **API Pagination** | cursor-based on orders, offset on products | Unify to cursor-based |
+| **Rate Limiting** | Not implemented | Middleware + Redis rate limiter |
+| **Email** | Not implemented | Mailgun/SendGrid for order confirmations |
+| **File Upload** | Local filesystem | S3/GCS for production |
+
+---
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and configure:
@@ -265,47 +399,14 @@ Copy `.env.example` to `.env` and configure:
 | `DB_HOST` | `localhost` | PostgreSQL host |
 | `DB_PORT` | `5432` | PostgreSQL port |
 | `DB_USER` | `postgres` | PostgreSQL user |
-| `DB_PASSWORD` | *(required)* | PostgreSQL password |
+| `DB_PASSWORD` | _(required)_ | PostgreSQL password |
 | `DB_NAME` | `go_ecommerce_api` | Database name |
-| `DB_SSLMODE` | `disable` | SSL mode |
 | `REDIS_HOST` | `localhost` | Redis host |
 | `REDIS_PORT` | `6379` | Redis port |
-| `REDIS_PASSWORD` | *(empty)* | Redis password |
-| `JWT_SECRET` | *(required)* | JWT signing secret |
+| `JWT_SECRET` | _(required)_ | JWT signing secret |
 | `JWT_EXPIRES_IN` | `24h` | Token expiry duration |
-| `JWT_ISSUER` | `go-ecommerce-api` | Token issuer claim |
 
-> Full list of connection pool and timeout variables available in `.env.example`.
-
----
-
-## Testing
-
-```bash
-# Run all tests
-go test ./...
-
-# Run with verbose output
-go test ./... -v
-
-# Run with coverage report
-go test ./... -coverprofile=coverage.out
-go tool cover -html=coverage.out -o coverage.html
-```
-
-### Test Coverage
-
-| Package | Tests |
-|---------|-------|
-| `internal/auth` | JWT generation & validation |
-| `internal/config` | Config loading |
-| `internal/database` | Connection setup |
-| `internal/handlers` | Auth, category, product, cart, order, payment handlers |
-| `internal/middleware` | Auth, RBAC, recovery, request logger |
-| `internal/repository` | User, category, product, cart, order, payment repositories |
-| `internal/response` | Response format helpers |
-| `internal/router` | Route registration + unknown routes |
-| `internal/services` | Auth, category, product, cart, order, payment services |
+Full list of connection pool and timeout variables in `.env.example`.
 
 ---
 
@@ -346,6 +447,13 @@ docker run -p 8080:8080 \
 
 ---
 
+## Contributors
+
+- [@kodokbakar](https://github.com/kodokbakar) — Backend Developer, DevOps, Frontend Developer, Everything On This project
+- [@bintangrobbany](https://github.com/bintangrobbany) — Frontend Developer
+
+---
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
@@ -354,6 +462,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-[@kodokbakar](https://github.com/kodokbakar)
+[@kodokbakar](https://github.com/kodokbakar) · [@bintangrobbany](https://github.com/bintangrobbany)
 
 </div>
