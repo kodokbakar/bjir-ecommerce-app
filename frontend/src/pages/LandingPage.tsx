@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BadgeCheck,
+  Code2,
   Grid2X2,
   Mail,
   MapPin,
   Phone,
   RotateCcw,
   ShieldCheck,
+  ShoppingCart,
   Sparkles,
   Truck,
 } from "lucide-react";
@@ -21,6 +23,25 @@ import { getDashboardPath } from "../utils/authRouting";
 import { formatRupiah, getProductImage, getStockState } from "../utils/product";
 
 const FEATURED_LIMIT = 8;
+
+const FOOTER_QUICK_LINKS = [
+  { label: "Produk", to: "/products" },
+  { label: "Pesanan Saya", to: "/orders" },
+  { label: "Keranjang", to: "/cart" },
+];
+
+const FOOTER_SOCIAL_LINKS = [
+  {
+    label: "GitHub",
+    href: "https://github.com/kodokbakar/bjir-ecommerce-app",
+    icon: Code2,
+  },
+  {
+    label: "Email",
+    href: "mailto:support@bjir-commerce.test",
+    icon: Mail,
+  },
+];
 
 type FeaturedStatus = "loading" | "ready" | "error";
 
@@ -58,6 +79,7 @@ function LandingPage() {
   const secondaryHeroLabel = isAuthenticated
     ? "Lanjut Belanja"
     : "Daftar Sekarang";
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     let isActive = true;
@@ -352,8 +374,60 @@ function LandingPage() {
       </section>
 
       <footer className="landing-footer">
-        <strong>Bjir E-Commerce</strong>
-        <span>Sharp catalog. Hard shadows. No generic shelf.</span>
+        <div className="landing-footer-separator" aria-hidden="true" />
+
+        <div className="landing-footer-main">
+          <div className="landing-footer-brand">
+            <span className="landing-footer-mark" aria-hidden="true">
+              <ShoppingCart size={22} />
+            </span>
+            <div>
+              <strong>Bjir E-Commerce</strong>
+              <p>Belanja cepat, stok jelas, checkout tanpa drama.</p>
+            </div>
+          </div>
+
+          <nav className="landing-footer-nav" aria-label="Footer quick links">
+            <h2>Quick Links</h2>
+            <div>
+              {FOOTER_QUICK_LINKS.map((link) => (
+                <Link to={link.to} key={link.to}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
+
+          <nav className="landing-footer-nav" aria-label="Footer social links">
+            <h2>Social</h2>
+            <div>
+              {FOOTER_SOCIAL_LINKS.map((link) => {
+                const Icon = link.icon;
+
+                return (
+                  <a
+                    href={link.href}
+                    key={link.href}
+                    target={link.href.startsWith("http") ? "_blank" : undefined}
+                    rel={
+                      link.href.startsWith("http")
+                        ? "noreferrer noopener"
+                        : undefined
+                    }
+                  >
+                    <Icon size={16} aria-hidden="true" />
+                    {link.label}
+                  </a>
+                );
+              })}
+            </div>
+          </nav>
+        </div>
+
+        <div className="landing-footer-bottom">
+          <span>© {currentYear} Bjir E-Commerce</span>
+          <span>Built with brutalist commerce energy.</span>
+        </div>
       </footer>
     </main>
   );

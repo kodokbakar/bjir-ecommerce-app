@@ -111,7 +111,35 @@ describe("LandingPage", () => {
     expect(
       screen.getByRole("heading", { name: /need the shelf opened/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/sharp catalog/i)).toBeInTheDocument();
+    expect(screen.getByText(/belanja cepat, stok jelas/i)).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("navigation", { name: /footer quick links/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^produk$/i })).toHaveAttribute(
+      "href",
+      "/products",
+    );
+    expect(screen.getByRole("link", { name: /pesanan saya/i })).toHaveAttribute(
+      "href",
+      "/orders",
+    );
+    expect(screen.getByRole("link", { name: /keranjang/i })).toHaveAttribute(
+      "href",
+      "/cart",
+    );
+
+    expect(screen.getByRole("link", { name: /github/i })).toHaveAttribute(
+      "href",
+      "https://github.com/kodokbakar/bjir-ecommerce-app",
+    );
+    expect(screen.getByRole("link", { name: /email/i })).toHaveAttribute(
+      "href",
+      "mailto:support@bjir-commerce.test",
+    );
+    expect(
+      screen.getByText(`© ${new Date().getFullYear()} Bjir E-Commerce`),
+    ).toBeInTheDocument();
   });
 
   it("shows hero loading placeholders while auth state is loading", () => {
